@@ -41,6 +41,8 @@ import com.ismartcoding.plain.db.AppDatabase
 import com.ismartcoding.plain.db.DPeer
 import com.ismartcoding.plain.preferences.UpdateInfoPreference
 import com.ismartcoding.plain.services.HttpServerService
+import com.ismartcoding.plain.services.LiveCameraService
+import com.ismartcoding.plain.services.LiveMicService
 import com.ismartcoding.plain.ui.models.FolderOption
 import com.ismartcoding.plain.web.AuthRequest
 import com.ismartcoding.plain.web.models.toModel
@@ -51,6 +53,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeoutOrNull
+import androidx.core.content.ContextCompat
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -278,7 +281,7 @@ object AppEvents {
                         coIO {
                             while (retry > 0) {
                                 try {
-                                    androidx.core.content.ContextCompat.startForegroundService(
+                                    ContextCompat.startForegroundService(
                                         context,
                                         Intent(context, HttpServerService::class.java)
                                     )
@@ -288,6 +291,42 @@ object AppEvents {
                                     delay(500)
                                     retry--
                                 }
+                            }
+                        }
+                    }
+
+                    is StartLiveCameraEvent -> {
+                        val context = MainApp.instance
+                        coIO {
+                            if (!Permission.CAMERA.can(context)) {
+                                LogCat.e("StartLiveCameraEvent: camera permission not granted")
+                                return@coIO
+                            }
+                            try {
+                                ContextCompat.startForegroundService(
+                                    context,
+                                    Intent(context, LiveCameraService::class.java).putExtra("facing", event.facing),
+                                )
+                            } catch (ex: Exception) {
+                                LogCat.e("StartLiveCameraEvent: ${ex.message}")
+                            }
+                        }
+                    }
+
+                    is StartLiveMicEvent -> {
+                        val context = MainApp.instance
+                        coIO {
+                            if (!Permission.RECORD_AUDIO.can(context)) {
+                                LogCat.e("StartLiveMicEvent: record audio permission not granted")
+                                return@coIO
+                            }
+                            try {
+                                ContextCompat.startForegroundService(
+                                    context,
+                                    Intent(context, LiveMicService::class.java),
+                                )
+                            } catch (ex: Exception) {
+                                LogCat.e("StartLiveMicEvent: ${ex.message}")
                             }
                         }
                     }
