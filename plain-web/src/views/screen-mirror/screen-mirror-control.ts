@@ -1,0 +1,392 @@
+import { ref, onUnmounted, type Ref } from 'vue'
+import { gqlFetch } from '@/lib/api/gql-client'
+import { sendScreenMirrorControlGQL } from '@/lib/api/mutation'
+
+/**
+ * Control actions sent to the Android app.
+ * - tap: single tap at (x, y)
+ * - long_press: long press at (x, y) with duration
+ * - swipe: swipe from (x, y) to (endX, endY) with duration
+ * - scroll: scroll at (x, y) with delta
+ * - back / home / recents / lock_screen: global navigation actions
+ * - key: send a key event
+ *
+ * Coordinates are normalized to [0, 1] relative to the video resolution.
+ */
+
+export interface ScreenMirrorControlEvent {
+  action: ScreenMirrorControlAction
+  x?: number
+  y?: number
+  endX?: number
+  endY?: number
+  duration?: number
+  deltaX?: number
+  deltaY?: number
+  key?: string
+}
+
+export type ScreenMirrorControlAction =
+  | 'TAP'
+  | 'LONG_PRESS'
+  | 'SWIPE'
+  | 'SCROLL'
+  | 'BACK'
+  | 'HOME'
+  | 'RECENTS'
+  | 'LOCK_SCREEN'
+  | 'KEY'
+
+function sendControl(event: ScreenMirrorControlEvent) {
+  gqlFetch(sendScreenMirrorControlGQL, { input: event }).catch((error) => {
+    console.error('Failed to send screen mirror control:', error)
+  })
+}
+
+/**
+ * Given a pointer event on an overlay that covers the <video> element,
+ * compute the normalized [0,1] coordinates relative to the actual video content
+ * (accounting for letterboxing from object-fit: contain).
+ */
+function normalizeCoords(
+  clientX: number,
+  clientY: number,
+  videoEl: HTMLVideoElement
+): { x: number; y: number } | null {
+  const rect = videoEl.getBoundingClientRect()
+  const videoWidth = videoEl.videoWidth
+  const videoHeight = videoEl.videoHeight
+  if (!videoWidth || !videoHeight) return null
+
+  const containerW = rect.width
+  const containerH = rect.height
+  const containerAspect = containerW / containerH
+  const videoAspect = videoWidth / videoHeight
+
+  let renderW: number, renderH: number, offsetX: number, offsetY: number
+
+  if (videoAspect > containerAspect) {
+    // Letterboxed top/bottom
+    renderW = containerW
+    renderH = containerW / videoAspect
+    offsetX = 0
+    offsetY = (containerH - renderH) / 2
+  } else {
+    // Pillarboxed left/right
+    renderH = containerH
+    renderW = containerH * videoAspect
+    offsetX = (containerW - renderW) / 2
+    offsetY = 0
+  }
+
+  const localX = clientX - rect.left - offsetX
+  const localY = clientY - rect.top - offsetY
+
+  if (localX < 0 || localX > renderW || localY < 0 || localY > renderH) {
+    return null // Outside video content area
+  }
+
+  return {
+    x: Math.max(0, Math.min(1, localX / renderW)),
+    y: Math.max(0, Math.min(1, localY / renderH)),
+  }
+}
+
+const LONG_PRESS_THRESHOLD = 500 // ms
+const SWIPE_THRESHOLD = 10 // px movement to consider as swipe
+
+interface GestureState {
+  startX: number
+  startY: number
+  startClientX: number
+  startClientY: number
+  startTime: number
+  longPressTimer: ReturnType<typeof setTimeout> | null
+  isLongPress: boolean
+  pointerId: number
+}
+
+/**
+ * Composable that manages screen mirror control input on a transparent overlay.
+ *
+ * @param videoRef - Ref to the <video> element (for coordinate normalization)
+ * @param enabled - Ref<boolean> indicating if control mode is on
+ */
+// ---- Touch indicator helpers ----
+
+function createTouchIndicator(container: HTMLElement): HTMLElement {
+  const dot = document.createElement('div')
+  dot.className = 'touch-indicator'
+  container.appendChild(dot)
+  return dot
+}
+
+function positionIndicator(dot: HTMLElement, x: number, y: number) {
+  dot.style.left = `${x}px`
+  dot.style.top = `${y}px`
+}
+
+function showIndicator(dot: HTMLElement, x: number, y: number) {
+  positionIndicator(dot, x, y)
+  dot.classList.remove('touch-indicator--fade-out')
+  dot.classList.add('touch-indicator--active')
+}
+
+function hideIndicator(dot: HTMLElement, isTap: boolean) {
+  if (isTap) {
+    // On tap: quick ripple then fade
+    dot.classList.add('touch-indicator--ripple')
+  }
+  dot.classList.remove('touch-indicator--active')
+  dot.classList.add('touch-indicator--fade-out')
+  const onEnd = () => {
+    dot.classList.remove('touch-indicator--fade-out', 'touch-indicator--ripple')
+    dot.removeEventListener('transitionend', onEnd)
+  }
+  dot.addEventListener('transitionend', onEnd, { once: true })
+}
+
+// ---- Composable ----
+
+export function useScreenMirrorControl(
+  videoRef: Ref<HTMLVideoElement | undefined>,
+  enabled: Ref<boolean>
+) {
+  const overlayRef = ref<HTMLDivElement>()
+  let gesture: GestureState | null = null
+  let touchDot: HTMLElement | null = null
+
+  // Compute local position (relative to overlay) from client coords
+  const localPos = (clientX: number, clientY: number): { lx: number; ly: number } | null => {
+    const el = overlayRef.value
+    if (!el) return null
+    const rect = el.getBoundingClientRect()
+    return { lx: clientX - rect.left, ly: clientY - rect.top }
+  }
+
+  const onPointerDown = (e: PointerEvent) => {
+    if (!enabled.value) return
+    const video = videoRef.value
+    if (!video) return
+
+    const coords = normalizeCoords(e.clientX, e.clientY, video)
+    if (!coords) return
+
+    e.preventDefault()
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+
+    gesture = {
+      startX: coords.x,
+      startY: coords.y,
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startTime: Date.now(),
+      longPressTimer: null,
+      isLongPress: false,
+      pointerId: e.pointerId,
+    }
+
+    // Show touch indicator
+    const pos = localPos(e.clientX, e.clientY)
+    if (pos && touchDot) {
+      showIndicator(touchDot, pos.lx, pos.ly)
+    }
+
+    // Start long press detection
+    gesture.longPressTimer = setTimeout(() => {
+      if (gesture) {
+        gesture.isLongPress = true
+        // Grow indicator to signal long press
+        touchDot?.classList.add('touch-indicator--long-press')
+        sendControl({
+          action: 'LONG_PRESS',
+          x: gesture.startX,
+          y: gesture.startY,
+          duration: LONG_PRESS_THRESHOLD,
+        })
+      }
+    }, LONG_PRESS_THRESHOLD)
+  }
+
+  const onPointerMove = (e: PointerEvent) => {
+    if (!gesture || !enabled.value) return
+
+    const dx = e.clientX - gesture.startClientX
+    const dy = e.clientY - gesture.startClientY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // Move the touch indicator to follow the pointer
+    const pos = localPos(e.clientX, e.clientY)
+    if (pos && touchDot) {
+      positionIndicator(touchDot, pos.lx, pos.ly)
+    }
+
+    // If moved beyond threshold, cancel long press detection
+    if (distance > SWIPE_THRESHOLD && gesture.longPressTimer) {
+      clearTimeout(gesture.longPressTimer)
+      gesture.longPressTimer = null
+      // Add dragging visual state
+      touchDot?.classList.add('touch-indicator--dragging')
+    }
+  }
+
+  const onPointerUp = (e: PointerEvent) => {
+    if (!gesture || !enabled.value) return
+    const video = videoRef.value
+    if (!video) {
+      gesture = null
+      return
+    }
+
+    // Clear long press timer
+    if (gesture.longPressTimer) {
+      clearTimeout(gesture.longPressTimer)
+      gesture.longPressTimer = null
+    }
+
+    const dx = e.clientX - gesture.startClientX
+    const dy = e.clientY - gesture.startClientY
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    const duration = Date.now() - gesture.startTime
+
+    // Hide touch indicator
+    const isTap = !gesture.isLongPress && distance <= SWIPE_THRESHOLD
+    if (touchDot) {
+      touchDot.classList.remove('touch-indicator--dragging', 'touch-indicator--long-press')
+      hideIndicator(touchDot, isTap)
+    }
+
+    if (gesture.isLongPress) {
+      // Already sent long_press on timer
+    } else if (distance > SWIPE_THRESHOLD) {
+      // Swipe
+      const endCoords = normalizeCoords(e.clientX, e.clientY, video)
+      if (endCoords) {
+        sendControl({
+          action: 'SWIPE',
+          x: gesture.startX,
+          y: gesture.startY,
+          endX: endCoords.x,
+          endY: endCoords.y,
+          duration: Math.max(duration, 100),
+        })
+      }
+    } else {
+      // Tap
+      sendControl({
+        action: 'TAP',
+        x: gesture.startX,
+        y: gesture.startY,
+      })
+    }
+
+    gesture = null
+  }
+
+  const onPointerCancel = () => {
+    if (gesture?.longPressTimer) {
+      clearTimeout(gesture.longPressTimer)
+    }
+    if (touchDot) {
+      touchDot.classList.remove('touch-indicator--dragging', 'touch-indicator--long-press')
+      hideIndicator(touchDot, false)
+    }
+    gesture = null
+  }
+
+  const onWheel = (e: WheelEvent) => {
+    if (!enabled.value) return
+    const video = videoRef.value
+    if (!video) return
+
+    const coords = normalizeCoords(e.clientX, e.clientY, video)
+    if (!coords) return
+
+    e.preventDefault()
+
+    sendControl({
+      action: 'SCROLL',
+      x: coords.x,
+      y: coords.y,
+      deltaX: e.deltaX,
+      deltaY: e.deltaY,
+    })
+  }
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!enabled.value) return
+
+    let handled = true
+    switch (e.key) {
+      case 'Escape':
+      case 'Backspace':
+        sendControl({ action: 'BACK' })
+        break
+      case 'Home':
+        sendControl({ action: 'HOME' })
+        break
+      default:
+        handled = false
+    }
+
+    if (handled) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
+  const attachOverlay = (el: HTMLDivElement | undefined) => {
+    // Clean up previous dot
+    if (touchDot && touchDot.parentElement) {
+      touchDot.parentElement.removeChild(touchDot)
+      touchDot = null
+    }
+    overlayRef.value = el
+    if (el) {
+      touchDot = createTouchIndicator(el)
+    }
+  }
+
+  const setupListeners = () => {
+    const el = overlayRef.value
+    if (!el) return
+
+    el.addEventListener('pointerdown', onPointerDown)
+    el.addEventListener('pointermove', onPointerMove)
+    el.addEventListener('pointerup', onPointerUp)
+    el.addEventListener('pointercancel', onPointerCancel)
+    el.addEventListener('wheel', onWheel, { passive: false })
+    el.addEventListener('keydown', onKeyDown)
+  }
+
+  const removeListeners = () => {
+    const el = overlayRef.value
+    if (!el) return
+
+    el.removeEventListener('pointerdown', onPointerDown)
+    el.removeEventListener('pointermove', onPointerMove)
+    el.removeEventListener('pointerup', onPointerUp)
+    el.removeEventListener('pointercancel', onPointerCancel)
+    el.removeEventListener('wheel', onWheel)
+    el.removeEventListener('keydown', onKeyDown)
+  }
+
+  onUnmounted(() => {
+    removeListeners()
+    if (gesture?.longPressTimer) {
+      clearTimeout(gesture.longPressTimer)
+    }
+    if (touchDot && touchDot.parentElement) {
+      touchDot.parentElement.removeChild(touchDot)
+      touchDot = null
+    }
+  })
+
+  return {
+    overlayRef,
+    attachOverlay,
+    setupListeners,
+    removeListeners,
+    sendControl,
+  }
+}
