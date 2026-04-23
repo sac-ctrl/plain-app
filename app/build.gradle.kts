@@ -230,6 +230,7 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.foundation.layout)
     implementation(libs.compose.material)
+    implementation(libs.compose.material.icons.extended)
     implementation(libs.compose.material3)
     // https://developer.android.com/jetpack/androidx/releases/navigation
     implementation(libs.compose.navigation)
