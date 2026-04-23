@@ -23,17 +23,37 @@ fun SchemaBuilder.addPomodoroSchema() {
         resolver { ->
             val dao = AppDatabase.instance.pomodoroItemDao()
             val today = TimeHelper.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
-            val vm = MainActivity.instance.get()!!.pomodoroVM
-            PomodoroToday(
-                date = today,
-                completedCount = vm.completedCount.intValue,
-                currentRound = vm.currentRound.intValue,
-                timeLeft = vm.timeLeft.intValue,
-                totalTime = vm.settings.value.getTotalSeconds(vm.currentState.value),
-                isRunning = vm.isRunning.value,
-                isPause = vm.isPaused.value,
-                state = vm.currentState.value
-            )
+            val activity = MainActivity.instance.get()
+            val vm = activity?.pomodoroVM
+            if (vm != null) {
+                PomodoroToday(
+                    date = today,
+                    completedCount = vm.completedCount.intValue,
+                    currentRound = vm.currentRound.intValue,
+                    timeLeft = vm.timeLeft.intValue,
+                    totalTime = vm.settings.value.getTotalSeconds(vm.currentState.value),
+                    isRunning = vm.isRunning.value,
+                    isPause = vm.isPaused.value,
+                    state = vm.currentState.value
+                )
+            } else {
+                // Activity not alive yet (e.g. server started by boot/watchdog before user opened the app).
+                // Return a safe snapshot built from persisted settings + DB so the web panel still loads.
+                val settings = PomodoroSettingsPreference.getValueAsync(MainApp.instance)
+                val state = com.ismartcoding.plain.ui.page.pomodoro.PomodoroState.WORK
+                val totalSeconds = settings.getTotalSeconds(state)
+                val completed = dao.getByDate(today)?.completedCount ?: 0
+                PomodoroToday(
+                    date = today,
+                    completedCount = completed,
+                    currentRound = 1,
+                    timeLeft = totalSeconds,
+                    totalTime = totalSeconds,
+                    isRunning = false,
+                    isPause = false,
+                    state = state,
+                )
+            }
         }
     }
     mutation("startPomodoro") {

@@ -47,8 +47,10 @@ fun SchemaBuilder.addPackageSchema() {
     mutation("uninstallPackages") {
         resolver { ids: List<ID> ->
             Permissions.checkAsync(MainApp.instance, setOf(Permission.QUERY_ALL_PACKAGES))
+            val activity = MainActivity.instance.get()
+                ?: throw GraphQLError("PlainApp is not open on the device. Open the app once after reboot to uninstall packages.")
             ids.forEach {
-                PackageHelper.uninstall(MainActivity.instance.get()!!, it.value)
+                PackageHelper.uninstall(activity, it.value)
             }
             true
         }
@@ -62,7 +64,8 @@ fun SchemaBuilder.addPackageSchema() {
             }
 
             try {
-                val context = MainActivity.instance.get()!!
+                val context = MainActivity.instance.get()
+                    ?: throw GraphQLError("PlainApp is not open on the device. Open the app once after reboot to install packages.")
                 if (file.name.endsWith(".apk", ignoreCase = true)) {
                     LogCat.d("Installing APK file: ${file.name}")
                     val apkMeta = ApkParsers.getMetaInfo(file)

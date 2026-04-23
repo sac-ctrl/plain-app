@@ -50,7 +50,11 @@ fun SchemaBuilder.addCallSchema() {
     mutation("call") {
         resolver { number: String ->
             Permission.CALL_PHONE.checkAsync(MainApp.instance)
-            CallMediaStoreHelper.call(MainActivity.instance.get()!!, number)
+            val activity = MainActivity.instance.get()
+                ?: throw com.ismartcoding.lib.kgraphql.GraphQLError(
+                    "PlainApp is not open on the device. Open the app once after reboot to enable phone calls."
+                )
+            CallMediaStoreHelper.call(activity, number)
             true
         }
     }
