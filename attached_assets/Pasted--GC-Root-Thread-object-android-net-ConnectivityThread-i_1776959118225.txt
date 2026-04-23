@@ -1,0 +1,67 @@
+┬───
+│ GC Root: Thread object
+│
+├─ android.net.ConnectivityThread instance
+│    Leaking: NO (PathClassLoader↓ is not leaking)
+│    Thread name: 'ConnectivityThread'
+│    ↓ Thread.contextClassLoader
+├─ dalvik.system.PathClassLoader instance
+│    Leaking: NO (Permissions↓ is not leaking and A ClassLoader is never
+│    leaking)
+│    ↓ ClassLoader.runtimeInternalObjects
+├─ java.lang.Object[] array
+│    Leaking: NO (Permissions↓ is not leaking)
+│    ↓ Object[3861]
+├─ com.ismartcoding.plain.features.Permissions class
+│    Leaking: NO (a class is never leaking)
+│    ↓ static Permissions.multipleLauncher
+│                         ~~~~~~~~~~~~~~~~
+├─ androidx.activity.result.ActivityResultRegistry$register$2 instance
+│    Leaking: UNKNOWN
+│    Retaining 28 B in 2 objects
+│    Anonymous subclass of androidx.activity.result.ActivityResultLauncher
+│    ↓ ActivityResultRegistry$register$2.this$0
+│                                        ~~~~~~
+├─ androidx.activity.ComponentActivity$activityResultRegistry$1 instance
+│    Leaking: UNKNOWN
+│    Retaining 916.4 kB in 21479 objects
+│    Anonymous subclass of androidx.activity.result.ActivityResultRegistry
+│    this$0 instance of com.ismartcoding.plain.ui.MainActivity with mDestroyed
+│    = true
+│    ↓ ComponentActivity$activityResultRegistry$1.this$0
+│                                                 ~~~~~~
+╰→ com.ismartcoding.plain.ui.MainActivity instance
+​     Leaking: YES (ObjectWatcher was watching this because com.ismartcoding.
+​     plain.ui.MainActivity received Activity#onDestroy() callback and
+​     Activity#mDestroyed is true)
+​     Retaining 915.0 kB in 21464 objects
+​     key = e96bc95c-25ca-4910-b9c1-4d02bf14b53c
+​     watchDurationMillis = 5690
+​     retainedDurationMillis = 688
+​     mApplication instance of com.ismartcoding.plain.MainApp
+​     mBase instance of androidx.appcompat.view.ContextThemeWrapper
+
+METADATA
+
+Build.VERSION.SDK_INT: 35
+Build.MANUFACTURER: INFINIX
+LeakCanary version: 2.14
+App process name: com.ismartcoding.plain.debug
+Class count: 53432
+Instance count: 1337331
+Primitive array count: 307870
+Object array count: 161712
+Thread count: 85
+Heap total bytes: 85954725
+Bitmap count: 24
+Bitmap total bytes: 120292
+Large bitmap count: 0
+Large bitmap total bytes: 0
+Db 1: open /data/user/0/com.ismartcoding.plain.debug/no_backup/androidx.work.
+workdb
+Db 2: open /data/user/0/com.ismartcoding.plain.debug/databases/plain.db
+Count of retained yet cleared: 2 KeyedWeakReference instances
+Stats: LruCache[maxSize=3000,hits=290047,misses=574737,hitRate=33%]
+RandomAccess[bytes=27782381,reads=574737,travel=568470256176,range=104589095,siz
+e=129223230]
+Analysis duration: 154744 ms
