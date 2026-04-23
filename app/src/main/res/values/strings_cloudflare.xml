@@ -10,6 +10,7 @@
     <string name="cloudflare_tunnel_token_help">Get a token: Cloudflare Zero Trust → Networks → Tunnels → Create a tunnel → copy the token shown for the Docker / installer command.</string>
     <string name="cloudflare_tunnel_hostname">Public hostname</string>
     <string name="cloudflare_tunnel_hostname_help">In your tunnel\'s Public Hostname settings, point your subdomain (e.g. phone.shakti.buzz) to service http://localhost:8080 (use your phone\'s HTTP port).</string>
+    <string name="cloudflare_tunnel_public_url">Public Cloudflare Tunnel URL</string>
     <string name="cloudflare_tunnel_open_dashboard">Open Cloudflare Dashboard</string>
     <string name="cloudflare_tunnel_open_url">Open my public URL</string>
     <string name="cloudflare_tunnel_battery_tip">For 24/7 uptime: disable battery optimization for this app, enable autostart in your phone settings, and keep PlainApp pinned in recent apps.</string>

@@ -207,6 +207,34 @@ class CloudflareTunnelService : Service() {
         }
     }
 
+    /**
+     * Block until ConnectivityManager reports an active network with both
+     * INTERNET and VALIDATED capability, or [timeoutMs] elapses. Returns true
+     * if a usable network appeared. Polls every 1 s — cheap and survives the
+     * boot-time race where Wi-Fi associates 5–20 s after BOOT_COMPLETED.
+     */
+    private suspend fun awaitValidatedNetwork(timeoutMs: Long): Boolean {
+        val cm = getSystemService(CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var firstLog = true
+        while (System.currentTimeMillis() < deadline) {
+            val active = cm.activeNetwork
+            val caps = active?.let { cm.getNetworkCapabilities(it) }
+            val hasInternet = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+            val validated = caps?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+            if (hasInternet && validated) {
+                TunnelLogger.i(TAG, "Network is up and validated — proceeding")
+                return true
+            }
+            if (firstLog) {
+                TunnelLogger.i(TAG, "Waiting for validated network (hasInternet=$hasInternet validated=$validated)…")
+                firstLog = false
+            }
+            delay(1000)
+        }
+        return false
+    }
+
     private suspend fun runWithRetry() {
         val token = CloudflareTunnelTokenPreference.getAsync(this).trim()
         if (token.isEmpty()) {
@@ -220,13 +248,33 @@ class CloudflareTunnelService : Service() {
 
         var backoffMs = 2000L
         var attempt = 0
+        // Track which transport to try next. Cloudflare's edge listens on
+        // UDP 7844 (quic) AND TCP 7844 (http2). Many cellular carriers and
+        // public Wi-Fi block one but not both, so we alternate on every
+        // failure to maximise the chance of getting through.
+        val protocols = listOf("auto", "http2", "quic")
         while (kotlin.coroutines.coroutineContext[Job]?.isActive != false) {
             attempt += 1
             status = Status.STARTING
             lastError = ""
             TunnelLogger.i(TAG, "=== launch attempt #$attempt ===")
+
+            // Wait for a validated network before launching cloudflared.
+            // After a phone reboot BootCompletedReceiver fires before Wi-Fi
+            // associates, which used to make the very first attempt fail with
+            // "no route to host" / Error 1033 in the browser.
+            if (!awaitValidatedNetwork(60_000L)) {
+                TunnelLogger.w(TAG, "No validated network after wait — will retry")
+                status = Status.ERROR
+                lastError = "Waiting for internet…"
+                delay(backoffMs)
+                backoffMs = (backoffMs * 2).coerceAtMost(60_000L)
+                continue
+            }
+
+            val protocol = protocols[(attempt - 1) % protocols.size]
             try {
-                runOnce(token)
+                runOnce(token, protocol)
                 TunnelLogger.i(TAG, "cloudflared process exited cleanly")
             } catch (t: Throwable) {
                 lastError = t.message ?: t.javaClass.simpleName
@@ -246,7 +294,7 @@ class CloudflareTunnelService : Service() {
         TunnelLogger.i(TAG, "runWithRetry loop exited")
     }
 
-    private fun runOnce(token: String) {
+    private fun runOnce(token: String, protocol: String = "auto") {
         val binary = locateBinary()
             ?: throw IllegalStateException(getString(R.string.cloudflare_tunnel_binary_missing))
         TunnelLogger.i(TAG, "Using binary: ${binary.absolutePath}  size=${binary.length()}  exec=${binary.canExecute()}")
@@ -256,12 +304,13 @@ class CloudflareTunnelService : Service() {
 
         TunnelPreflight.run(this)
 
+        TunnelLogger.i(TAG, "Launching cloudflared with --protocol $protocol")
         val cmd = listOf(
             binary.absolutePath,
             "tunnel",
             "--no-autoupdate",
             "--edge-ip-version", "auto",
-            "--protocol", "http2",
+            "--protocol", protocol,
             "--loglevel", "debug",
             "--transport-loglevel", "debug",
             "run",
