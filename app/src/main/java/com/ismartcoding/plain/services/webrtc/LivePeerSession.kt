@@ -51,10 +51,10 @@ class LivePeerSession(
                         LogCat.d("live[$streamId][$clientId] offer ready, sending to web (${d.description.length} bytes)")
                         send(WebRtcSignalingMessage(type = "offer", sdp = d.description, stream = streamId))
                     }
-                    override fun onSetFailure(p0: String?) { LogCat.e("live[$streamId][$clientId] setLocalDescription failed: $p0") }
+                    override fun onSetFailure(error: String) { LogCat.e("live[$streamId][$clientId] setLocalDescription failed: $error") }
                 }, d)
             }
-            override fun onCreateFailure(p0: String?) { LogCat.e("live[$streamId][$clientId] createOffer failed: $p0") }
+            override fun onCreateFailure(error: String) { LogCat.e("live[$streamId][$clientId] createOffer failed: $error") }
         }, MediaConstraints())
     }
 
