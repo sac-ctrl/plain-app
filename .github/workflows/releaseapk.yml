@@ -1,0 +1,53 @@
+name: Release APK Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-release-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Restore keystore
+        run: echo "${{ secrets.KEYSTORE_B64 }}" | base64 --decode > ./app/release.jks
+
+      - name: Write keystore.properties
+        run: |
+          cat > ./keystore.properties <<EOF
+          storePassword=${ANDROID_STORE_PASSWORD}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          storeFile=release.jks
+          EOF
+
+      - name: Build Release APK
+        run: ./gradlew :app:assembleGithubRelease
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-github-release.apk
+          path: app/build/outputs/apk/github/release/app-github-release.apk
+          if-no-files-found: error
+          retention-days: 7
