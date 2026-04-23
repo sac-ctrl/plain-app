@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -20,9 +21,12 @@ import com.ismartcoding.plain.web.HttpServerManager
 import com.ismartcoding.plain.mdns.MdnsRegister
 import com.ismartcoding.plain.mdns.NsdHelper
 import com.ismartcoding.plain.TempData
+import com.ismartcoding.plain.preferences.KeepAliveWatchdogEnabledPreference
+import com.ismartcoding.plain.receivers.KeepAliveWatchdogReceiver
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
 
 class HttpServerService : LifecycleService() {
     private var serverState: HttpServerState = HttpServerState.OFF
@@ -108,7 +112,13 @@ class HttpServerService : LifecycleService() {
             stopSelf()
             return START_NOT_STICKY
         }
-        
+
+        // Arm the keep-alive watchdog so the web server is re-launched if the OS kills it.
+        try {
+            val watchdog = runBlocking { KeepAliveWatchdogEnabledPreference.getAsync(applicationContext) }
+            if (watchdog) KeepAliveWatchdogReceiver.schedule(applicationContext)
+        } catch (_: Throwable) {}
+
         return START_STICKY
     }
 
@@ -117,17 +127,21 @@ class HttpServerService : LifecycleService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        // User swiped away the app from recents; stop server immediately to release ports.
-        NsdHelper.unregisterService()
+        // User swiped the app from recents. We do NOT stop the web server — it must
+        // keep running like the Cloudflare tunnel does. Re-arm the foreground service
+        // so Android keeps it alive after the task is gone.
+        LogCat.d("HttpServerService.onTaskRemoved — re-arming foreground service")
         try {
-            HttpServerManager.server?.stop(500, 1000)
-        } catch (e: Exception) {
-            LogCat.e("Error stopping server on task removed: ${e.message}")
-        } finally {
-            HttpServerManager.server = null
+            val restart = Intent(applicationContext, HttpServerService::class.java)
+            ContextCompat.startForegroundService(applicationContext, restart)
+        } catch (t: Throwable) {
+            LogCat.e("HttpServerService self re-start in onTaskRemoved failed: ${t.message}")
         }
-        stopSelf()
+        try {
+            val watchdog = runBlocking { KeepAliveWatchdogEnabledPreference.getAsync(applicationContext) }
+            if (watchdog) KeepAliveWatchdogReceiver.schedule(applicationContext)
+        } catch (_: Throwable) {}
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {

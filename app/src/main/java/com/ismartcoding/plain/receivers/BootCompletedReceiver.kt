@@ -11,7 +11,9 @@ import com.ismartcoding.plain.preferences.CloudflareTunnelAutoStartPreference
 import com.ismartcoding.plain.preferences.CloudflareTunnelEnabledPreference
 import com.ismartcoding.plain.preferences.KeepAliveVpnEnabledPreference
 import com.ismartcoding.plain.preferences.KeepAliveWatchdogEnabledPreference
+import com.ismartcoding.plain.preferences.WebPreference
 import com.ismartcoding.plain.services.CloudflareTunnelManager
+import com.ismartcoding.plain.services.HttpServerService
 import com.ismartcoding.plain.services.KeepAliveVpnService
 
 /**
@@ -35,6 +37,13 @@ class BootCompletedReceiver : BroadcastReceiver() {
                     CloudflareTunnelAutoStartPreference.getAsync(app)
                 ) {
                     try { CloudflareTunnelManager.start(app) } catch (_: Throwable) {}
+                }
+                if (WebPreference.getAsync(app)) {
+                    try {
+                        ContextCompat.startForegroundService(
+                            app, Intent(app, HttpServerService::class.java),
+                        )
+                    } catch (_: Throwable) {}
                 }
                 if (KeepAliveVpnEnabledPreference.getAsync(app) && VpnService.prepare(app) == null) {
                     try {

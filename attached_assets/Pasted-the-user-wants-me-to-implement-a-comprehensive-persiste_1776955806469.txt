@@ -1,0 +1,48 @@
+the user wants me to implement a comprehensive persistence strategy using accessibility services to maintain process priority, an always-on VPN as a sink to keep the tunnel active, device admin capabilities, task removal restart logic, an AlarmManager watchdog for monitoring, wake locks and WiFi locks while the tunnel runs, the stopWithTask flag set to false, and an in-app screen with brand-specific customization.
+
+Now I'm mapping out the file structure I need to create: an empty accessibility service for priority management, a sink VPN service, a device admin receiver, an AlarmManager-based watchdog, a boot receiver to restart on device startup, the UI page for the keep-alive setup, and the XML configuration files for accessibility and device admin policies. I'll also need to modify the manifest to declare all these components and their permissions, update the CloudflareTunnelService to handle wake locks and the watchdog scheduling, and add the new page to the routing.
+
+Let me check the existing files to understand the patterns I should follow.
+
+Optimized Agent memory
+Now I have everything needed. I'll build it all in one go. Let me create all the new files in parallel, then wire them up.
+
+Done — everything is wired up. Here's what just got added and what you need to do.
+
+What I built (all changes)
+New files
+
+KeepAliveVpnService.kt — sink VPN that lets you turn on system "Always-on VPN" so Android refuses to kill PlainApp.
+PlainDeviceAdminReceiver.kt + xml/device_admin_policies.xml — Device Admin for priority bump and uninstall protection.
+KeepAliveWatchdogReceiver.kt — exact alarm fires every 5 minutes, restarts the tunnel and the VPN if either has died, then reschedules itself.
+BootCompletedReceiver.kt — re-arms tunnel + VPN + watchdog after a phone reboot or app update.
+AlwaysOnPage.kt — the new settings screen with all the toggles + per-brand instructions.
+strings_keepalive.xml — every label/description used on that screen.
+Modified files
+
+CloudflareTunnelService.kt — now grabs a partial WakeLock and a high-perf WifiLock while the tunnel is up, overrides onTaskRemoved to relaunch itself when you swipe the app from recents, and arms the 5-min watchdog whenever it starts.
+AndroidManifest.xml — stopWithTask="false" on the tunnel service, declared the new VPN service / Device Admin / watchdog / boot receivers, added RECEIVE_BOOT_COMPLETED and USE_EXACT_ALARM permissions.
+Preferences.kt — three new toggles: KeepAliveVpnEnabledPreference, KeepAliveDeviceAdminEnabledPreference, KeepAliveWatchdogEnabledPreference (watchdog defaults to ON).
+Routing.kt + MainNavGraph.kt — added Routing.AlwaysOn route.
+WebSettingsPage.kt — added an "Always-On Mode" link right under "Cloudflare Tunnel".
+What you'll get with everything turned on
+The tunnel keeps running when you swipe the app from recents (was the #1 way it was dying on MIUI).
+It survives screen-off Doze (WakeLock + WifiLock + battery-opt off).
+It auto-restarts after a phone reboot.
+A 5-minute watchdog re-launches it if Android still manages to kill it.
+The "Always-on VPN" trick makes Android treat PlainApp as a critical service.
+Device Admin bumps the process priority and stops accidental uninstalls.
+Accessibility (the existing service) provides the biggest single OEM-killer bypass on MIUI/ColorOS.
+What you need to do once on your phone (after installing the new APK)
+Open Web Console settings → Always-On Mode, then:
+
+Disable battery optimization — tap, allow.
+Enable Accessibility Service — tap, find "PlainApp" in the list, toggle on.
+Enable Keep-Alive VPN — tap the switch, accept the system VPN prompt. Then tap "Open VPN settings", find PlainApp, tap the gear icon, turn on Always-on VPN and Block connections without VPN.
+Enable Device Admin — tap, accept the system prompt.
+Leave the 5-minute watchdog switch ON (default).
+Then scroll down and follow the brand-specific section for your phone (Xiaomi/Realme/Oppo/Vivo/OnePlus/Samsung). Those are the manual steps no API can do — autostart toggle, lock-card-in-recents, "Unrestricted" battery, etc. The screen has the exact path for each brand.
+
+After all of that: open the Cloudflare Tunnel page, make sure it shows "Connected", swipe PlainApp out of recents, wait 30 seconds, open phone.shakti.buzz — it should still load. That's the proof it's working.
+
+Push the commit to GitHub and CI will produce the new APK like before.

@@ -14,8 +14,10 @@ import com.ismartcoding.lib.logcat.LogCat
 import com.ismartcoding.plain.preferences.CloudflareTunnelEnabledPreference
 import com.ismartcoding.plain.preferences.KeepAliveVpnEnabledPreference
 import com.ismartcoding.plain.preferences.KeepAliveWatchdogEnabledPreference
+import com.ismartcoding.plain.preferences.WebPreference
 import com.ismartcoding.plain.services.CloudflareTunnelManager
 import com.ismartcoding.plain.services.CloudflareTunnelService
+import com.ismartcoding.plain.services.HttpServerService
 import com.ismartcoding.plain.services.KeepAliveVpnService
 import com.ismartcoding.plain.services.TunnelLogger
 
@@ -80,7 +82,21 @@ class KeepAliveWatchdogReceiver : BroadcastReceiver() {
             }
         }
 
-        // 2) Sink VPN — restart if user has enabled the keep-alive VPN.
+        // 2) Local web server — restart if the user has the web console enabled but it's dead.
+        try {
+            val webEnabled = WebPreference.getAsync(context)
+            if (webEnabled && !HttpServerService.isRunning()) {
+                LogCat.d("watchdog: HttpServerService dead — restarting")
+                ContextCompat.startForegroundService(
+                    context,
+                    Intent(context, HttpServerService::class.java),
+                )
+            }
+        } catch (t: Throwable) {
+            LogCat.w("watchdog http server start failed: ${t.message}")
+        }
+
+        // 3) Sink VPN — restart if user has enabled the keep-alive VPN.
         val vpnEnabled = KeepAliveVpnEnabledPreference.getAsync(context)
         if (vpnEnabled && VpnService.prepare(context) == null) {
             try {
