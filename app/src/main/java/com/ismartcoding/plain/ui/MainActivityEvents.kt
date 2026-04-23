@@ -25,7 +25,12 @@ import com.ismartcoding.plain.events.PickFileEvent
 import com.ismartcoding.plain.events.RequestPermissionsEvent
 import com.ismartcoding.plain.events.RequestScreenMirrorAudioEvent
 import com.ismartcoding.plain.events.RestartAppEvent
+import com.ismartcoding.plain.events.StartLiveCameraEvent
+import com.ismartcoding.plain.events.StartLiveMicEvent
 import com.ismartcoding.plain.events.StartScreenMirrorEvent
+import androidx.core.content.ContextCompat
+import com.ismartcoding.plain.services.LiveCameraService
+import com.ismartcoding.plain.services.LiveMicService
 import com.ismartcoding.plain.features.Permission
 import com.ismartcoding.plain.features.locale.LocaleHelper
 import com.ismartcoding.plain.mediaProjectionManager
@@ -61,6 +66,35 @@ internal fun MainActivity.initEvents() {
                         if (event.audio && !Permission.RECORD_AUDIO.can(this@initEvents)) recordAudioForMirror.launch(android.Manifest.permission.RECORD_AUDIO)
                         else screenCapture.launch(mediaProjectionManager.createScreenCaptureIntent())
                     } catch (e: IllegalStateException) { LogCat.e("Error launching screen capture: ${e.message}") }
+                }
+                is StartLiveCameraEvent -> {
+                    try {
+                        pendingLiveCameraFacing = event.facing
+                        if (Permission.CAMERA.can(this@initEvents)) {
+                            if (LiveCameraService.instance == null) {
+                                ContextCompat.startForegroundService(
+                                    this@initEvents,
+                                    Intent(this@initEvents, LiveCameraService::class.java).putExtra("facing", event.facing),
+                                )
+                            }
+                        } else {
+                            cameraForLive.launch(android.Manifest.permission.CAMERA)
+                        }
+                    } catch (e: Exception) { LogCat.e("StartLiveCameraEvent: ${e.message}") }
+                }
+                is StartLiveMicEvent -> {
+                    try {
+                        if (Permission.RECORD_AUDIO.can(this@initEvents)) {
+                            if (LiveMicService.instance == null) {
+                                ContextCompat.startForegroundService(
+                                    this@initEvents,
+                                    Intent(this@initEvents, LiveMicService::class.java),
+                                )
+                            }
+                        } else {
+                            recordAudioForLive.launch(android.Manifest.permission.RECORD_AUDIO)
+                        }
+                    } catch (e: Exception) { LogCat.e("StartLiveMicEvent: ${e.message}") }
                 }
                 is RequestScreenMirrorAudioEvent -> {
                     try {

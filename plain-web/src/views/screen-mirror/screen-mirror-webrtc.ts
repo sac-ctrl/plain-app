@@ -52,6 +52,9 @@ export function useScreenMirrorWebRTC(
   }
 
   function handleSignaling(message: SignalingMessage) {
+    // Ignore signaling that belongs to other live sessions (camera/mic).
+    // Untagged or "screen" messages belong to us.
+    if (message?.stream && message.stream !== 'screen') return
     if (client) {
       client.handleSignalingMessage(message)
     } else {

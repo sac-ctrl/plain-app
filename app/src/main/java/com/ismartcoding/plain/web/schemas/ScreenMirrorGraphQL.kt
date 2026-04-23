@@ -77,7 +77,11 @@ fun SchemaBuilder.addScreenMirrorSchema() {
         resolver { payload: WebRtcSignalingMessage, context: Context ->
             val call = context.get<ApplicationCall>()
             val clientId = call?.request?.header("c-id") ?: ""
-            ScreenMirrorService.instance?.handleWebRtcSignaling(clientId, payload)
+            when (payload.stream) {
+                "camera" -> com.ismartcoding.plain.services.LiveCameraService.instance?.handleWebRtcSignaling(clientId, payload)
+                "mic" -> com.ismartcoding.plain.services.LiveMicService.instance?.handleWebRtcSignaling(clientId, payload)
+                else -> ScreenMirrorService.instance?.handleWebRtcSignaling(clientId, payload)
+            }
             true
         }
     }

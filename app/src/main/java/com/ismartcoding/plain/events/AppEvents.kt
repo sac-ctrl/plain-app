@@ -75,6 +75,10 @@ class StartScreenMirrorEvent(val audio: Boolean) : ChannelEvent()
 
 class RequestScreenMirrorAudioEvent : ChannelEvent()
 
+class StartLiveCameraEvent(val facing: String) : ChannelEvent()
+
+class StartLiveMicEvent : ChannelEvent()
+
 class RestartAppEvent : ChannelEvent()
 
 class FetchLinkPreviewsEvent(val chat: DChat) : ChannelEvent()

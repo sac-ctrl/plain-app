@@ -5,12 +5,14 @@
  */
 
 export interface SignalingMessage {
-  type: string // "offer", "answer", "ice_candidate", "control"
+  type: string // "offer", "answer", "ice_candidate", "control", "ready"
   sdp?: string
   sdpMid?: string
   sdpMLineIndex?: number
   candidate?: string
   phoneIp?: string
+  // "screen" (default), "camera", "mic" — discriminates between concurrent peer sessions
+  stream?: string
 }
 
 export interface WebRTCClientOptions {
@@ -32,7 +34,12 @@ export class WebRTCClient {
     this.options = options
   }
 
-  async startSession(enableAudio: boolean, asOfferer: boolean = true, phoneIp?: string): Promise<void> {
+  async startSession(
+    enableAudio: boolean,
+    asOfferer: boolean = true,
+    phoneIp?: string,
+    mediaKinds: { video: boolean; audio: boolean } = { video: true, audio: enableAudio },
+  ): Promise<void> {
     this.audioEnabled = enableAudio
     this.cleanup()
     this.remoteDescriptionSet = false
@@ -83,8 +90,10 @@ export class WebRTCClient {
       console.log('ICE connection state:', this.pc?.iceConnectionState)
     }
 
-    this.pc.addTransceiver('video', { direction: 'recvonly' })
-    if (enableAudio) {
+    if (mediaKinds.video) {
+      this.pc.addTransceiver('video', { direction: 'recvonly' })
+    }
+    if (mediaKinds.audio) {
       this.pc.addTransceiver('audio', { direction: 'recvonly' })
     }
 

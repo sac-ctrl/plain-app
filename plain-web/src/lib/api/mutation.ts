@@ -585,6 +585,42 @@ export const sendWebRtcSignalingGQL = `
   }
 `
 
+export const startLiveCameraGQL = `
+  mutation startLiveCamera($facing: String!) {
+    startLiveCamera(facing: $facing)
+  }
+`
+
+export const stopLiveCameraGQL = `
+  mutation stopLiveCamera {
+    stopLiveCamera
+  }
+`
+
+export const switchLiveCameraFacingGQL = `
+  mutation switchLiveCameraFacing {
+    switchLiveCameraFacing
+  }
+`
+
+export const startLiveMicGQL = `
+  mutation startLiveMic {
+    startLiveMic
+  }
+`
+
+export const stopLiveMicGQL = `
+  mutation stopLiveMic {
+    stopLiveMic
+  }
+`
+
+export const setLiveMicMutedGQL = `
+  mutation setLiveMicMuted($muted: Boolean!) {
+    setLiveMicMuted(muted: $muted)
+  }
+`
+
 export const saveFeedEntriesToNotesGQL = `
   mutation saveFeedEntriesToNotes($query: String!) {
     saveFeedEntriesToNotes(query: $query)

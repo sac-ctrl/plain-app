@@ -10,16 +10,8 @@ import org.webrtc.audio.JavaAudioDeviceModule
 
 private var webrtcInitialized = false
 
-internal fun createWebRtcFactory(
-    context: Context,
-    eglBase: EglBase,
-    projection: MediaProjection,
-    onAudioRecordStart: () -> Unit,
-    onAudioRecordStop: () -> Unit,
-): Pair<PeerConnectionFactory, JavaAudioDeviceModule> {
+internal fun ensureWebRtcInitialized(context: Context) {
     if (!webrtcInitialized) {
-        // Use applicationContext so that the NetworkMonitorAutoDetect BroadcastReceiver
-        // registered by WebRTC is tied to the app lifetime, not the service context.
         PeerConnectionFactory.initialize(
             PeerConnectionFactory.InitializationOptions.builder(context.applicationContext)
                 .setEnableInternalTracer(false)
@@ -27,6 +19,47 @@ internal fun createWebRtcFactory(
         )
         webrtcInitialized = true
     }
+}
+
+/**
+ * Simpler factory used by camera/mic live monitor (no MediaProjection,
+ * no audio playback-capture swap, no audio-record callbacks needed).
+ */
+internal fun createSimpleWebRtcFactory(
+    context: Context,
+    eglBase: EglBase,
+): Pair<PeerConnectionFactory, JavaAudioDeviceModule> {
+    ensureWebRtcInitialized(context)
+
+    val adm = JavaAudioDeviceModule.builder(context)
+        .setUseHardwareAcousticEchoCanceler(false)
+        .setUseHardwareNoiseSuppressor(false)
+        .createAudioDeviceModule()
+
+    val encoderFactory = DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true)
+    val decoderFactory = DefaultVideoDecoderFactory(eglBase.eglBaseContext)
+    val options = PeerConnectionFactory.Options().apply {
+        networkIgnoreMask = 1 shl 3
+        disableNetworkMonitor = true
+    }
+    val factory = PeerConnectionFactory.builder()
+        .setOptions(options)
+        .setVideoEncoderFactory(encoderFactory)
+        .setVideoDecoderFactory(decoderFactory)
+        .setAudioDeviceModule(adm)
+        .createPeerConnectionFactory()
+
+    return Pair(factory, adm)
+}
+
+internal fun createWebRtcFactory(
+    context: Context,
+    eglBase: EglBase,
+    projection: MediaProjection,
+    onAudioRecordStart: () -> Unit,
+    onAudioRecordStop: () -> Unit,
+): Pair<PeerConnectionFactory, JavaAudioDeviceModule> {
+    ensureWebRtcInitialized(context)
 
     val adm = JavaAudioDeviceModule.builder(context)
         .setUseHardwareAcousticEchoCanceler(false)

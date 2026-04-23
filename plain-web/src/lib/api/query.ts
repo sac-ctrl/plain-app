@@ -625,6 +625,18 @@ export const screenMirrorControlEnabledGQL = `
   }
 `
 
+export const liveCameraStateGQL = `
+  query {
+    liveCameraState
+  }
+`
+
+export const liveMicStateGQL = `
+  query {
+    liveMicState
+  }
+`
+
 export const screenMirrorQualityGQL = `
   query {
     screenMirrorQuality {

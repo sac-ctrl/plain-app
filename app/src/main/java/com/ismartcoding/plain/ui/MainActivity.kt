@@ -45,6 +45,8 @@ import com.ismartcoding.plain.preferences.WebPreference
 import com.ismartcoding.plain.receivers.NetworkStateReceiver
 import com.ismartcoding.plain.receivers.PlugInControlReceiver
 import com.ismartcoding.plain.services.PlainAccessibilityService
+import com.ismartcoding.plain.services.LiveCameraService
+import com.ismartcoding.plain.services.LiveMicService
 import com.ismartcoding.plain.services.ScreenMirrorService
 import com.ismartcoding.plain.ui.helpers.FilePickHelper
 import com.ismartcoding.plain.ui.models.AudioPlaylistViewModel
@@ -102,6 +104,18 @@ class MainActivity : AppCompatActivity() {
         else sendScreenMirrorAudioStatus(false)
     }
     internal val appDetailsSettingsForAudioLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { sendScreenMirrorAudioStatus(Permission.RECORD_AUDIO.can(this)) }
+
+    internal var pendingLiveCameraFacing: String = "back"
+    internal val cameraForLive = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && LiveCameraService.instance == null) {
+            ContextCompat.startForegroundService(this, Intent(this, LiveCameraService::class.java).putExtra("facing", pendingLiveCameraFacing))
+        }
+    }
+    internal val recordAudioForLive = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && LiveMicService.instance == null) {
+            ContextCompat.startForegroundService(this, Intent(this, LiveMicService::class.java))
+        }
+    }
     internal val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) sendEvent(PickFileResultEvent(pickFileTag, pickFileType, setOf(uri))) }
     internal val pickMultipleMedia = registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) { uris -> if (uris.isNotEmpty()) sendEvent(PickFileResultEvent(pickFileTag, pickFileType, uris.toSet())) }
     internal val pickFileActivityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->

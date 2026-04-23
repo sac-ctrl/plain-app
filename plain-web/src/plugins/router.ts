@@ -152,6 +152,16 @@ const router = createRouter({
           meta: { group: 'screen_mirror' },
         },
         {
+          path: 'live-camera',
+          component: () => import('@/views/live-monitor/LiveCameraView.vue'),
+          meta: { group: 'live_camera' },
+        },
+        {
+          path: 'live-mic',
+          component: () => import('@/views/live-monitor/LiveMicView.vue'),
+          meta: { group: 'live_mic' },
+        },
+        {
           path: 'device-info',
           component: () => import('@/views/device-info/DeviceInfoView.vue'),
           meta: { group: 'device_info' },

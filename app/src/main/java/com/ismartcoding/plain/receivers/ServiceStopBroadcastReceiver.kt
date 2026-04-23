@@ -12,6 +12,8 @@ import com.ismartcoding.plain.preferences.WebPreference
 import com.ismartcoding.plain.preferences.CloudflareTunnelEnabledPreference
 import com.ismartcoding.plain.services.CloudflareTunnelManager
 import com.ismartcoding.plain.services.HttpServerService
+import com.ismartcoding.plain.services.LiveCameraService
+import com.ismartcoding.plain.services.LiveMicService
 import com.ismartcoding.plain.services.ScreenMirrorService
 import com.ismartcoding.plain.web.HttpServerManager
 
@@ -40,6 +42,16 @@ class ServiceStopBroadcastReceiver : BroadcastReceiver() {
             Constants.ACTION_STOP_SCREEN_MIRROR -> {
                 ScreenMirrorService.instance?.stop()
                 ScreenMirrorService.instance = null
+            }
+
+            Constants.ACTION_STOP_LIVE_CAMERA -> {
+                LiveCameraService.instance?.stop()
+                LiveCameraService.instance = null
+            }
+
+            Constants.ACTION_STOP_LIVE_MIC -> {
+                LiveMicService.instance?.stop()
+                LiveMicService.instance = null
             }
             // Android 14+ allows FGS notifications to be swiped. Re-post via onStartCommand.
             Constants.ACTION_REPOST_HTTP_NOTIFICATION -> {

@@ -15,6 +15,7 @@ const EventType: { [key: number]: string } = {
   10: 'notification_refreshed', 11: 'pomodoro_action', 12: 'pomodoro_settings_update',
   13: 'message_cleared', 14: 'screen_mirror_audio_granted', 15: 'bookmark_updated',
   16: 'download_progress', 18: 'channels_updated', 19: 'image_search_updated',
+  20: 'live_camera_streaming', 21: 'live_mic_streaming',
 }
 
 export function useAppSocket() {

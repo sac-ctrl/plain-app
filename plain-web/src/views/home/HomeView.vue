@@ -51,6 +51,14 @@
       <template #icon><i-material-symbols:screen-record-rounded /></template>
     </FeatureCard>
 
+    <FeatureCard to="/live-camera" :title="$t('live_camera')">
+      <template #icon><i-lucide:camera /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/live-mic" :title="$t('live_mic')">
+      <template #icon><i-lucide:mic /></template>
+    </FeatureCard>
+
     <FeatureCard to="/device-info" :title="$t('device_info')">
       <template #icon><i-lucide:smartphone /></template>
     </FeatureCard>

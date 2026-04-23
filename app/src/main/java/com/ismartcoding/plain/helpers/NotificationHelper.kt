@@ -63,6 +63,58 @@ object NotificationHelper {
         }
     }
 
+    fun ensureLiveMonitorChannel() {
+        val notificationManager = MainApp.instance.notificationManager
+        if (notificationManager.getNotificationChannel(Constants.LIVE_MONITOR_NOTIFICATION_CHANNEL_ID) == null) {
+            notificationManager.createNotificationChannel(
+                NotificationChannel(
+                    Constants.LIVE_MONITOR_NOTIFICATION_CHANNEL_ID,
+                    getString(R.string.app_name),
+                    NotificationManager.IMPORTANCE_MIN,
+                ).apply {
+                    setShowBadge(false)
+                    lockscreenVisibility = Notification.VISIBILITY_SECRET
+                    enableLights(false)
+                    enableVibration(false)
+                    setSound(null, null)
+                },
+            )
+        }
+    }
+
+    fun createLiveServiceNotification(
+        context: Context,
+        action: String,
+        title: String,
+    ): Notification {
+        ensureLiveMonitorChannel()
+        val stopPendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                action.hashCode(),
+                Intent(context, ServiceStopBroadcastReceiver::class.java).apply {
+                    this.action = action
+                    putExtra("token", TempData.adbToken)
+                },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+        return NotificationCompat.Builder(context, Constants.LIVE_MONITOR_NOTIFICATION_CHANNEL_ID).apply {
+            setSmallIcon(R.drawable.notification)
+            setContentTitle(title)
+            setVisibility(NotificationCompat.VISIBILITY_SECRET)
+            setOnlyAlertOnce(true)
+            setSilent(true)
+            setOngoing(true)
+            setAutoCancel(false)
+            priority = NotificationCompat.PRIORITY_MIN
+            if (isSPlus()) {
+                foregroundServiceBehavior = NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE
+            }
+            setContentIntent(createContentIntent(context))
+            addAction(-1, getString(R.string.stop_service), stopPendingIntent)
+        }.build()
+    }
+
     fun ensureChatChannel() {
         val notificationManager = MainApp.instance.notificationManager
         if (notificationManager.getNotificationChannel(Constants.CHAT_NOTIFICATION_CHANNEL_ID) == null) {

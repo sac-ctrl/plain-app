@@ -37,6 +37,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -196,6 +198,16 @@
             android:foregroundServiceType="mediaProjection" />
 
         <service
+            android:name=".services.LiveCameraService"
+            android:exported="false"
+            android:foregroundServiceType="camera" />
+
+        <service
+            android:name=".services.LiveMicService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <service
             android:name=".services.PlainAccessibilityService"
             android:exported="true"
             android:label="@string/accessibility_service_label"
@@ -289,6 +301,8 @@
                 <action android:name="${applicationId}.action.START_HTTP_SERVER" />
                 <action android:name="${applicationId}.action.STOP_HTTP_SERVER" />
                 <action android:name="${applicationId}.action.STOP_SCREEN_MIRROR" />
+                <action android:name="${applicationId}.action.STOP_LIVE_CAMERA" />
+                <action android:name="${applicationId}.action.STOP_LIVE_MIC" />
                 <action android:name="${applicationId}.action.REPOST_HTTP_NOTIFICATION" />
                 <action android:name="${applicationId}.action.START_CLOUDFLARE_TUNNEL" />
                 <action android:name="${applicationId}.action.STOP_CLOUDFLARE_TUNNEL" />

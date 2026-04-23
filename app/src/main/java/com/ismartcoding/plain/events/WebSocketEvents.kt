@@ -52,6 +52,8 @@ enum class EventType(val value: Int) {
     MMS_SENT(17),
     CHANNELS_UPDATED(18),
     IMAGE_SEARCH_UPDATED(19),
+    LIVE_CAMERA_STREAMING(20),
+    LIVE_MIC_STREAMING(21),
 }
 
 

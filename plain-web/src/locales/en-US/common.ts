@@ -123,6 +123,8 @@ export default {
     qrcode_generator: 'QrCode generator',
     trash: 'Trash',
     screen_mirror: 'Screen mirror',
+    live_camera: 'Live camera',
+    live_mic: 'Live microphone',
     device_info: 'Device info',
     docs: 'Documents',
     chat: 'Chat',

@@ -12,3 +12,13 @@ export function sendWebRTCSignaling(message: SignalingMessage) {
     console.error('Failed to send WebRTC signaling via GraphQL:', error)
   })
 }
+
+/**
+ * Returns a sender that automatically tags every signaling message with
+ * a stream discriminator so the phone routes it to the matching peer session.
+ */
+export function makeSendWebRTCSignalingFor(stream: 'screen' | 'camera' | 'mic') {
+  return (message: SignalingMessage) => {
+    sendWebRTCSignaling({ ...message, stream })
+  }
+}
