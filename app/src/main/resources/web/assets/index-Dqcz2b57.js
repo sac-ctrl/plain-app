@@ -1292,11 +1292,19 @@ var _h=Object.defineProperty;var mh=(e,t,n)=>t in e?_h(e,t,{enumerable:!0,config
   }
 `,c6=`
   query {
-    liveCameraState
+    liveCameraState {
+      running
+      facing
+      hasPermission
+    }
   }
 `,d6=`
   query {
-    liveMicState
+    liveMicState {
+      running
+      muted
+      hasPermission
+    }
   }
 `,BS=`
   query {
