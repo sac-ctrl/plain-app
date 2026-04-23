@@ -34,6 +34,40 @@ import com.ismartcoding.plain.features.file.FileSortBy
 import java.util.Locale
 
 
+object LauncherIconHiddenPreference : BasePreference<Boolean>() {
+    override val default = false
+    override val key = booleanPreferencesKey("launcher_icon_hidden")
+}
+
+object AppLockEnabledPreference : BasePreference<Boolean>() {
+    override val default = false
+    override val key = booleanPreferencesKey("app_lock_enabled")
+}
+
+object AppLockBiometricEnabledPreference : BasePreference<Boolean>() {
+    override val default = false
+    override val key = booleanPreferencesKey("app_lock_biometric_enabled")
+}
+
+object AppLockPinPreference : BasePreference<String>() {
+    override val default = ""
+    override val key = stringPreferencesKey("app_lock_pin_hash")
+
+    suspend fun setPinAsync(context: Context, pin: String) {
+        if (pin.isEmpty()) {
+            putAsync(context, "")
+        } else {
+            putAsync(context, CryptoHelper.sha256("plainapp_lock:$pin".toByteArray()))
+        }
+    }
+
+    suspend fun verifyAsync(context: Context, pin: String): Boolean {
+        val stored = getAsync(context)
+        if (stored.isEmpty()) return true
+        return CryptoHelper.sha256("plainapp_lock:$pin".toByteArray()) == stored
+    }
+}
+
 object PasswordPreference : BasePreference<String>() {
     override val default = ""
     override val key = stringPreferencesKey("password")

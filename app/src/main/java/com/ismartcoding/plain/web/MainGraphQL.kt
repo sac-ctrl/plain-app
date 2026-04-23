@@ -15,6 +15,7 @@ import com.ismartcoding.plain.TempData
 import com.ismartcoding.plain.chat.ChatCacheManager
 import com.ismartcoding.plain.events.WebRequestReceivedEvent
 import com.ismartcoding.plain.preferences.AuthDevTokenPreference
+import com.ismartcoding.plain.web.schemas.addAppLockSchema
 import com.ismartcoding.plain.web.schemas.addAppSchema
 import com.ismartcoding.plain.web.schemas.addAudioSchema
 import com.ismartcoding.plain.web.schemas.addBookmarkSchema
@@ -83,6 +84,7 @@ class MainGraphQL(val schema: Schema) {
                 addPomodoroSchema()
                 addNotificationSchema()
                 addAppSchema()
+                addAppLockSchema()
                 addBookmarkSchema()
                 addSchemaTypes()
             }

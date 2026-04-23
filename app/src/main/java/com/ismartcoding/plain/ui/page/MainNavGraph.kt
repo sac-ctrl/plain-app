@@ -125,6 +125,7 @@ fun MainNavGraph(
         composable<Routing.Language> { LanguagePage(navController) }
         composable<Routing.BackupRestore> { BackupRestorePage(navController) }
         composable<Routing.WebSettings> { WebSettingsPage(navController) }
+        composable<Routing.AppLock> { com.ismartcoding.plain.ui.page.web.AppLockPage(navController) }
         composable<Routing.CustomFeatures> { HomeFeaturesSelectionPage(navController) }
         composable<Routing.NotificationSettings> { NotificationSettingsPage(navController) }
         composable<Routing.Sessions> { SessionsPage(navController) }

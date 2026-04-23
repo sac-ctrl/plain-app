@@ -97,6 +97,9 @@ object CallMediaStoreHelper : BaseContentHelper() {
     ) {
         val intent = Intent(Intent.ACTION_CALL)
         intent.data = Uri.parse("tel:$number")
+        // FLAG_ACTIVITY_NEW_TASK lets us start a call from a non-Activity context
+        // (e.g. when the web panel triggers a call after a reboot, before MainActivity exists).
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
     }
 }

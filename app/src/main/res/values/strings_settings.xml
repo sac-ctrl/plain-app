@@ -85,4 +85,35 @@
     <string name="drag_number_to_reorder_list">Drag the number to reorder the list</string>
     <string name="web_client_connected">Web client connected</string>
     <string name="clients_online">%1$d client(s) online</string>
+
+    <!-- Hide launcher icon -->
+    <string name="hide_launcher_icon">Hide launcher icon</string>
+    <string name="hide_launcher_icon_desc">Removes PlainApp from the home screen and app drawer. The web panel and all background services keep working.</string>
+
+    <!-- App lock -->
+    <string name="app_lock_title">App lock</string>
+    <string name="app_lock_enable">Lock app on open</string>
+    <string name="app_lock_enable_desc">Require a PIN (and optionally biometrics) before showing the app screens.</string>
+    <string name="app_lock_biometric">Allow biometric unlock</string>
+    <string name="app_lock_biometric_desc">Use fingerprint or face when available. PIN is always available as fallback.</string>
+    <string name="app_lock_does_not_affect_services">The app lock only protects the on-device screens. The web panel, Cloudflare tunnel and background services keep running.</string>
+    <string name="app_lock_set_pin">Set PIN</string>
+    <string name="app_lock_change_pin">Change PIN</string>
+    <string name="app_lock_set_pin_first">Set a PIN before enabling the lock.</string>
+    <string name="app_lock_current_pin">Current PIN</string>
+    <string name="app_lock_new_pin">New PIN (4–12 digits)</string>
+    <string name="app_lock_confirm_pin">Confirm new PIN</string>
+    <string name="app_lock_pin_too_short">PIN must be at least 4 digits.</string>
+    <string name="app_lock_pin_mismatch">PINs do not match.</string>
+    <string name="app_lock_pin_incorrect">Incorrect PIN.</string>
+    <string name="app_lock_remove_pin">Remove PIN</string>
+    <string name="app_lock_remove_pin_desc">Clears the PIN and turns the lock off.</string>
+    <string name="app_lock_pin_removed">PIN removed.</string>
+    <string name="app_lock_pin">PIN</string>
+    <string name="app_lock_unlock">Unlock</string>
+    <string name="app_lock_unlock_title">PlainApp is locked</string>
+    <string name="app_lock_unlock_pin_subtitle">Enter your PIN to continue.</string>
+    <string name="app_lock_unlock_biometric_subtitle">Use biometrics to unlock PlainApp.</string>
+    <string name="app_lock_use_pin">Use PIN</string>
+    <string name="app_lock_use_biometric">Use biometric</string>
 </resources>

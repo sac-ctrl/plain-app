@@ -52,6 +52,9 @@ class Routing {
     object PomodoroTimer
 
     @Serializable
+    object AppLock
+
+    @Serializable
     data class Chat(val id: String = "")
 
     @Serializable

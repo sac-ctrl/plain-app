@@ -59,6 +59,9 @@ import com.ismartcoding.plain.ui.nav.Routing
 import com.ismartcoding.plain.ui.page.Main
 import com.ismartcoding.plain.ui.page.chat.components.ForwardTarget
 import com.ismartcoding.plain.ui.page.chat.components.ForwardTargetDialog
+import com.ismartcoding.plain.ui.page.web.AppLockScreen
+import com.ismartcoding.plain.preferences.AppLockEnabledPreference
+import com.ismartcoding.plain.preferences.AppLockPinPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -81,6 +84,7 @@ class MainActivity : AppCompatActivity() {
     internal var showForwardTargetDialog by mutableStateOf(false)
     internal var pendingFileUris by mutableStateOf<Set<Uri>?>(null)
     internal var pendingCrashReport by mutableStateOf<String?>(null)
+    internal var isLocked by mutableStateOf(false)
 
     internal val screenCapture = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK && result.data != null && ScreenMirrorService.instance == null) {
@@ -141,6 +145,18 @@ class MainActivity : AppCompatActivity() {
                 pendingCrashReport?.let { report ->
                     CrashReportDialog(crashReport = report, onDismiss = { pendingCrashReport = null })
                 }
+                if (isLocked) {
+                    AppLockScreen(activity = this@MainActivity, onUnlock = { isLocked = false })
+                }
+            }
+        }
+        // Evaluate lock state on first launch. The lock is purely a UI gate;
+        // background services (HTTP, Cloudflare tunnel, watchdog, etc.) are unaffected.
+        coIO {
+            val enabled = AppLockEnabledPreference.getAsync(this@MainActivity)
+            val hasPin = AppLockPinPreference.getAsync(this@MainActivity).isNotEmpty()
+            if (enabled && hasPin) {
+                runOnUiThread { isLocked = true }
             }
         }
         AudioPlayer.ensurePlayer(this)
@@ -148,6 +164,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() { super.onDestroy(); Permissions.release(); unregisterReceiver(plugInReceiver); unregisterReceiver(networkStateReceiver) }
+
+    override fun onStop() {
+        super.onStop()
+        // Re-arm the lock whenever the activity goes to the background.
+        coIO {
+            val enabled = AppLockEnabledPreference.getAsync(this@MainActivity)
+            val hasPin = AppLockPinPreference.getAsync(this@MainActivity).isNotEmpty()
+            if (enabled && hasPin) {
+                runOnUiThread { isLocked = true }
+            }
+        }
+    }
     override fun onConfigurationChanged(newConfig: Configuration) { super.onConfigurationChanged(newConfig); PlainAccessibilityService.invalidateScreenSizeCache(); lifecycleScope.launch(Dispatchers.IO) { Language.initLocaleAsync(this@MainActivity) } }
     override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); handleIntent(intent) }
 

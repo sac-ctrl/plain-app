@@ -47,6 +47,7 @@ import com.ismartcoding.plain.ui.helpers.WebHelper
 import com.ismartcoding.plain.ui.models.WebConsoleViewModel
 import com.ismartcoding.plain.ui.nav.Routing
 import com.ismartcoding.plain.ui.theme.PlainTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -87,6 +88,30 @@ fun WebSettingsPage(navController: NavHostController, webVM: WebConsoleViewModel
                             modifier = Modifier.clickable { navController.navigate(Routing.AlwaysOn) },
                             icon = R.drawable.bell, title = stringResource(R.string.always_on_title), showMore = true
                         )
+                        PListItem(
+                            modifier = Modifier.clickable { navController.navigate(Routing.AppLock) },
+                            icon = R.drawable.lock, title = stringResource(R.string.app_lock_title), showMore = true
+                        )
+                        run {
+                            val launcherHidden = remember { mutableStateOf(com.ismartcoding.plain.helpers.LauncherIconHelper.isHidden(context)) }
+                            PListItem(
+                                modifier = Modifier.clickable {
+                                    val target = !launcherHidden.value
+                                    com.ismartcoding.plain.helpers.LauncherIconHelper.setHidden(context, target)
+                                    launcherHidden.value = target
+                                    scope.launch { com.ismartcoding.plain.preferences.LauncherIconHiddenPreference.putAsync(context, target) }
+                                },
+                                icon = R.drawable.devices,
+                                title = stringResource(R.string.hide_launcher_icon),
+                                subtitle = stringResource(R.string.hide_launcher_icon_desc),
+                            ) {
+                                PSwitch(activated = launcherHidden.value) { enable ->
+                                    com.ismartcoding.plain.helpers.LauncherIconHelper.setHidden(context, enable)
+                                    launcherHidden.value = enable
+                                    scope.launch { com.ismartcoding.plain.preferences.LauncherIconHiddenPreference.putAsync(context, enable) }
+                                }
+                            }
+                        }
                         PListItem(
                             modifier = Modifier.clickable { navController.navigate(Routing.HowToUse) },
                             icon = R.drawable.info, title = stringResource(R.string.how_to_use), showMore = true

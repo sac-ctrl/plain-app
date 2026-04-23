@@ -245,6 +245,7 @@ dependencies {
 
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.biometric)
 
     // CameraX
     implementation(libs.camera.core)
