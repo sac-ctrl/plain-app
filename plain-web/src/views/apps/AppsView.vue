@@ -48,6 +48,7 @@
         @uninstall="uninstall"
         @download="downloadApp"
         @cancel-uninstall="cancelUninstall"
+        @toggle-block="toggleBlock"
       />
       <template v-if="loading && items.length === 0">
         <AppSkeletonItem v-for="i in 20" :key="i" :index="i" :is-phone="isPhone" />
@@ -85,7 +86,7 @@ const {
 
 const {
   fileInput, uploadChanged, dropping, fileDragEnter, fileDragLeave,
-  downloadItems, install, uninstall, cancelUninstall, downloadApp, dropApkFiles,
+  downloadItems, install, uninstall, cancelUninstall, downloadApp, dropApkFiles, toggleBlock,
 } = useAppsActions({ items, isActive, fetch, applyRouteQuery, clearSelection, pageKeyDown, pageKeyUp })
 </script>
 <style scoped lang="scss">

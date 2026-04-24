@@ -4,7 +4,7 @@ import tapPhone from '@/plugins/tapphone'
 import { packageStatusesGQL, initLazyQuery } from '@/lib/api/query'
 import { useI18n } from 'vue-i18n'
 import type { IPackageItem, IPackageStatus } from '@/lib/interfaces'
-import { initMutation, uninstallPackageGQL, installPackageGQL } from '@/lib/api/mutation'
+import { initMutation, uninstallPackageGQL, installPackageGQL, setAppBlockedGQL } from '@/lib/api/mutation'
 import { useTempStore, type IUploadItem } from '@/stores/temp'
 import { storeToRefs } from 'pinia'
 import { useDownload, useDownloadItems } from '@/hooks/files'
@@ -39,6 +39,7 @@ export function useAppsActions(opts: UseAppsActionsOptions) {
 
   const { mutate: installPackageMutate } = initMutation({ document: installPackageGQL })
   const { mutate: uninstallMutate } = initMutation({ document: uninstallPackageGQL })
+  const { mutate: setBlockedMutate } = initMutation({ document: setAppBlockedGQL })
 
   const { loading: fetchPackageStatusLoading, fetch: fetchPackageStatus } = initLazyQuery({
     handle: (data: { packageStatuses: IPackageStatus[] }) => {
@@ -79,6 +80,18 @@ export function useAppsActions(opts: UseAppsActionsOptions) {
 
   function cancelUninstall(item: IPackageItem) {
     item.isUninstalling = false
+  }
+
+  function toggleBlock(item: IPackageItem) {
+    const next = !item.isBlocked
+    setBlockedMutate({ packageId: item.id, blocked: next })
+      .then((r) => {
+        if (r) {
+          item.isBlocked = next
+          toast(t(next ? 'app_blocked' : 'app_unblocked'))
+        }
+      })
+      .catch((e) => toast(e.message, 'error'))
   }
 
   function downloadApp(item: IPackageItem) {
@@ -138,6 +151,6 @@ export function useAppsActions(opts: UseAppsActionsOptions) {
 
   return {
     fileInput, uploadChanged, dropping, fileDragEnter, fileDragLeave,
-    downloadItems, install, uninstall, cancelUninstall, downloadApp, dropApkFiles,
+    downloadItems, install, uninstall, cancelUninstall, downloadApp, dropApkFiles, toggleBlock,
   }
 }

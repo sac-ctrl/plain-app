@@ -1,6 +1,7 @@
 package com.ismartcoding.plain.web.models
 
 import com.ismartcoding.plain.data.DPackage
+import com.ismartcoding.plain.services.AppBlockHelper
 import kotlin.time.Instant
 
 data class Package(
@@ -13,6 +14,7 @@ data class Package(
     val certs: List<Certificate>,
     val installedAt: Instant,
     val updatedAt: Instant,
+    val isBlocked: Boolean,
 )
 
 data class Certificate(val issuer: String, val subject: String, val serialNumber: String, val validFrom: Instant, val validTo: Instant)
@@ -22,6 +24,7 @@ fun DPackage.toModel(): Package {
         ID(id), name, type, version, path, size,
         certs.map { Certificate(it.issuer, it.subject, it.serialNumber, it.validFrom, it.validTo) },
         installedAt, updatedAt,
+        isBlocked = AppBlockHelper.isBlocked(id),
     )
 }
 

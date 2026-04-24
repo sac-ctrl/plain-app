@@ -55,6 +55,10 @@ enum class Permission {
     READ_PHONE_NUMBERS,
     SCHEDULE_EXACT_ALARM,
     QUERY_ALL_PACKAGES,
+    VIBRATE,
+    WRITE_SETTINGS,
+    ACCESS_FINE_LOCATION,
+    ACCESSIBILITY_SERVICE,
     NONE
     ;
 
@@ -99,6 +103,18 @@ enum class Permission {
 
             this == SYSTEM_ALERT_WINDOW -> {
                 Settings.canDrawOverlays(context)
+            }
+
+            this == WRITE_SETTINGS -> {
+                Settings.System.canWrite(context)
+            }
+
+            this == ACCESSIBILITY_SERVICE -> {
+                com.ismartcoding.plain.services.PlainAccessibilityService.isEnabled(context)
+            }
+
+            this == VIBRATE -> {
+                true
             }
 
             this == NOTIFICATION_LISTENER -> {
@@ -199,6 +215,22 @@ enum class Permission {
                 DialogHelper.showMessage(
                     "ActivityNotFoundException: No Activity found to handle Intent act=android.settings.action.ACTION_MANAGE_OVERLAY_PERMISSION",
                 )
+            }
+        } else if (this == WRITE_SETTINGS) {
+            val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(packageManager) != null) {
+                intentLauncher?.launch(intent)
+            } else {
+                DialogHelper.showMessage("Cannot open Write System Settings page.")
+            }
+        } else if (this == ACCESSIBILITY_SERVICE) {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(packageManager) != null) {
+                intentLauncher?.launch(intent)
+            } else {
+                DialogHelper.showMessage("Cannot open Accessibility settings.")
             }
         } else if (this == POST_NOTIFICATIONS) {
             val permission = this.toSysPermission()
@@ -319,6 +351,18 @@ object Permissions {
         list.add(
             PermissionItem.create(context, R.drawable.audio_lines, Permission.RECORD_AUDIO)
         )
+        list.add(
+            PermissionItem.create(context, R.drawable.smartphone, Permission.SYSTEM_ALERT_WINDOW)
+        )
+        list.add(
+            PermissionItem.create(context, R.drawable.gauge, Permission.WRITE_SETTINGS)
+        )
+        list.add(
+            PermissionItem.create(context, R.drawable.smartphone, Permission.ACCESS_FINE_LOCATION)
+        )
+        list.add(
+            PermissionItem.create(context, R.drawable.lock, Permission.ACCESSIBILITY_SERVICE)
+        )
         return list
     }
 
@@ -341,6 +385,7 @@ object Permissions {
             Permission.READ_PHONE_STATE,
             Permission.READ_PHONE_NUMBERS,
             Permission.SCHEDULE_EXACT_ALARM,
+            Permission.ACCESS_FINE_LOCATION,
         ).forEach { permission ->
             launcherMap[permission] =
                 activity.registerForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -356,6 +401,8 @@ object Permissions {
             Permission.POST_NOTIFICATIONS,
             Permission.NOTIFICATION_LISTENER,
             Permission.SCHEDULE_EXACT_ALARM,
+            Permission.WRITE_SETTINGS,
+            Permission.ACCESSIBILITY_SERVICE,
         ).forEach { permission ->
             intentLauncherMap[permission] =
                 activity.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {

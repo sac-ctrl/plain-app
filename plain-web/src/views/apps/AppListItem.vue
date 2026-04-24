@@ -23,7 +23,7 @@
     </div>
 
     <div class="actions">
-      <AppActionButtons :item="item" :is-phone="isPhone" @uninstall="uninstall" @download="download" @cancel-uninstall="cancelUninstall" />
+      <AppActionButtons :item="item" :is-phone="isPhone" @uninstall="uninstall" @download="download" @cancel-uninstall="cancelUninstall" @toggle-block="toggleBlock" />
     </div>
 
     <div class="time">
@@ -59,7 +59,7 @@
     </template>
 
     <template #actions>
-      <AppActionButtons :item="item" :is-phone="isPhone" @uninstall="uninstall" @download="download" @cancel-uninstall="cancelUninstall" />
+      <AppActionButtons :item="item" :is-phone="isPhone" @uninstall="uninstall" @download="download" @cancel-uninstall="cancelUninstall" @toggle-block="toggleBlock" />
     </template>
   </ListItemPhone>
 </template>
@@ -85,6 +85,7 @@ const emit = defineEmits<{
   uninstall: [item: IPackageItem]
   download: [item: IPackageItem]
   cancelUninstall: [item: IPackageItem]
+  toggleBlock: [item: IPackageItem]
 }>()
 
 function uninstall() {
@@ -97,5 +98,9 @@ function download() {
 
 function cancelUninstall() {
   emit('cancelUninstall', props.item)
+}
+
+function toggleBlock() {
+  emit('toggleBlock', props.item)
 }
 </script>

@@ -167,6 +167,11 @@ const router = createRouter({
           meta: { group: 'device_info' },
         },
         {
+          path: 'utilities',
+          component: () => import('@/views/utilities/UtilitiesView.vue'),
+          meta: { group: 'utilities' },
+        },
+        {
           path: 'app-settings',
           component: () => import('@/views/app-settings/AppSettingsView.vue'),
           meta: { group: 'app_settings' },

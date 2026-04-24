@@ -319,6 +319,47 @@ export interface IPackage extends IData {
 
 export interface IPackageItem extends IPackage {
   isUninstalling: boolean
+  isBlocked?: boolean
+}
+
+export interface IDeviceLocation {
+  latitude: number
+  longitude: number
+  accuracyMeters: number
+  plusCode: string
+  provider: string
+  timestamp: number
+  googleMapsUrl: string
+}
+
+export interface IVolumeLevel {
+  stream: string
+  percent: number
+}
+
+export interface ITimeLimit {
+  packageId: string
+  dailyMs: number
+  usedMs: number
+}
+
+export interface IBedtime {
+  enabled: boolean
+  startMinutes: number
+  endMinutes: number
+  packages: string[]
+}
+
+export interface ILaunchHistoryEntry {
+  packageId: string
+  timestamp: number
+}
+
+export interface IBlockedAppsState {
+  blocked: string[]
+  timeLimits: ITimeLimit[]
+  bedtime: IBedtime
+  accessibilityServiceEnabled: boolean
 }
 
 // deleted, trashed, restored

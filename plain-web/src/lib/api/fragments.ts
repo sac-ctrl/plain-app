@@ -313,6 +313,7 @@ export const packageFragment = `
     version
     path
     size
+    isBlocked
     certs {
       issuer
       subject
@@ -322,6 +323,27 @@ export const packageFragment = `
     }
     installedAt
     updatedAt
+  }
+`
+
+export const deviceLocationFragment = `
+  fragment DeviceLocationFragment on DeviceLocationModel {
+    latitude
+    longitude
+    accuracyMeters
+    plusCode
+    provider
+    timestamp
+    googleMapsUrl
+  }
+`
+
+export const blockedAppsStateFragment = `
+  fragment BlockedAppsStateFragment on BlockedAppsState {
+    blocked
+    timeLimits { packageId dailyMs usedMs }
+    bedtime { enabled startMinutes endMinutes packages }
+    accessibilityServiceEnabled
   }
 `
 

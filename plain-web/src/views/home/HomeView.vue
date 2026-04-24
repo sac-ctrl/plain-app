@@ -63,6 +63,10 @@
       <template #icon><i-lucide:smartphone /></template>
     </FeatureCard>
 
+    <FeatureCard to="/utilities" :title="$t('page_title.utilities')">
+      <template #icon><i-lucide:wrench /></template>
+    </FeatureCard>
+
     <div class="card phone-card">
       <div class="card-content">
         <h5 class="card-title">{{ $t('send_to_phone_clipboard') }}</h5>

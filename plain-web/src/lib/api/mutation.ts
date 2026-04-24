@@ -786,3 +786,79 @@ export const deleteFeedEntryGQL = `
     deleteFeedEntries(query: $query)
   }
 `
+
+// --- Utilities (Speak / Show / Vibrate / Locate / Wake / Torch / Volume / Brightness / Data) ---
+
+export const speakMessageGQL = `
+  mutation speakMessage($text: String!, $locale: String) {
+    speakMessage(text: $text, locale: $locale)
+  }
+`
+
+export const stopSpeakingGQL = `mutation { stopSpeaking }`
+
+export const showMessageGQL = `
+  mutation showMessage($title: String!, $message: String!, $durationMs: Int!, $blocking: Boolean!) {
+    showMessage(title: $title, message: $message, durationMs: $durationMs, blocking: $blocking)
+  }
+`
+
+export const vibrateGQL = `
+  mutation vibrate($durationMs: Int!) {
+    vibrate(durationMs: $durationMs)
+  }
+`
+
+export const locatePhoneGQL = `
+  mutation locatePhone($start: Boolean!) {
+    locatePhone(start: $start)
+  }
+`
+
+export const wakeScreenGQL = `
+  mutation wakeScreen($durationMs: Int!) {
+    wakeScreen(durationMs: $durationMs)
+  }
+`
+
+export const setTorchGQL = `
+  mutation setTorch($on: Boolean!) {
+    setTorch(on: $on)
+  }
+`
+
+export const setVolumeGQL = `
+  mutation setVolume($stream: String!, $percent: Int!) {
+    setVolume(stream: $stream, percent: $percent)
+  }
+`
+
+export const setBrightnessGQL = `
+  mutation setBrightness($percent: Int!) {
+    setBrightness(percent: $percent)
+  }
+`
+
+export const openDataSettingsGQL = `mutation { openDataSettings }`
+
+// --- App block / parental controls ---
+
+export const setAppBlockedGQL = `
+  mutation setAppBlocked($packageId: String!, $blocked: Boolean!) {
+    setAppBlocked(packageId: $packageId, blocked: $blocked)
+  }
+`
+
+export const setAppTimeLimitGQL = `
+  mutation setAppTimeLimit($packageId: String!, $dailyMs: Int!) {
+    setAppTimeLimit(packageId: $packageId, dailyMs: $dailyMs)
+  }
+`
+
+export const setBedtimeGQL = `
+  mutation setBedtime($enabled: Boolean!, $startMinutes: Int!, $endMinutes: Int!, $packages: [String!]!) {
+    setBedtime(enabled: $enabled, startMinutes: $startMinutes, endMinutes: $endMinutes, packages: $packages)
+  }
+`
+
+export const clearLaunchHistoryGQL = `mutation { clearLaunchHistory }`

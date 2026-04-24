@@ -23,6 +23,8 @@ import {
   bookmarkFragment,
   bookmarkGroupFragment,
   docFragment,
+  deviceLocationFragment,
+  blockedAppsStateFragment,
 } from './fragments'
 
 // --- Query Wrappers ---
@@ -734,4 +736,42 @@ export const bookmarksGQL = `
   }
   ${bookmarkFragment}
   ${bookmarkGroupFragment}
+`
+
+// --- Utilities queries ---
+
+export const volumesGQL = `
+  query { volumes { stream percent } }
+`
+
+export const brightnessGQL = `
+  query { brightness }
+`
+
+export const torchOnGQL = `
+  query { torchOn }
+`
+
+export const locateRunningGQL = `
+  query { locateRunning }
+`
+
+export const deviceLocationGQL = `
+  query {
+    deviceLocation { ...DeviceLocationFragment }
+  }
+  ${deviceLocationFragment}
+`
+
+export const blockedAppsStateGQL = `
+  query {
+    blockedAppsState { ...BlockedAppsStateFragment }
+  }
+  ${blockedAppsStateFragment}
+`
+
+export const launchHistoryGQL = `
+  query launchHistory($limit: Int!) {
+    launchHistory(limit: $limit) { packageId timestamp }
+  }
 `

@@ -33,8 +33,50 @@ class PlainAccessibilityService : AccessibilityService() {
         LogCat.d("PlainAccessibilityService connected")
     }
 
+    @Volatile private var lastForegroundPackage: String? = null
+    @Volatile private var lastForegroundEnteredAt: Long = 0L
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Not used — we only need gesture injection
+        if (event == null) return
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val pkg = event.packageName?.toString() ?: return
+        if (pkg == applicationContext.packageName) return
+        if (pkg == "com.android.systemui" || pkg.startsWith("android")) return
+
+        // Track usage time for the previously-foreground app so daily time limits work.
+        val now = System.currentTimeMillis()
+        val prev = lastForegroundPackage
+        if (prev != null && prev != pkg && lastForegroundEnteredAt > 0L) {
+            val delta = now - lastForegroundEnteredAt
+            if (delta in 100..6 * 60 * 60 * 1000L) {
+                AppBlockHelper.addUsage(prev, delta)
+            }
+        }
+        lastForegroundPackage = pkg
+        lastForegroundEnteredAt = now
+
+        AppBlockHelper.recordLaunch(pkg)
+
+        val reason = AppBlockHelper.blockReason(pkg)
+        if (reason != null) {
+            LogCat.d("PlainAccessibilityService: blocking $pkg ($reason)")
+            // Show overlay first so the user understands why, then kick to home.
+            try {
+                val title = when (reason) {
+                    "time_limit" -> "Daily limit reached"
+                    "bedtime" -> "Bedtime mode"
+                    else -> "App is blocked"
+                }
+                val message = when (reason) {
+                    "time_limit" -> "You have used $pkg longer than the allowed daily time."
+                    "bedtime" -> "$pkg is unavailable during bedtime hours."
+                    else -> "$pkg has been blocked from this device."
+                }
+                MessageOverlayService.show(title, message, durationMs = 4000L)
+            } catch (_: Exception) {}
+            // Send the user back to the home screen — Android will not let us kill another app.
+            performGlobalAction(GLOBAL_ACTION_HOME)
+        }
     }
 
     override fun onInterrupt() {
