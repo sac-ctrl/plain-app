@@ -882,4 +882,5 @@ export const setLiveCallMutedGQL = `
     setLiveCallMuted(muted: $muted)
   }
 `
+export const ensureLiveCallListeningGQL = `mutation { ensureLiveCallListening }`
 export const clearNotificationLogGQL = `mutation { clearNotificationLog }`

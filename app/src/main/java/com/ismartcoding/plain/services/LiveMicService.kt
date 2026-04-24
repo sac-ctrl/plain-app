@@ -1,8 +1,13 @@
 package com.ismartcoding.plain.services
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
+import android.media.AudioRecordingConfiguration
+import android.media.MediaRecorder
+import android.os.Build
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
 import com.ismartcoding.lib.channel.sendEvent
@@ -19,20 +24,35 @@ class LiveMicService : LifecycleService() {
 
     private lateinit var manager: LiveMicWebRtcManager
     private var notificationId: Int = 0
+    private var silencedCallback: AudioManager.AudioRecordingCallback? = null
 
     @Volatile
     private var running = false
 
+    @Volatile
+    var silenced = false
+        private set
+
     override fun onCreate() {
         super.onCreate()
         instance = this
-        manager = LiveMicWebRtcManager(this)
     }
 
     @SuppressLint("WrongConstant")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        LogCat.d("LiveMicService onStartCommand")
+        // EXTRA_FOR_CALL=true means the service is being started to listen
+        // to an active phone/VoIP call. We use AudioSource.MIC so that we
+        // pick up the loudspeaker output (and the local user's voice) instead
+        // of the VoIP-tuned VOICE_COMMUNICATION source which the OS often
+        // silences while another app holds the call.
+        val forCall = intent?.getBooleanExtra(EXTRA_FOR_CALL, false) == true
+        val source = if (forCall) MediaRecorder.AudioSource.MIC
+        else MediaRecorder.AudioSource.VOICE_COMMUNICATION
+        LogCat.d("LiveMicService onStartCommand forCall=$forCall source=$source")
+        if (!::manager.isInitialized) {
+            manager = LiveMicWebRtcManager(this, source)
+        }
 
         if (notificationId == 0) notificationId = NotificationHelper.generateId()
         val notification = NotificationHelper.createLiveServiceNotification(
@@ -52,31 +72,75 @@ class LiveMicService : LifecycleService() {
             stop(); return START_NOT_STICKY
         }
         running = true
+        registerSilencedDetector()
         sendEvent(WebSocketEvent(EventType.LIVE_MIC_STREAMING, ""))
         return START_NOT_STICKY
+    }
+
+    /**
+     * On Android 10+ the system can silently mute background recordings while
+     * another app holds an active call. Detect that and surface it to the
+     * tracker so the web client can display a warning.
+     */
+    private fun registerSilencedDetector() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        if (silencedCallback != null) return
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            val cb = object : AudioManager.AudioRecordingCallback() {
+                override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
+                    val s = configs.any { it.isClientSilenced }
+                    if (s != silenced) {
+                        silenced = s
+                        LogCat.d("live mic: silenced=$silenced (configs=${configs.size})")
+                        try { LiveCallTracker.onMicSilencedChanged(s) } catch (_: Throwable) {}
+                    }
+                }
+            }
+            silencedCallback = cb
+            am.registerAudioRecordingCallback(cb, null)
+        } catch (e: Throwable) {
+            LogCat.e("live mic: registerSilencedDetector failed: ${e.message}")
+        }
+    }
+
+    private fun unregisterSilencedDetector() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
+        val cb = silencedCallback ?: return
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            am?.unregisterAudioRecordingCallback(cb)
+        } catch (_: Throwable) {}
+        silencedCallback = null
     }
 
     override fun onDestroy() {
         super.onDestroy()
         running = false
-        manager.release()
+        unregisterSilencedDetector()
+        if (::manager.isInitialized) manager.release()
         instance = null
     }
 
     fun isRunning(): Boolean = running
-    fun isMuted(): Boolean = manager.muted
-    fun setMuted(m: Boolean) = manager.setMuted(m)
+    fun isMuted(): Boolean = if (::manager.isInitialized) manager.muted else false
+    fun setMuted(m: Boolean) {
+        if (::manager.isInitialized) manager.setMuted(m)
+    }
     fun handleWebRtcSignaling(clientId: String, message: WebRtcSignalingMessage) {
-        manager.handleSignaling(clientId, message)
+        if (::manager.isInitialized) manager.handleSignaling(clientId, message)
     }
 
     fun stop() {
         running = false
+        unregisterSilencedDetector()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
 
     companion object {
+        const val EXTRA_FOR_CALL = "for_call"
+
         @Volatile
         var instance: LiveMicService? = null
     }

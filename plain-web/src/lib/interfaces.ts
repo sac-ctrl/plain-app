@@ -377,6 +377,7 @@ export interface ILiveCallState {
   startedAt: number
   acceptedAt: number
   muted: boolean
+  silenced?: boolean
 }
 
 export interface IBlockedAppsState {

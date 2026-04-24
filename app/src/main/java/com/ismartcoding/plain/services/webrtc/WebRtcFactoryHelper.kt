@@ -1,6 +1,7 @@
 package com.ismartcoding.plain.services.webrtc
 
 import android.content.Context
+import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import org.webrtc.DefaultVideoDecoderFactory
 import org.webrtc.DefaultVideoEncoderFactory
@@ -28,12 +29,18 @@ internal fun ensureWebRtcInitialized(context: Context) {
 internal fun createSimpleWebRtcFactory(
     context: Context,
     eglBase: EglBase,
+    audioSource: Int = MediaRecorder.AudioSource.VOICE_COMMUNICATION,
 ): Pair<PeerConnectionFactory, JavaAudioDeviceModule> {
     ensureWebRtcInitialized(context)
 
     val adm = JavaAudioDeviceModule.builder(context)
         .setUseHardwareAcousticEchoCanceler(false)
         .setUseHardwareNoiseSuppressor(false)
+        // For listening to a phone/VoIP call from the web, MIC is the only
+        // source that consistently picks up the audio coming out of the
+        // loudspeaker (when speakerphone is on) without being silenced by the
+        // OS the way VOICE_COMMUNICATION is during another app's call.
+        .setAudioSource(audioSource)
         .createAudioDeviceModule()
 
     val encoderFactory = DefaultVideoEncoderFactory(eglBase.eglBaseContext, true, true)

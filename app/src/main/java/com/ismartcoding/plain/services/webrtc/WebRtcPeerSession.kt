@@ -38,7 +38,16 @@ class WebRtcPeerSession(
 
     fun createPeerConnectionAndOffer() {
         releasePeerConnection()
-        val rtcConfig = PeerConnection.RTCConfiguration(emptyList()).apply {
+        // Public STUN servers so the browser and the phone can negotiate
+        // a path even when they are not on the same LAN (e.g. through a
+        // Cloudflare Tunnel hostname).
+        val iceServers = listOf(
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer(),
+        )
+        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
         }

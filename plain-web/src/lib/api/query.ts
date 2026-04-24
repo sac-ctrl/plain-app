@@ -792,6 +792,6 @@ export const timelineEntriesGQL = `
 
 export const liveCallStateGQL = `
   query {
-    liveCallState { state direction source appId appName display startedAt acceptedAt muted }
+    liveCallState { state direction source appId appName display startedAt acceptedAt muted silenced }
   }
 `

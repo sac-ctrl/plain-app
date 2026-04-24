@@ -45,9 +45,21 @@ export class WebRTCClient {
     this.remoteDescriptionSet = false
     this.pendingIceCandidates = []
 
+    // Public STUN servers so the browser and the phone can negotiate a path
+    // even when they are not on the same LAN (e.g. when the web console is
+    // reached through a Cloudflare Tunnel hostname).
     const config: RTCConfiguration = {
-      iceServers: [],
-      iceCandidatePoolSize: 0,
+      iceServers: [
+        {
+          urls: [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun.cloudflare.com:3478',
+          ],
+        },
+      ],
+      iceCandidatePoolSize: 1,
     }
 
     this.pc = new RTCPeerConnection(config)

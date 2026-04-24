@@ -27,6 +27,7 @@ data class LiveCallStateData(
     val startedAt: Long,
     val acceptedAt: Long,
     val muted: Boolean,
+    val silenced: Boolean = false, // true when Android silenced our mic (during another app's call)
 )
 
 object LiveCallTracker {
@@ -41,6 +42,7 @@ object LiveCallTracker {
     @Volatile private var startedAt: Long = 0
     @Volatile private var acceptedAt: Long = 0
     @Volatile private var muted: Boolean = false
+    @Volatile private var silenced: Boolean = false
     @Volatile private var phoneListener: PhoneStateListener? = null
     @Volatile private var prevPhoneState: Int = TelephonyManager.CALL_STATE_IDLE
 
@@ -54,13 +56,48 @@ object LiveCallTracker {
     )
 
     fun snapshot(): LiveCallStateData = synchronized(lock) {
-        LiveCallStateData(state, direction, source, appId, appName, display, startedAt, acceptedAt, muted)
+        LiveCallStateData(state, direction, source, appId, appName, display, startedAt, acceptedAt, muted, silenced)
     }
 
     private fun publish() {
         try {
             sendEvent(WebSocketEvent(EventType.LIVE_CALL_STATE, JsonHelper.jsonEncode(snapshot())))
         } catch (_: Throwable) {}
+    }
+
+    /** Called by LiveMicService when the OS silences/unsilences our recording. */
+    fun onMicSilencedChanged(s: Boolean) {
+        if (silenced == s) return
+        silenced = s
+        publish()
+    }
+
+    /**
+     * Auto-start the mic listener + force speakerphone whenever a call becomes
+     * active (regardless of how it was answered: notification action, hardware
+     * answer, panel button, or outgoing). Idempotent.
+     */
+    private fun startListeningIfNeeded(forCall: Boolean) {
+        try {
+            val ctx = MainApp.instance
+            val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+            try {
+                am?.mode = AudioManager.MODE_IN_COMMUNICATION
+                am?.isSpeakerphoneOn = true
+            } catch (e: Throwable) {
+                LogCat.e("LiveCallTracker speakerphone toggle failed: ${e.message}")
+            }
+            if (LiveMicService.instance?.isRunning() == true) return
+            val intent = Intent(ctx, LiveMicService::class.java)
+                .putExtra(LiveMicService.EXTRA_FOR_CALL, forCall)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ctx.startForegroundService(intent)
+            } else {
+                ctx.startService(intent)
+            }
+        } catch (e: Throwable) {
+            LogCat.e("LiveCallTracker startListeningIfNeeded failed: ${e.message}")
+        }
     }
 
     /** Called by PNotificationListenerService for app-call notifications. */
@@ -87,7 +124,10 @@ object LiveCallTracker {
                 if (appId.isEmpty()) { appId = d.appId; appName = d.appName }
                 if (display.isEmpty()) display = title.ifEmpty { body }
                 if (startedAt == 0L) startedAt = System.currentTimeMillis()
+                if (acceptedAt == 0L) acceptedAt = System.currentTimeMillis()
                 publish()
+                // auto-start listener so the web "Listen" page has audio ready
+                startListeningIfNeeded(forCall = true)
             }
         }
     }
@@ -142,6 +182,7 @@ object LiveCallTracker {
                         state = "active"; acceptedAt = System.currentTimeMillis()
                         publish()
                     }
+                    startListeningIfNeeded(forCall = true)
                 }
                 TelephonyManager.CALL_STATE_IDLE -> {
                     if (state != "idle" && source == "phone") end()
@@ -158,22 +199,13 @@ object LiveCallTracker {
                 state = "active"; acceptedAt = System.currentTimeMillis()
             }
         }
-        try {
-            val ctx = MainApp.instance
-            val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            am?.mode = AudioManager.MODE_IN_COMMUNICATION
-            am?.isSpeakerphoneOn = true
-            // start mic streaming
-            val intent = Intent(ctx, LiveMicService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ctx.startForegroundService(intent)
-            } else {
-                ctx.startService(intent)
-            }
-        } catch (e: Throwable) {
-            LogCat.e("LiveCallTracker acceptFromPanel failed: ${e.message}")
-        }
+        startListeningIfNeeded(forCall = true)
         publish()
+    }
+
+    /** Invoked by the web "Listen" page if it loads while a call is already active. */
+    fun ensureListening() {
+        if (state == "active") startListeningIfNeeded(forCall = true)
     }
 
     fun setMuted(m: Boolean) {

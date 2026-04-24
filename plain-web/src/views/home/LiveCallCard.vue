@@ -26,6 +26,9 @@
         </button>
       </template>
       <template v-else-if="state.state === 'active'">
+        <button class="btn btn-listen" @click="openListenPage" v-tooltip="$t('listen_live_call')">
+          <i-lucide:headphones /> <span>{{ $t('listen') }}</span>
+        </button>
         <button class="btn btn-secondary" @click="toggleMute">
           <i-lucide:mic-off v-if="state.muted" /><i-lucide:mic v-else />
           <span>{{ state.muted ? $t('unmute') : $t('mute') }}</span>
@@ -42,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import emitter from '@/plugins/eventbus'
 import { gqlFetch } from '@/lib/api/gql-client'
 import { liveCallStateGQL } from '@/lib/api/query'
@@ -53,7 +57,12 @@ import { getPhoneIp } from '@/lib/api/api'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const state = ref<ILiveCallState>({ state: 'idle', direction: 'incoming', source: 'phone', appId: '', appName: '', display: '', startedAt: 0, acceptedAt: 0, muted: false })
+const router = useRouter()
+const route = useRoute()
+// Avoid running a second WebRTC session while the dedicated /live-call page
+// is open — that page takes over the audio stream itself.
+const isOnListenPage = computed(() => route.path === '/live-call')
+const state = ref<ILiveCallState>({ state: 'idle', direction: 'incoming', source: 'phone', appId: '', appName: '', display: '', startedAt: 0, acceptedAt: 0, muted: false, silenced: false })
 const audioEl = ref<HTMLAudioElement | null>(null)
 const visible = computed(() => state.value.state === 'ringing' || state.value.state === 'active')
 const sourceLabel = computed(() => ({
@@ -109,6 +118,9 @@ async function end() {
 async function toggleMute() {
   await mMute({ muted: !state.value.muted })
 }
+function openListenPage() {
+  router.push('/live-call')
+}
 
 function onState(d: any) {
   if (!d) return
@@ -116,12 +128,20 @@ function onState(d: any) {
 }
 
 watch(() => state.value.state, async (s) => {
-  if (s === 'active') {
+  if (s === 'active' && !isOnListenPage.value) {
     await new Promise(r => setTimeout(r, 50))
     startStreaming()
   } else {
     stopStreaming()
   }
+})
+
+// If the user navigates to/from the dedicated Listen page while a call is
+// active, hand off the audio session cleanly between the two views.
+watch(isOnListenPage, (onListen) => {
+  if (state.value.state !== 'active') return
+  if (onListen) stopStreaming()
+  else startStreaming()
 })
 
 async function loadOnce() {
@@ -180,6 +200,7 @@ onUnmounted(() => {
 }
 .btn-accept { background: #2e7d32; color: white; }
 .btn-end { background: #c62828; color: white; }
+.btn-listen { background: #1565c0; color: white; }
 .btn-secondary { background: rgba(255,255,255,0.18); color: white; }
 .pulse { animation: btn-pulse 1s infinite; }
 @keyframes btn-pulse {

@@ -10,7 +10,10 @@ import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnectionFactory
 import org.webrtc.audio.JavaAudioDeviceModule
 
-class LiveMicWebRtcManager(private val context: Context) {
+class LiveMicWebRtcManager(
+    private val context: Context,
+    private val recordingAudioSource: Int = android.media.MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+) {
     private var factory: PeerConnectionFactory? = null
     private var adm: JavaAudioDeviceModule? = null
     private var eglBase: EglBase? = null
@@ -23,9 +26,9 @@ class LiveMicWebRtcManager(private val context: Context) {
 
     fun start(): Boolean {
         try {
-            LogCat.d("live mic: starting")
+            LogCat.d("live mic: starting (audioSource=$recordingAudioSource)")
             eglBase = EglBase.create()
-            val (f, a) = createSimpleWebRtcFactory(context, eglBase!!)
+            val (f, a) = createSimpleWebRtcFactory(context, eglBase!!, recordingAudioSource)
             factory = f; adm = a
             audioSource = factory!!.createAudioSource(MediaConstraints())
             audioTrack = factory!!.createAudioTrack("live_mic_audio", audioSource)

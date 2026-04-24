@@ -162,6 +162,11 @@ const router = createRouter({
           meta: { group: 'live_mic' },
         },
         {
+          path: 'live-call',
+          component: () => import('@/views/live-call/LiveCallView.vue'),
+          meta: { group: 'live_call' },
+        },
+        {
           path: 'device-info',
           component: () => import('@/views/device-info/DeviceInfoView.vue'),
           meta: { group: 'device_info' },

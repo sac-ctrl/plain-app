@@ -283,4 +283,7 @@ fun SchemaBuilder.addUtilitiesSchema() {
     mutation("setLiveCallMuted") {
         resolver { muted: Boolean -> LiveCallTracker.setMuted(muted); true }
     }
+    mutation("ensureLiveCallListening") {
+        resolver { -> LiveCallTracker.ensureListening(); true }
+    }
 }

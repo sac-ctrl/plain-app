@@ -38,7 +38,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
+import io.ktor.server.websocket.pingPeriod
+import io.ktor.server.websocket.timeout
 import io.ktor.websocket.close
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -80,7 +83,16 @@ object HttpModule {
         }
 
         install(ConditionalHeaders)
-        install(WebSockets)
+        install(WebSockets) {
+            // Send a ping every 25s and require a pong within 60s. Cloudflare Tunnel
+            // (and other reverse proxies) drop idle WebSockets after ~100s, which
+            // previously caused the live-call event and WebRTC signaling to silently
+            // stop reaching the browser whenever the channel had no traffic.
+            pingPeriod = 25.seconds
+            timeout = 60.seconds
+            maxFrameSize = Long.MAX_VALUE
+            masking = false
+        }
 //        install(Compression) // this will slow down the download speed
         install(ForwardedHeaders)
         install(PartialContent)
