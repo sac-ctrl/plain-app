@@ -306,8 +306,10 @@ class CloudflareTunnelService : Service() {
             // Wait for a validated network before launching cloudflared.
             // After a phone reboot BootCompletedReceiver fires before Wi-Fi
             // associates, which used to make the very first attempt fail with
-            // "no route to host" / Error 1033 in the browser.
-            if (!awaitValidatedNetwork(60_000L)) {
+            // "no route to host" / Error 1033 in the browser. The same wait
+            // also kicks in right after a non-VoLTE carrier call ends, where
+            // the cellular modem suspends data for the duration of the call.
+            if (!awaitValidatedNetwork(120_000L)) {
                 TunnelLogger.w(TAG, "No validated network after wait — will retry")
                 status = Status.ERROR
                 lastError = "Waiting for internet…"
@@ -317,6 +319,7 @@ class CloudflareTunnelService : Service() {
             }
 
             val protocol = protocols[(attempt - 1) % protocols.size]
+            val startedAt = System.currentTimeMillis()
             try {
                 runOnce(token, protocol)
                 TunnelLogger.i(TAG, "cloudflared process exited cleanly")
@@ -325,11 +328,24 @@ class CloudflareTunnelService : Service() {
                 TunnelLogger.e(TAG, "cloudflared run failed: $lastError", t)
                 status = Status.ERROR
             }
+            val ranForMs = System.currentTimeMillis() - startedAt
             val stillEnabled = CloudflareTunnelEnabledPreference.getAsync(MainApp.instance)
             if (!stillEnabled) {
                 TunnelLogger.i(TAG, "Tunnel preference disabled — stopping service")
                 stopSelf()
                 return
+            }
+            // If the tunnel had been UP and connected for a while before
+            // dying, the cause is almost certainly a transient network
+            // event (the user took a non-VoLTE call so the modem suspended
+            // data, Wi-Fi roamed, etc.) — not a config error. Reset
+            // backoff so we reconnect immediately when data is back, no
+            // matter how long the call lasted. Without this reset, after
+            // a 3-minute call the next attempt could be delayed by up to
+            // 60 s of exponential backoff.
+            if (ranForMs > 30_000L) {
+                TunnelLogger.i(TAG, "process ran for ${ranForMs}ms — resetting backoff (likely transient network)")
+                backoffMs = 2000L
             }
             TunnelLogger.i(TAG, "Retrying in ${backoffMs}ms")
             delay(backoffMs)

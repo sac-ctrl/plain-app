@@ -168,6 +168,11 @@ const { mutate: mEnsureListening } = initMutation({ document: ensureLiveCallList
 
 let client: WebRTCClient | null = null
 const signalQueue: SignalingMessage[] = []
+let offerWatchdog: any = null
+let offerReceived = false
+let readyAttempts = 0
+const MAX_READY_RETRIES = 6
+const READY_RETRY_MS = 1500
 
 function attach(stream: MediaStream) {
   if (!audioEl.value) return
@@ -177,9 +182,39 @@ function attach(stream: MediaStream) {
   if (!paused.value) audioEl.value.play().catch(() => {})
 }
 
-function startStreaming() {
+function clearOfferWatchdog() {
+  if (offerWatchdog) { clearTimeout(offerWatchdog); offerWatchdog = null }
+}
+
+function armOfferWatchdog() {
+  clearOfferWatchdog()
+  offerWatchdog = setTimeout(() => {
+    if (offerReceived || !client) return
+    if (readyAttempts >= MAX_READY_RETRIES) {
+      // Give up; surface failure to UI.
+      connState.value = 'failed'
+      return
+    }
+    readyAttempts++
+    // Re-send `ready`. The phone-side foreground service may not have
+    // finished initialising on the first try, in which case the original
+    // `ready` was silently dropped. Retrying gives the new defensive
+    // fallback in the GraphQL router a chance to start the service and
+    // then route the message.
+    try { makeSendWebRTCSignalingFor('mic')({ type: 'ready', phoneIp: getPhoneIp() }) } catch {}
+    armOfferWatchdog()
+  }, READY_RETRY_MS)
+}
+
+async function startStreaming() {
   stopStreaming()
   connState.value = 'connecting'
+  offerReceived = false
+  readyAttempts = 0
+  // Best-effort: tell the phone to spin up the mic listener and wait for
+  // it to actually be running before we send `ready`. The mutation
+  // returns true once LiveMicService.instance is ready.
+  try { await mEnsureListening() } catch {}
   client = new WebRTCClient({
     sendSignaling: makeSendWebRTCSignalingFor('mic'),
     onStream: attach,
@@ -187,10 +222,18 @@ function startStreaming() {
     onError: () => { connState.value = 'failed' },
   })
   client.startSession(true, false, getPhoneIp(), { video: false, audio: true })
-  while (signalQueue.length) client.handleSignalingMessage(signalQueue.shift()!)
+  while (signalQueue.length) {
+    const m = signalQueue.shift()!
+    if (m.type === 'offer') offerReceived = true
+    client.handleSignalingMessage(m)
+  }
+  armOfferWatchdog()
 }
 
 function stopStreaming() {
+  clearOfferWatchdog()
+  offerReceived = false
+  readyAttempts = 0
   if (audioEl.value) { audioEl.value.pause(); audioEl.value.srcObject = null }
   client?.cleanup(); client = null
   connState.value = 'idle'
@@ -198,6 +241,10 @@ function stopStreaming() {
 
 const onSignaling = (msg: any) => {
   if (!msg || msg.stream !== 'mic') return
+  if (msg.type === 'offer') {
+    offerReceived = true
+    clearOfferWatchdog()
+  }
   if (client) client.handleSignalingMessage(msg)
   else signalQueue.push(msg)
 }
@@ -227,9 +274,11 @@ async function accept() { await mAccept() }
 async function end() { await mEnd() }
 function goHome() { router.push('/') }
 
-watch(() => state.value.state, async (s, prev) => {
+watch(() => state.value.state, (s, prev) => {
   if (s === 'active' && prev !== 'active') {
-    await new Promise(r => setTimeout(r, 50))
+    // startStreaming awaits ensureLiveCallListening internally so the phone
+    // service is actually ready before we send `ready` (no more arbitrary
+    // setTimeout race).
     startStreaming()
   } else if (s !== 'active') {
     stopStreaming()
@@ -242,10 +291,6 @@ async function loadOnce() {
     if (!r.errors) {
       state.value = r.data.liveCallState
       if (state.value.state === 'active') {
-        // Make sure the phone is actually streaming mic audio (it may not
-        // have been started yet if the call was answered on the device).
-        try { await mEnsureListening() } catch {}
-        await new Promise(r2 => setTimeout(r2, 80))
         startStreaming()
       }
     }

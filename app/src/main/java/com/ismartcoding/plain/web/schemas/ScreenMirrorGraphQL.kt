@@ -12,6 +12,7 @@ import com.ismartcoding.plain.events.RequestScreenMirrorAudioEvent
 import com.ismartcoding.plain.events.StartScreenMirrorEvent
 import com.ismartcoding.plain.features.Permission
 import com.ismartcoding.plain.preferences.ScreenMirrorQualityPreference
+import com.ismartcoding.plain.services.LiveCallTracker
 import com.ismartcoding.plain.services.PlainAccessibilityService
 import com.ismartcoding.plain.services.ScreenMirrorService
 import com.ismartcoding.plain.web.models.toModel
@@ -79,7 +80,20 @@ fun SchemaBuilder.addScreenMirrorSchema() {
             val clientId = call?.request?.header("c-id") ?: ""
             when (payload.stream) {
                 "camera" -> com.ismartcoding.plain.services.LiveCameraService.instance?.handleWebRtcSignaling(clientId, payload)
-                "mic" -> com.ismartcoding.plain.services.LiveMicService.instance?.handleWebRtcSignaling(clientId, payload)
+                "mic" -> {
+                    // Defensive: if a `ready`/offer/etc arrives for the mic
+                    // stream before the foreground service has finished
+                    // initialising, kick it off and wait briefly. This
+                    // closes the race that previously left the browser
+                    // stuck on "Connecting…" forever.
+                    var svc = com.ismartcoding.plain.services.LiveMicService.instance
+                    if (svc?.isRunning() != true) {
+                        LiveCallTracker.ensureListening()
+                        LiveCallTracker.awaitListenerReady(4000L)
+                        svc = com.ismartcoding.plain.services.LiveMicService.instance
+                    }
+                    svc?.handleWebRtcSignaling(clientId, payload)
+                }
                 else -> ScreenMirrorService.instance?.handleWebRtcSignaling(clientId, payload)
             }
             true

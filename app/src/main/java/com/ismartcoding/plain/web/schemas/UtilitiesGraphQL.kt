@@ -284,6 +284,15 @@ fun SchemaBuilder.addUtilitiesSchema() {
         resolver { muted: Boolean -> LiveCallTracker.setMuted(muted); true }
     }
     mutation("ensureLiveCallListening") {
-        resolver { -> LiveCallTracker.ensureListening(); true }
+        // Suspending: kicks off LiveMicService and waits up to 4 s for it to
+        // finish initialising. Returning before the service is ready was the
+        // root cause of the "Connecting…" hang — the browser would send its
+        // `ready` signaling immediately on resolve, but LiveMicService.instance
+        // was still null so the message was silently dropped and no offer
+        // ever came back.
+        resolver { ->
+            LiveCallTracker.ensureListening()
+            LiveCallTracker.awaitListenerReady(4000L)
+        }
     }
 }

@@ -1,0 +1,92 @@
+Agent
+In app there is features to see current call even phone call and whatsapp call but what happened u could see in screenshot in localhost that is perfectly showing call and even it does disconnect but when same i open in my through cloudflared tunnel domain then u could see nothing showing and even it it get dissconnected from app till that call is activen but soon call end it get connect but why duribg call these happening in cloudflare tunnel url and even when is to option to listen that call showing means when i tap on that listen button it should open a new page with all detail of call and every button which will really work and now it must give live call audio in on that page with pause amd many option and how ti get call audio mainly it will live u know best ok it must able to Give live audio call full listenable ok even speaker voice and even other person voice on call and it must work on cloudflred tunnel as well remember everything already working even with cloudflared tunnel url except just this part ok
+
+54 minutes ago
+Now I have a complete picture. Let me apply all the fixes in parallel.
+
+Root causes identified:
+
+WebSocket dies on Cloudflare during a call — Cloudflare Tunnel drops idle WebSockets after ~100s, but the Ktor server has no pingPeriod configured, so the WS goes silent during a call and the live-call event never reaches your browser.
+WebRTC audio can't traverse Cloudflare — both sides have empty iceServers, so only LAN candidates are tried. Public STUN servers are needed for the browser to talk to the phone over the tunnel.
+No dedicated "Listen" page — only the small banner exists today.
+Let me fix all three.
+
+Now let me apply the WebRTC ICE server fix on Android (both screen mirror and live mic) and on the web client, and create the new Listen page in parallel.
+
+Now add styles for the listen button and create the dedicated Live Call page in parallel:
+
+Now create the dedicated Live Call page and register it in the router, plus add locale strings:
+
+Now add the locale strings and verify with the build:
+
+Let me try to build the web app to verify all changes compile cleanly:
+
+Build succeeded. Now copy the built web app into the Android resources and verify the Kotlin changes look syntactically right by checking the final files briefly.
+
+Will that target device will allow two app to use microphone same so mke such a system that 100% confornm that i will live call listening even phone call ad whatsapp call and from both local web service and cloudflare tunnel ok even everything was already working even live camera stram and even live audio streaming they work on cloudflared except that call listening and tracked and disconnection issue during any call and then build plain-web and put output folder to coreect place in android source
+
+44 minutes ago
+Good question — let me be straight about an Android constraint and then build the strongest solution that works around it.
+
+The honest reality of Android microphones during calls:
+
+Android only lets one app actively capture the mic at a time. While you are on a carrier call, the dialer (system app) holds the mic; while on a WhatsApp call, WhatsApp holds it.
+Since Android 10 the system can silently mute background mic recordings during a voice call. There is no app-level workaround for that — only system / signed apps using VOICE_CALL/VOICE_DOWNLINK can grab the actual telephony stream.
+The workaround that does work in practice on most devices: force speakerphone on, then capture the regular MIC source. The loudspeaker plays the remote person's voice → the mic picks it up alongside your voice → both sides come through over WebRTC. We already turn speakerphone on; what's missing is that the WebRTC audio module currently uses VOICE_COMMUNICATION, which is the worst source during a foreign call (the OS often silences it). Switching to MIC is the right call here.
+Let me check & strengthen all of that, plus auto-start mic streaming for every active call (not just calls accepted from the panel) so it works equally on local and Cloudflare URLs.
+
+Now I'll make all the targeted changes in parallel: switch the call's mic source to MIC, auto-start mic streaming on every active call (regardless of how it was answered), force speakerphone, and surface a "silenced by Android" indicator if the OS mutes our recording.
+
+Name collision — let me fix the field name:
+
+Now update LiveMicService to read a "for_call" extra (use MIC source) and register a recording-silenced listener, then rewrite LiveCallTracker to auto-start the mic on every active transition with a silenced field:
+
+Now update LiveCallTracker to auto-start the mic for every active call (not just panel-accepted), force speakerphone, and expose the silenced flag:
+
+Optimized Agent memory
+Now wire auto-start into both notification and phone-state transitions, then update LiveMicService import path for AudioRecordingConfiguration (already imported). Three more edits in the tracker, then schema, then the web side:
+
+Now simplify acceptFromPanel to just delegate to startListeningIfNeeded, then remove the unused Context import in LiveMicService (actually it is used). Then update the GraphQL schema and the web side.
+
+Now expose ensureListening on the GraphQL schema, then update the web side. Doing all in parallel:
+
+Now find where the web side declares the GraphQL types and the LiveCallView so I can add silenced and call ensureLiveCallListening:
+
+Now add the ensureLiveCallListeningGQL mutation, then update the LiveCallView to call it on mount and show the silenced warning, and also bump the LiveCallCard default state to include silenced. Doing all in parallel:
+
+Now let me look at LiveCallView.vue around the mount and audio chip to insert ensureLiveCallListening + silenced warning:
+
+Now also surface the silenced warning in the template, then update LiveCallCard's default state, then build & copy. Let me also look at the template area where to insert the warning:
+
+Now add the warning style + i18n string + default state in the card. Doing all in parallel:
+
+Now add i18n string + LiveCallCard default state, then build & copy. All in parallel:
+
+Now build the web bundle and copy into Android resources:
+
+Build succeeded. Copy into Android resources:
+
+Let me clean up the unused mine variable in LiveMicService:
+
+All Android + plain-web changes are in and the bundle has been copied into app/src/main/resources/web/. Here's a summary of what's now wired up end-to-end:
+
+Honest answer to your mic question first: Android does not let two apps record the microphone simultaneously in the way you're hoping. Since Android 10, when one app holds the mic exclusively (like the Phone app or WhatsApp during a call), the OS silently silences any other app that tries to record — there is no flag, permission, or workaround that makes two apps both get live audio at the same time. The closest thing that works in practice is: force the call to speakerphone, then capture with AudioSource.MIC (not the VoIP source, which gets muted faster), so the device's own microphone picks up both sides of the call from the loudspeaker. That's what I've implemented. It will work reliably for phone calls and most VoIP apps when speakerphone is on; when the OS does silence us anyway, the web page now shows a clear warning instead of going silent without explanation.
+
+What I changed
+
+Android side:
+
+WebRtcFactoryHelper.createSimpleWebRtcFactory(...) now accepts an audioSource parameter and applies it to the JavaAudioDeviceModule.
+LiveMicWebRtcManager accepts the audio source in its constructor and passes it down.
+LiveMicService reads an EXTRA_FOR_CALL=true extra; when set it uses MediaRecorder.AudioSource.MIC (good for capturing speakerphone), otherwise the default VOICE_COMMUNICATION. It also registers an AudioRecordingCallback to detect when the OS silences our recording.
+LiveCallTracker now auto-starts the mic listener and forces speakerphone the moment any call becomes active — incoming/outgoing carrier call, hardware-answered, notification-action-answered, or panel-answered. New onMicSilencedChanged() propagates the silenced flag, and ensureListening() lets the web page kick the service if the call was answered on the device. New silenced: Boolean field on LiveCallStateData.
+UtilitiesGraphQL exposes the new ensureLiveCallListening mutation.
+Web side:
+
+ILiveCallState gets silenced?: boolean, the liveCallState query selects it, and the new ensureLiveCallListeningGQL mutation is defined.
+The Listen page (LiveCallView.vue) calls ensureLiveCallListening on load (so opening the page from a call answered on the device starts streaming), and shows a clear red warning banner when silenced is true.
+Default state objects in both LiveCallView and LiveCallCard include the new field.
+Built plain-web and copied dist/* into app/src/main/resources/web/.
+The keep-alive ping fix on the WebSocket and the STUN servers from the prior round are still in, so the Cloudflare-tunnel drop-out and the call-card-not-appearing on control.shakti.buzz should also be resolved. Build the Android app and install it on the device to test.
+
+You're out of credits.

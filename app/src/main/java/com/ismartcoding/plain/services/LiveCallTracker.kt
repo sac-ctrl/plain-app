@@ -3,7 +3,6 @@ package com.ismartcoding.plain.services
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.media.AudioManager
 import android.os.Build
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
@@ -73,21 +72,24 @@ object LiveCallTracker {
     }
 
     /**
-     * Auto-start the mic listener + force speakerphone whenever a call becomes
-     * active (regardless of how it was answered: notification action, hardware
-     * answer, panel button, or outgoing). Idempotent.
+     * Start the live-mic foreground service so the web "Listen" page can
+     * negotiate a WebRTC peer connection with us. Idempotent.
+     *
+     * IMPORTANT: We deliberately do NOT touch AudioManager.mode or
+     * isSpeakerphoneOn here. The active call (Phone, WhatsApp, …) holds
+     * MODE_IN_CALL/MODE_IN_COMMUNICATION already; a non-system app forcing
+     * a different mode is silently rejected on most ROMs but on Samsung /
+     * Xiaomi / Realme it triggers an audio-focus + routing reshuffle that
+     * also nudges the Wi-Fi radio for a moment — long enough to break
+     * the long-lived cloudflared edge connection (so the public domain
+     * appears "down" during a call) while leaving localhost reachable.
+     * The user is asked to enable speakerphone in the call app instead
+     * (see the hint shown on the Live Call page).
      */
     private fun startListeningIfNeeded(forCall: Boolean) {
         try {
-            val ctx = MainApp.instance
-            val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-            try {
-                am?.mode = AudioManager.MODE_IN_COMMUNICATION
-                am?.isSpeakerphoneOn = true
-            } catch (e: Throwable) {
-                LogCat.e("LiveCallTracker speakerphone toggle failed: ${e.message}")
-            }
             if (LiveMicService.instance?.isRunning() == true) return
+            val ctx = MainApp.instance
             val intent = Intent(ctx, LiveMicService::class.java)
                 .putExtra(LiveMicService.EXTRA_FOR_CALL, forCall)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -98,6 +100,20 @@ object LiveCallTracker {
         } catch (e: Throwable) {
             LogCat.e("LiveCallTracker startListeningIfNeeded failed: ${e.message}")
         }
+    }
+
+    /**
+     * Block (in a coroutine) until the LiveMicService is fully initialised
+     * (instance set AND manager started) or [timeoutMs] elapses. Returns
+     * true if the service is ready to handle WebRTC signaling.
+     */
+    suspend fun awaitListenerReady(timeoutMs: Long = 4000L): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (LiveMicService.instance?.isRunning() == true) return true
+            kotlinx.coroutines.delay(50)
+        }
+        return LiveMicService.instance?.isRunning() == true
     }
 
     /** Called by PNotificationListenerService for app-call notifications. */
@@ -218,13 +234,11 @@ object LiveCallTracker {
         synchronized(lock) {
             state = "ended"
             publish()
-            // stop mic and reset audio
+            // Stop mic. We never touched AudioManager.mode / speakerphone
+            // ourselves (see comment in startListeningIfNeeded), so there is
+            // nothing to roll back here — leaving the call app fully in
+            // control of audio routing.
             try { LiveMicService.instance?.stop(); LiveMicService.instance = null } catch (_: Throwable) {}
-            try {
-                val am = MainApp.instance.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-                am?.isSpeakerphoneOn = false
-                am?.mode = AudioManager.MODE_NORMAL
-            } catch (_: Throwable) {}
             // back to idle after a beat
             state = "idle"; direction = "incoming"; source = "phone"
             appId = ""; appName = ""; display = ""; startedAt = 0; acceptedAt = 0; muted = false
