@@ -7,6 +7,7 @@ import android.content.Intent
 import android.graphics.Path
 import android.graphics.Point
 import android.os.Build
+import android.os.HandlerThread
 import android.provider.Settings
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
@@ -34,16 +35,48 @@ class PlainAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         LogCat.d("PlainAccessibilityService connected")
+        ensureWorker()
         startEnforcementLoop()
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
+
+    // Dedicated worker thread for ALL disk-touching work (SharedPreferences
+    // read/write, PackageManager queries, JSON parsing). The accessibility
+    // event callback runs on the main thread and Android marks the service
+    // as "malfunctioning" if it doesn't return quickly. We must never do
+    // blocking I/O from the callback itself.
+    private var workerThread: HandlerThread? = null
+    private var workerHandler: Handler? = null
+
+    private fun ensureWorker() {
+        if (workerHandler != null) return
+        val t = HandlerThread("PlainAccessWorker", android.os.Process.THREAD_PRIORITY_BACKGROUND).also { it.start() }
+        workerThread = t
+        workerHandler = Handler(t.looper)
+    }
+
+    private fun postWork(r: Runnable) {
+        ensureWorker()
+        workerHandler?.post {
+            try { r.run() } catch (t: Throwable) {
+                // Swallow everything — an uncaught exception here would
+                // propagate up and crash the accessibility worker, which
+                // is exactly what causes the "malfunctioning" status.
+                LogCat.e("PlainAccessibility worker error: ${t.message}")
+            }
+        }
+    }
+
     private val enforcementRunnable = object : Runnable {
         override fun run() {
-            try {
-                val pkg = currentForegroundPackage
-                val enteredAt = currentForegroundEnteredAt
-                if (pkg != null && enteredAt > 0) {
+            // The runnable itself runs on the main handler so we can call
+            // performGlobalAction. Push all I/O onto the worker.
+            postWork(Runnable {
+                try {
+                    val pkg = currentForegroundPackage ?: return@Runnable
+                    val enteredAt = currentForegroundEnteredAt
+                    if (enteredAt <= 0) return@Runnable
                     val now = System.currentTimeMillis()
                     val delta = now - enteredAt
                     if (delta in 100..6 * 60 * 60 * 1000L) {
@@ -52,17 +85,19 @@ class PlainAccessibilityService : AccessibilityService() {
                     }
                     val reason = AppBlockHelper.blockReason(pkg)
                     if (reason != null) {
-                        try {
-                            MessageOverlayService.show(
-                                title = if (reason == "time_limit") "Daily limit reached" else "App blocked",
-                                message = "$pkg has been blocked.",
-                                durationMs = 3500L,
-                            )
-                        } catch (_: Exception) {}
-                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        mainHandler.post {
+                            try {
+                                MessageOverlayService.show(
+                                    title = if (reason == "time_limit") "Daily limit reached" else "App blocked",
+                                    message = "$pkg has been blocked.",
+                                    durationMs = 3500L,
+                                )
+                            } catch (_: Exception) {}
+                            try { performGlobalAction(GLOBAL_ACTION_HOME) } catch (_: Throwable) {}
+                        }
                     }
-                }
-            } catch (_: Throwable) {}
+                } catch (_: Throwable) {}
+            })
             mainHandler.postDelayed(this, 5000L)
         }
     }
@@ -72,50 +107,61 @@ class PlainAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // CRITICAL: this runs on the main thread. Do nothing here that
+        // touches disk, SharedPreferences, PackageManager, or anything
+        // that could ever block. Snapshot the few primitives we need and
+        // hand off to the worker thread immediately.
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
         if (pkg == applicationContext.packageName) return
         if (pkg == "com.android.systemui" || pkg.startsWith("android")) return
 
-        // Track usage time for the previously-foreground app so daily time limits work.
         val now = System.currentTimeMillis()
         val prev = currentForegroundPackage
-        if (prev != null && prev != pkg && currentForegroundEnteredAt > 0L) {
-            val delta = now - currentForegroundEnteredAt
-            if (delta in 100..6 * 60 * 60 * 1000L) {
-                AppBlockHelper.addUsage(prev, delta)
-            }
-        }
+        val prevEnteredAt = currentForegroundEnteredAt
         currentForegroundPackage = pkg
         currentForegroundEnteredAt = now
 
-        AppBlockHelper.recordLaunch(pkg)
-        try {
-            val label = PackageHelper.getLabel(pkg).ifEmpty { pkg }
-            TimelineHelper.add("launch", "Opened $label", "", pkg, label, now)
-        } catch (_: Throwable) {}
+        postWork(Runnable {
+            // Track usage time for the previously-foreground app so daily
+            // time limits work.
+            if (prev != null && prev != pkg && prevEnteredAt > 0L) {
+                val delta = now - prevEnteredAt
+                if (delta in 100..6 * 60 * 60 * 1000L) {
+                    try { AppBlockHelper.addUsage(prev, delta) } catch (_: Throwable) {}
+                }
+            }
 
-        val reason = AppBlockHelper.blockReason(pkg)
-        if (reason != null) {
-            LogCat.d("PlainAccessibilityService: blocking $pkg ($reason)")
-            // Show overlay first so the user understands why, then kick to home.
+            try { AppBlockHelper.recordLaunch(pkg) } catch (_: Throwable) {}
             try {
-                val title = when (reason) {
-                    "time_limit" -> "Daily limit reached"
-                    "bedtime" -> "Bedtime mode"
-                    else -> "App is blocked"
+                val label = PackageHelper.getLabel(pkg).ifEmpty { pkg }
+                TimelineHelper.add("launch", "Opened $label", "", pkg, label, now)
+            } catch (_: Throwable) {}
+
+            val reason = try { AppBlockHelper.blockReason(pkg) } catch (_: Throwable) { null }
+            if (reason != null) {
+                LogCat.d("PlainAccessibilityService: blocking $pkg ($reason)")
+                mainHandler.post {
+                    try {
+                        val title = when (reason) {
+                            "time_limit" -> "Daily limit reached"
+                            "bedtime" -> "Bedtime mode"
+                            else -> "App is blocked"
+                        }
+                        val message = when (reason) {
+                            "time_limit" -> "You have used $pkg longer than the allowed daily time."
+                            "bedtime" -> "$pkg is unavailable during bedtime hours."
+                            else -> "$pkg has been blocked from this device."
+                        }
+                        MessageOverlayService.show(title, message, durationMs = 4000L)
+                    } catch (_: Exception) {}
+                    // Must run on main thread — accessibility actions are not
+                    // allowed from background threads.
+                    try { performGlobalAction(GLOBAL_ACTION_HOME) } catch (_: Throwable) {}
                 }
-                val message = when (reason) {
-                    "time_limit" -> "You have used $pkg longer than the allowed daily time."
-                    "bedtime" -> "$pkg is unavailable during bedtime hours."
-                    else -> "$pkg has been blocked from this device."
-                }
-                MessageOverlayService.show(title, message, durationMs = 4000L)
-            } catch (_: Exception) {}
-            // Send the user back to the home screen — Android will not let us kill another app.
-            performGlobalAction(GLOBAL_ACTION_HOME)
-        }
+            }
+        })
     }
 
     override fun onInterrupt() {
@@ -126,6 +172,9 @@ class PlainAccessibilityService : AccessibilityService() {
         super.onDestroy()
         instance = null
         mainHandler.removeCallbacks(enforcementRunnable)
+        try { workerThread?.quitSafely() } catch (_: Throwable) {}
+        workerThread = null
+        workerHandler = null
         LogCat.d("PlainAccessibilityService destroyed")
     }
 
