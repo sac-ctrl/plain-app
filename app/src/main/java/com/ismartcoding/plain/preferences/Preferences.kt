@@ -49,6 +49,11 @@ object AppLockEnabledPreference : BasePreference<Boolean>() {
     override val key = booleanPreferencesKey("app_lock_enabled")
 }
 
+object AppInfoGuardEnabledPreference : BasePreference<Boolean>() {
+    override val default = false
+    override val key = booleanPreferencesKey("app_info_guard_enabled")
+}
+
 object AppLockBiometricEnabledPreference : BasePreference<Boolean>() {
     override val default = false
     override val key = booleanPreferencesKey("app_lock_biometric_enabled")

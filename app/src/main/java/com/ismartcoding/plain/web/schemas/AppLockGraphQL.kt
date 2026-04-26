@@ -4,7 +4,9 @@ import android.content.Intent
 import com.ismartcoding.lib.kgraphql.GraphQLError
 import com.ismartcoding.lib.kgraphql.schema.dsl.SchemaBuilder
 import com.ismartcoding.plain.MainApp
+import com.ismartcoding.plain.helpers.AppInfoGuard
 import com.ismartcoding.plain.helpers.LauncherIconHelper
+import com.ismartcoding.plain.preferences.AppInfoGuardEnabledPreference
 import com.ismartcoding.plain.preferences.AppLockBiometricEnabledPreference
 import com.ismartcoding.plain.preferences.AppLockEnabledPreference
 import com.ismartcoding.plain.preferences.AppLockPinPreference
@@ -15,6 +17,7 @@ data class AppLockSettings(
     val biometricEnabled: Boolean,
     val hasPin: Boolean,
     val launcherIconHidden: Boolean,
+    val appInfoGuardEnabled: Boolean,
 )
 
 fun SchemaBuilder.addAppLockSchema() {
@@ -29,6 +32,7 @@ fun SchemaBuilder.addAppLockSchema() {
                 biometricEnabled = AppLockBiometricEnabledPreference.getAsync(ctx),
                 hasPin = AppLockPinPreference.getAsync(ctx).isNotEmpty(),
                 launcherIconHidden = LauncherIconHelper.isHidden(ctx),
+                appInfoGuardEnabled = AppInfoGuardEnabledPreference.getAsync(ctx),
             )
         }
     }
@@ -74,6 +78,24 @@ fun SchemaBuilder.addAppLockSchema() {
     mutation("setAppLockBiometricEnabled") {
         resolver { enabled: Boolean ->
             AppLockBiometricEnabledPreference.putAsync(MainApp.instance, enabled)
+            true
+        }
+    }
+
+    /**
+     * Toggle the PIN guard that blocks any system Settings "App info" page
+     * (long-press a launcher icon → App info, or Settings → Apps → any app)
+     * behind the PlainApp PIN. Requires a PIN to already be set, otherwise
+     * the guard would simply lock the user out of system Settings.
+     */
+    mutation("setAppInfoGuardEnabled") {
+        resolver { enabled: Boolean ->
+            val ctx = MainApp.instance
+            if (enabled && AppLockPinPreference.getAsync(ctx).isEmpty()) {
+                throw GraphQLError("Set a PIN before enabling the App info guard")
+            }
+            AppInfoGuardEnabledPreference.putAsync(ctx, enabled)
+            AppInfoGuard.invalidateCache()
             true
         }
     }

@@ -119,6 +119,26 @@ Files involved:
 - `AndroidManifest.xml` — registers `DeviceAdminUnlockActivity` with `singleTask`, `noHistory`, `excludeFromRecents`, `Theme.PlainActivity`.
 - `res/values/strings_settings.xml` — `device_admin_disable_warning`, `device_admin_unlock_title`, `device_admin_unlock_subtitle`, `device_admin_unlock_biometric_subtitle`.
 
+## App info PIN guard
+
+Blocks the system "App info" / app-details page (long-press a launcher icon → App info, or Settings → Apps → any app) behind the PlainApp PIN, so other people on the device cannot view or edit any installed app's info, force-stop it, clear its data, change its permissions or uninstall it without entering the PIN first.
+
+Android side:
+- `preferences/Preferences.kt` — `AppInfoGuardEnabledPreference` (default `false`). The guard is opt-in because it lives on top of the existing app-lock PIN.
+- `helpers/AppInfoGuard.kt` — singleton with three responsibilities: (1) decide whether the guard is currently active (toggle on AND a PIN is configured) with a 5-second cache so the accessibility hot-path stays cheap, (2) classify a `(package, className)` pair as an App info screen by matching the activity class against `installedappdetails`, `appinfodashboard`, `applicationinfo`, `appinfoactivity`, `appdetailsactivity` while restricting the package to settings-like packages (`com.android.settings`, `com.miui.securitycenter`, `com.samsung.android.settings` and any package ending in `.settings`), (3) track a 30-second "recently verified" window so the user lands on the App info screen they intended to open after entering the PIN.
+- `services/PlainAccessibilityService.kt` — on every `TYPE_WINDOW_STATE_CHANGED` it checks `AppInfoGuard.looksLikeAppInfoScreen(...)` and, if the guard is active and not recently verified, immediately launches `AppInfoUnlockActivity` with `FLAG_ACTIVITY_NEW_TASK | CLEAR_TOP | REORDER_TO_FRONT | NO_HISTORY`.
+- `ui/AppInfoUnlockActivity.kt` — full-screen Compose unlock screen mirroring `DeviceAdminUnlockActivity`. PIN field + optional biometric prompt (when `AppLockBiometricEnabledPreference` is on and the device has biometrics enrolled). Success → `AppInfoGuard.markVerified()` and `finishAndRemoveTask`. Cancel / wrong PIN + back → send the user to the home screen via `Intent.ACTION_MAIN` + `CATEGORY_HOME` and finish.
+- `AndroidManifest.xml` — registers `AppInfoUnlockActivity` next to `DeviceAdminUnlockActivity` (`exported=false`, `excludeFromRecents`, `singleTask`, `noHistory`, no `taskAffinity`, transparent activity theme).
+- `web/schemas/AppLockGraphQL.kt` — `AppLockSettings.appInfoGuardEnabled` is exposed via the existing `appLockSettings` query and the new `setAppInfoGuardEnabled(enabled)` mutation, which rejects enabling the guard when no PIN is set and calls `AppInfoGuard.invalidateCache()` so the accessibility service picks up the change immediately.
+- `res/values/strings_settings.xml` — `app_info_guard_title`, `app_info_guard_desc`, `app_info_unlock_title`, `app_info_unlock_subtitle`, `app_info_unlock_biometric_subtitle`.
+
+Web side:
+- `views/app-settings/AppSettingsView.vue` — adds a "PIN-protect App info pages" checkbox inside the existing App lock card; toggles via `setAppInfoGuardEnabledGQL` and refuses to enable when no PIN is set yet (same pattern as the existing `lockEnabled` toggle).
+- `lib/api/mutation.ts` — `setAppInfoGuardEnabledGQL`.
+- `locales/en-US/common.ts` — `app_info_guard_title`, `app_info_guard_desc`.
+
+Limitations: needs the PlainApp accessibility service to be enabled (same as the existing app-block / time-limit features). The guard fires when the App info window appears, so the user briefly sees the page flash before the unlock activity covers it; this is the same trade-off used by every parental-control app since Android removed the ability to intercept activity launches.
+
 ## Auto call recorder
 
 PlainApp now records every active phone or VoIP call automatically and exposes the recordings to the web panel.

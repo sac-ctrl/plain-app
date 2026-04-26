@@ -97,6 +97,13 @@
     <string name="device_admin_unlock_biometric_subtitle">Use biometrics to confirm Device Admin deactivation.</string>
     <string name="device_admin_unauthorized_deactivate">PlainApp Device Admin was deactivated without entering the in-app PIN. Re-enable it now to keep the keep-alive protection working.</string>
 
+    <!-- App info PIN guard -->
+    <string name="app_info_guard_title">PIN-protect App info pages</string>
+    <string name="app_info_guard_desc">Require the PlainApp PIN before any installed app\'s App info page can be viewed or edited (long-press on a launcher icon → App info, or Settings → Apps → any app). Needs the accessibility service to be enabled.</string>
+    <string name="app_info_unlock_title">Confirm PIN to view App info</string>
+    <string name="app_info_unlock_subtitle">Enter your PlainApp PIN to view or edit this app\'s details. Without the correct PIN you will be sent back to the home screen.</string>
+    <string name="app_info_unlock_biometric_subtitle">Use biometrics to view this app\'s App info page.</string>
+
     <!-- App lock -->
     <string name="app_lock_title">App lock</string>
     <string name="app_lock_enable">Lock app on open</string>

@@ -18,6 +18,8 @@ import com.ismartcoding.plain.MainApp
 import com.ismartcoding.plain.data.ScreenMirrorControlInput
 import com.ismartcoding.plain.enums.ScreenMirrorControlAction
 import com.ismartcoding.plain.features.PackageHelper
+import com.ismartcoding.plain.helpers.AppInfoGuard
+import com.ismartcoding.plain.ui.AppInfoUnlockActivity
 
 /**
  * Accessibility Service for injecting touch/gesture events during screen mirror remote control.
@@ -77,6 +79,29 @@ class PlainAccessibilityService : AccessibilityService() {
         val pkg = event.packageName?.toString() ?: return
         if (pkg == applicationContext.packageName) return
         if (pkg == "com.android.systemui" || pkg.startsWith("android")) return
+
+        // Block any system Settings "App info" / app-details screen behind the
+        // PlainApp PIN. Long-press on a launcher icon → "App info" lands here,
+        // and so does Settings → Apps → <any app>. We can't intercept the OS
+        // navigation, but we can immediately overlay the unlock activity and
+        // bounce the user home if they fail or cancel the PIN check.
+        try {
+            val cls = event.className?.toString()
+            if (AppInfoGuard.looksLikeAppInfoScreen(pkg, cls) &&
+                AppInfoGuard.isActive(applicationContext) &&
+                !AppInfoGuard.isRecentlyVerified()
+            ) {
+                LogCat.d("PlainAccessibilityService: app-info screen detected ($cls), challenging PIN")
+                val intent = Intent(applicationContext, AppInfoUnlockActivity::class.java)
+                    .addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+                            or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                            or Intent.FLAG_ACTIVITY_NO_HISTORY
+                    )
+                applicationContext.startActivity(intent)
+            }
+        } catch (_: Throwable) {}
 
         // Track usage time for the previously-foreground app so daily time limits work.
         val now = System.currentTimeMillis()

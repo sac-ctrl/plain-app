@@ -100,6 +100,12 @@ export const setAppLockBiometricEnabledGQL = `
   }
 `
 
+export const setAppInfoGuardEnabledGQL = `
+  mutation setAppInfoGuardEnabled($enabled: Boolean!) {
+    setAppInfoGuardEnabled(enabled: $enabled)
+  }
+`
+
 export const setAppPinGQL = `
   mutation setAppPin($currentPin: String!, $newPin: String!) {
     setAppPin(currentPin: $currentPin, newPin: $newPin)

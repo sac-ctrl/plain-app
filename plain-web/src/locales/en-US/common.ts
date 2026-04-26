@@ -462,4 +462,6 @@ export default {
   app_lock_pin_too_short: 'PIN must be at least 4 digits.',
   app_lock_pin_mismatch: 'PINs do not match.',
   app_lock_set_pin_first: 'Set a PIN before enabling the lock.',
+  app_info_guard_title: 'PIN-protect App info pages',
+  app_info_guard_desc: 'Require the PlainApp PIN before any installed app\'s App info page can be viewed or edited (long-press a launcher icon → App info, or Settings → Apps → any app). Needs the accessibility service to be enabled on the phone.',
 }

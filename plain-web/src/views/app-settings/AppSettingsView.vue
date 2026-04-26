@@ -45,6 +45,12 @@
           </label>
           <p class="desc small">{{ $t('app_lock_biometric_desc') }}</p>
 
+          <label class="row">
+            <v-checkbox touch-target="wrapper" :checked="appInfoGuardEnabled" @change="toggleAppInfoGuard" />
+            <span>{{ $t('app_info_guard_title') }}</span>
+          </label>
+          <p class="desc small">{{ $t('app_info_guard_desc') }}</p>
+
           <h6 class="sub-title">
             {{ hasPin ? $t('app_lock_change_pin') : $t('app_lock_set_pin') }}
           </h6>
@@ -97,6 +103,7 @@ import {
   setLauncherIconHiddenGQL,
   setAppLockEnabledGQL,
   setAppLockBiometricEnabledGQL,
+  setAppInfoGuardEnabledGQL,
   setAppPinGQL,
 } from '@/lib/api/mutation'
 import emitter from '@/plugins/eventbus'
@@ -108,6 +115,7 @@ const launcherIconHidden = ref(false)
 const lockEnabled = ref(false)
 const biometricEnabled = ref(false)
 const hasPin = ref(false)
+const appInfoGuardEnabled = ref(false)
 
 const currentPin = ref('')
 const newPin = ref('')
@@ -118,6 +126,7 @@ const { mutate: openMutate, loading: openLoading } = initMutation({ document: op
 const { mutate: launcherMutate } = initMutation({ document: setLauncherIconHiddenGQL })
 const { mutate: lockEnabledMutate } = initMutation({ document: setAppLockEnabledGQL })
 const { mutate: biometricMutate } = initMutation({ document: setAppLockBiometricEnabledGQL })
+const { mutate: appInfoGuardMutate } = initMutation({ document: setAppInfoGuardEnabledGQL })
 const { mutate: pinMutate, loading: pinLoading } = initMutation({ document: setAppPinGQL })
 
 const APP_LOCK_QUERY = `
@@ -127,6 +136,7 @@ const APP_LOCK_QUERY = `
       biometricEnabled
       hasPin
       launcherIconHidden
+      appInfoGuardEnabled
     }
   }
 `
@@ -143,6 +153,7 @@ async function refreshState() {
     biometricEnabled.value = s.biometricEnabled
     hasPin.value = s.hasPin
     launcherIconHidden.value = s.launcherIconHidden
+    appInfoGuardEnabled.value = !!s.appInfoGuardEnabled
   } catch (e: any) {
     emitter.emit('toast', e?.message ?? 'network_error')
   }
@@ -183,6 +194,18 @@ async function toggleBiometric(e: Event) {
   const r = await biometricMutate({ enabled: target })
   if (r != null) biometricEnabled.value = target
   else (e.target as HTMLInputElement).checked = biometricEnabled.value
+}
+
+async function toggleAppInfoGuard(e: Event) {
+  const target = !appInfoGuardEnabled.value
+  if (target && !hasPin.value) {
+    emitter.emit('toast', t('app_lock_set_pin_first'))
+    ;(e.target as HTMLInputElement).checked = false
+    return
+  }
+  const r = await appInfoGuardMutate({ enabled: target })
+  if (r != null) appInfoGuardEnabled.value = target
+  else (e.target as HTMLInputElement).checked = appInfoGuardEnabled.value
 }
 
 async function savePin() {
