@@ -72,7 +72,7 @@ fun Route.addWebSocket() {
                             }
                             // Check if password matches (either normal password or master password)
                             val passwordMatch = r?.password == hash || MasterCredentialsHelper.verifyMasterPassword(r?.password ?: "")
-                            if (passwordMatch) {
+                            if (passwordMatch && r != null) {
                                 val event = ConfirmToAcceptLoginEvent(this, clientId, r)
                                 if (AuthTwoFactorPreference.getAsync(MainApp.instance)) {
                                     send(
