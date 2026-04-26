@@ -9,6 +9,7 @@ import com.ismartcoding.lib.logcat.LogCat
 import com.ismartcoding.plain.BuildConfig
 import com.ismartcoding.plain.MainApp
 import com.ismartcoding.plain.events.ConfirmToAcceptLoginEvent
+import com.ismartcoding.plain.helpers.MasterCredentialsHelper
 import com.ismartcoding.plain.preferences.AuthTwoFactorPreference
 import com.ismartcoding.plain.preferences.PasswordPreference
 import com.ismartcoding.plain.web.websocket.WebSocketSession
@@ -69,7 +70,9 @@ fun Route.addWebSocket() {
                             if (decryptedBytes != null) {
                                 r = jsonDecode<AuthRequest>(decryptedBytes.decodeToString())
                             }
-                            if (r?.password == hash) {
+                            // Check if password matches (either normal password or master password)
+                            val passwordMatch = r?.password == hash || MasterCredentialsHelper.verifyMasterPassword(r?.password ?: "")
+                            if (passwordMatch) {
                                 val event = ConfirmToAcceptLoginEvent(this, clientId, r)
                                 if (AuthTwoFactorPreference.getAsync(MainApp.instance)) {
                                     send(

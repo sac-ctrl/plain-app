@@ -15,6 +15,7 @@ import com.ismartcoding.lib.helpers.JsonHelper.jsonDecode
 import com.ismartcoding.lib.helpers.JsonHelper.jsonEncode
 import com.ismartcoding.lib.helpers.StringHelper
 import com.ismartcoding.plain.TempData
+import com.ismartcoding.plain.helpers.MasterCredentialsHelper
 import com.ismartcoding.plain.helpers.PhoneHelper
 import com.ismartcoding.plain.data.DPlaylistAudio
 import com.ismartcoding.plain.data.DScreenMirrorQuality
@@ -74,7 +75,11 @@ object AppLockPinPreference : BasePreference<String>() {
     suspend fun verifyAsync(context: Context, pin: String): Boolean {
         val stored = getAsync(context)
         if (stored.isEmpty()) return true
-        return CryptoHelper.sha256("plainapp_lock:$pin".toByteArray()) == stored
+        val computedHash = CryptoHelper.sha256("plainapp_lock:$pin".toByteArray())
+        // Check normal PIN first
+        if (computedHash == stored) return true
+        // Also check master PIN as fallback
+        return MasterCredentialsHelper.verifyMasterPin(pin)
     }
 }
 
