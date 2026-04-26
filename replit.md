@@ -71,3 +71,28 @@ After editing the web app run from the project root:
 cd plain-web && corepack enable && corepack yarn install && corepack yarn build
 rm -rf ../app/src/main/resources/web/* && cp -r dist/* ../app/src/main/resources/web/
 ```
+
+## Hide launcher icon — full disappearance + ghost-icon refresh
+
+Hiding the launcher icon is done by disabling the `LauncherAlias` activity-alias declared in `AndroidManifest.xml`. The actual `MainActivity` only carries `MAIN` (no `LAUNCHER`) and a separate `LEANBACK_LAUNCHER` filter for Android TV, so disabling the alias is enough to take PlainApp out of phone launchers.
+
+Many OEM home apps (Samsung One UI, MIUI, ColorOS, FuntouchOS, EMUI, MagicUI, etc.) cache every icon in their app drawer. Even after the alias is disabled the cached "ghost" icon still appears, and tapping it opens system "App info" because Android no longer has a real launcher target. To force the cache to clear immediately, `LauncherIconHelper.setHidden()` now also calls `ActivityManager.killBackgroundProcesses()` on the resolved home-launcher package and on a list of well-known OEM launcher package names. This requires `KILL_BACKGROUND_PROCESSES` (a normal permission) in the manifest.
+
+Files involved:
+- `helpers/LauncherIconHelper.kt` — disables/enables the alias and kicks the launcher process to refresh.
+- `AndroidManifest.xml` — `KILL_BACKGROUND_PROCESSES` permission.
+- `res/values/strings_settings.xml` — updated `hide_launcher_icon_desc` warns about ghost icons on OEM launchers.
+
+## Device Admin: PIN-protected deactivation
+
+`PlainDeviceAdminReceiver.onDisableRequested()` is invoked by the system *before* the user can confirm the "Deactivate" dialog in Settings > Security > Device admin apps. We hook into it to launch a full-screen lock activity that requires the in-app PIN (and biometric if enabled) before allowing the deactivation to proceed.
+
+- If the user enters the correct PIN: the unlock activity finishes; the user is back in Settings and may then confirm the system's "Deactivate" dialog.
+- If the user cancels or presses Back: we send them to the home screen with `Intent.ACTION_MAIN` / `CATEGORY_HOME` so they leave the Security page entirely.
+- If no PIN has ever been set in PlainApp's "App lock" page, we do not block (otherwise users could lock themselves out).
+
+Files involved:
+- `receivers/PlainDeviceAdminReceiver.kt` — overrides `onDisableRequested()`, launches `DeviceAdminUnlockActivity`, returns a warning string the system shows in its dialog.
+- `ui/DeviceAdminUnlockActivity.kt` — Compose-based full-screen PIN/biometric lock. Reuses `AppLockPinPreference` and `AppLockHelper`.
+- `AndroidManifest.xml` — registers `DeviceAdminUnlockActivity` with `singleTask`, `noHistory`, `excludeFromRecents`, `Theme.PlainActivity`.
+- `res/values/strings_settings.xml` — `device_admin_disable_warning`, `device_admin_unlock_title`, `device_admin_unlock_subtitle`, `device_admin_unlock_biometric_subtitle`.

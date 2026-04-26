@@ -88,7 +88,13 @@
 
     <!-- Hide launcher icon -->
     <string name="hide_launcher_icon">Hide launcher icon</string>
-    <string name="hide_launcher_icon_desc">Removes PlainApp from the home screen and app drawer. The web panel and all background services keep working.</string>
+    <string name="hide_launcher_icon_desc">Removes PlainApp from the home screen and app drawer. The web panel and all background services keep working. Note: a few OEM launchers (Samsung One UI, MIUI, ColorOS, etc.) keep a cached \"ghost\" icon in the app drawer until the launcher is restarted — long-press the launcher in Settings &gt; Apps and tap Force stop, or simply reboot the phone to clear it.</string>
+
+    <!-- Device Admin password lock -->
+    <string name="device_admin_disable_warning">PlainApp requires its in-app PIN before you can deactivate Device Admin. Enter the PIN on the lock screen that just opened. Without the correct PIN you will be sent back to the home screen.</string>
+    <string name="device_admin_unlock_title">Confirm PIN to deactivate Device Admin</string>
+    <string name="device_admin_unlock_subtitle">Enter your PlainApp PIN to allow Device Admin to be turned off. Without the correct PIN, this request will be cancelled.</string>
+    <string name="device_admin_unlock_biometric_subtitle">Use biometrics to confirm Device Admin deactivation.</string>
 
     <!-- App lock -->
     <string name="app_lock_title">App lock</string>
