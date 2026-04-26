@@ -346,7 +346,7 @@ object HttpServerManager {
     suspend fun respondTokenAsync(
         event: ConfirmToAcceptLoginEvent,
         clientIp: String,
-        responseToken: ByteArray = passwordToToken(),
+        responseToken: ByteArray? = null,
     ) {
         val token = CryptoHelper.generateChaCha20Key()
         val r = event.request
@@ -362,7 +362,7 @@ object HttpServerManager {
         NotificationHelper.sendWebLoginNotification(MainApp.instance, r.browserName, r.browserVersion, r.osName, r.osVersion, clientIp)
         event.session.send(
             CryptoHelper.chaCha20Encrypt(
-                responseToken,
+                responseToken ?: passwordToToken(),
                 JsonHelper.jsonEncode(
                     AuthResponse(
                         AuthStatus.COMPLETED,
