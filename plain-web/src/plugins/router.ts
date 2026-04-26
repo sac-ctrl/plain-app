@@ -86,14 +86,6 @@ const router = createRouter({
           meta: { group: 'contacts' },
         },
         {
-          path: 'contacts/:id',
-          components: {
-            default: () => import('@/views/contacts/ContactDetailView.vue'),
-            LeftSidebar: () => import('@/views/contacts/ContactsSidebar.vue'),
-          },
-          meta: { group: 'contacts' },
-        },
-        {
           path: 'images',
           components: {
             default: () => import('@/views/images/ImagesView.vue'),

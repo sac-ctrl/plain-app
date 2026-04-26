@@ -124,12 +124,7 @@ Files involved:
 PlainApp now records every active phone or VoIP call automatically and exposes the recordings to the web panel.
 
 Android side:
-- `helpers/CallRecorderHelper.kt` — singleton `MediaRecorder` wrapper. Output: AAC inside MP4, mono 44.1 kHz, 96 kbps, with a sidecar `.json` carrying display name, source, direction, app id/name, timestamps, duration, size, the audio source that actually opened, and whether speakerphone was forced.
-- **Both-sides capture engine.** To get as close to "record every call, including WhatsApp/Telegram/Signal/etc., on a stock unrooted phone" as Android allows for a non-system app:
-  1. **Audio-source fallback chain** — `VOICE_RECOGNITION` → `VOICE_COMMUNICATION` → `MIC`. `VOICE_RECOGNITION` is the most reliable source on modern Android because the in-call audio policy does not mute it and it produces a clean stream with no AEC, which captures the speakerphone perfectly. `VOICE_COMMUNICATION` matches the call's audio mode (good for VoIP) but some Samsung/Xiaomi ROMs block third-party apps from opening it during `MODE_IN_COMMUNICATION`. `MIC` is the universal final fallback. The recorder records which source actually opened.
-  2. **Auto unmute mic + auto force speakerphone ON** for the duration of recording (`AudioManager.setMicrophoneMute(false)` and `setSpeakerphoneOn(true)`). The previous routing state is captured before the change and restored as soon as the recording stops, so the user's normal call experience is unaffected after the call ends. This is the single most reliable way to capture the remote party on a non-rooted modern Android — the same trick every functional third-party call recorder uses, because the privileged `VOICE_CALL` audio source needs a system-signature permission that no user-installed app can hold (this is enforced in the Android security model since Android 9 and is not a PlainApp limitation).
-  3. **Honest live status to the panel.** The state object exposes `activeAudioSource` (`VOICE_RECOGNITION` / `VOICE_COMMUNICATION` / `MIC`) and `speakerphoneForced` (boolean). Each saved recording's sidecar JSON also carries these fields so the panel can show, per recording, whether both sides were captured.
-- **Storage is fully hidden from the device.** Files are written to `context.filesDir/.PlainPrivate/CallRecordings/` (i.e. `/data/data/com.ismartcoding.plain/files/.PlainPrivate/CallRecordings/`). That path is inside the app's private internal sandbox — **not browsable by any file manager, gallery, MediaStore-based app, ADB without root, or other app** — only the running PlainApp process can read it. A `.nomedia` marker is written as defence-in-depth. The web panel still has full access because the Ktor server runs inside the same app process and serves the file by absolute path through the existing `/fs?id=` route via `FileHelper.getFileId(absPath)`. A one-shot migration moves any leftover recordings from the old `getExternalFilesDir(null)/CallRecordings` location into the new private location on first access.
+- `helpers/CallRecorderHelper.kt` — singleton `MediaRecorder` wrapper. Source `MIC` (capturing the actual `VOICE_CALL` stream needs a system signature permission that user-installed apps cannot get; speakerphone is the documented workaround and the live-call page already prompts for it). Output: AAC inside MP4, mono 44.1 kHz, 96 kbps, written to `<app>/files/CallRecordings/<ts>_<source>_<name>.m4a` with a sidecar `.json` carrying display name, source, direction, app id/name, timestamps, duration and size.
 - `services/LiveCallTracker.kt` — calls `CallRecorderHelper.onCallActive(...)` from the app-notification active branch, the phone OFFHOOK branch and `acceptFromPanel()`. `end()` calls `onCallEnded()` first so the recording is always finalised before the call state is cleared.
 - `preferences/Preferences.kt` — `CallRecorderEnabledPreference` (default `true`) acts as the user kill-switch.
 - `events/WebSocketEvents.kt` — new event ids `CALL_RECORDER_STATE(25)` and `CALL_RECORDINGS_CHANGED(26)`.
@@ -147,21 +142,3 @@ Web side:
 - Locale strings added in `locales/en-US/common.ts` (`call_recorder*`, `call_recordings`, `recording_now_label`).
 
 Build: `cd plain-web && corepack yarn build`, then `rm -rf app/src/main/resources/web/* && cp -r plain-web/dist/* app/src/main/resources/web/`. APK production happens via the GitHub Actions workflow added earlier.
-
-## Per-contact call detail page
-
-Tapping any contact in the contacts list (clicking its name, or the new "View details" icon in the row's actions) opens a full per-contact detail page at `/contacts/:id`.
-
-Web side:
-- `views/contacts/hooks/useContactDetail.ts` — composable that loads a single contact via the existing `contacts(query: "id:<id>")` GraphQL query, then runs one `calls(query: "text:<lastDigits>", limit: 1000)` lookup per phone number, dedupes by id, and matches numbers against the contact by comparing the last 7 digits of the normalized form (handles country-code prefix differences).
-- `views/contacts/ContactDetailView.vue` — the page itself:
-  - Hero card: avatar, full name, starred star, source pill, last-updated, tags, primary Call / SMS / Email buttons.
-  - Stats grid (10 tiles): total calls, total talk time, incoming, outgoing, missed, rejected, average answered duration, last call (with relative time), calls in last 7 days, calls in last 30 days. The "average duration" only counts answered calls (incoming + outgoing) so missed/rejected do not pull the mean to zero.
-  - Contact info card: every phone number (with per-number Call / SMS / Copy buttons), every email (mailto + copy), addresses, websites (auto `https://` if missing), IMs, events.
-  - Call history timeline: all calls sorted desc and grouped by day (with "Today" / "Yesterday" / formatted-date headers). Each row shows a coloured type icon (incoming green, outgoing blue, missed red, rejected orange, blocked grey), the call type name, duration, sim slot, time-of-day with full datetime tooltip, and geo (city · province · isp). Each row has its own Call and SMS buttons.
-- `views/contacts/ContactListItem.vue` — name is now a `<router-link>` to the detail page (with `@click.stop` so it doesn't toggle row selection).
-- `views/contacts/ContactActionButtons.vue` — added an "open in new" icon button at the front of the actions that navigates to the detail page.
-- `plugins/router.ts` — registered `/contacts/:id` with `ContactDetailView` as `default` and `ContactsSidebar` as `LeftSidebar`, so the contacts sidebar (search, filters, tags) stays available while viewing a contact.
-- `locales/en-US/contacts.ts` — added `no_name`, `contact_not_found` and the `contact_detail.*` namespace (`view_details`, `contact_info`, `call_history`, `no_calls`, `total_calls`, `total_talk_time`, `avg_duration`, `last_call`, `calls_last_7d`, `calls_last_30d`, `addresses`, `address`, `events`).
-
-No Android changes were needed — the existing `contacts` and `calls` GraphQL queries already accept an `id:`/`text:` filter token via `QueryHelper`, so the detail page is built entirely on top of what was already exposed.

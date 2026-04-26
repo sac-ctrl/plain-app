@@ -798,18 +798,14 @@ export const liveCallStateGQL = `
 
 export const callRecorderStateGQL = `
   query {
-    callRecorderState {
-      enabled recording currentDisplayName currentSource currentStartedAt
-      totalCount totalSize lastError activeAudioSource speakerphoneForced
-    }
+    callRecorderState { enabled recording currentDisplayName currentSource currentStartedAt totalCount totalSize lastError }
   }
 `
 
 export const callRecordingsGQL = `
   query callRecordings($offset: Int!, $limit: Int!) {
     callRecordings(offset: $offset, limit: $limit) {
-      id filename displayName source direction appId appName
-      startedAt endedAt durationMs sizeBytes fileId audioSource speakerphoneForced
+      id filename displayName source direction appId appName startedAt endedAt durationMs sizeBytes fileId
     }
     callRecordingsCount
   }

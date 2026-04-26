@@ -26,11 +26,6 @@
         <i-lucide:hard-drive class="stat-icon" />
         <span>{{ $t('call_recorder_total_size', { size: formatFileSize(state.totalSize) }) }}</span>
       </div>
-      <div v-if="state.recording" class="stat capture-stat" :class="state.speakerphoneForced ? 'good' : 'warn'">
-        <i-lucide:volume-2 v-if="state.speakerphoneForced" class="stat-icon" />
-        <i-lucide:volume-x v-else class="stat-icon" />
-        <span>{{ state.speakerphoneForced ? $t('call_recorder_capture_both_sides') : $t('call_recorder_capture_one_side') }}</span>
-      </div>
     </div>
 
     <div v-if="recent.length === 0" class="empty">{{ $t('call_recorder_no_recordings') }}</div>
@@ -79,8 +74,6 @@ interface ICallRecorderState {
   totalCount: number
   totalSize: number
   lastError: string
-  activeAudioSource: string
-  speakerphoneForced: boolean
 }
 
 interface ICallRecording {
@@ -96,8 +89,6 @@ interface ICallRecording {
   durationMs: number
   sizeBytes: number
   fileId: string
-  audioSource: string
-  speakerphoneForced: boolean
 }
 
 const { t } = useI18n()
@@ -224,11 +215,6 @@ onUnmounted(() => {
 .status-row { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; }
 .stat { display: inline-flex; align-items: center; gap: 6px; color: var(--md-sys-color-on-surface-variant); }
 .stat-icon { width: 16px; height: 16px; }
-.capture-stat {
-  padding: 2px 8px; border-radius: 999px; font-weight: 500;
-  &.good { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-  &.warn { background: var(--md-sys-color-error-container, #ffdad6); color: var(--md-sys-color-on-error-container, #410002); }
-}
 
 .empty {
   font-size: 0.85rem; color: var(--md-sys-color-on-surface-variant);

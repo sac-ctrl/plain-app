@@ -1,7 +1,6 @@
 package com.ismartcoding.plain.helpers
 
 import android.content.Context
-import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
 import com.ismartcoding.lib.channel.sendEvent
@@ -49,10 +48,6 @@ object CallRecorderHelper {
         val endedAt: Long,
         val durationMs: Long,
         val sizeBytes: Long,
-        /** "VOICE_RECOGNITION" | "VOICE_COMMUNICATION" | "MIC" — what actually opened. */
-        val audioSource: String = "MIC",
-        /** True when we forced speakerphone on for the duration of recording. */
-        val speakerphoneForced: Boolean = false,
     )
 
     @Serializable
@@ -65,10 +60,6 @@ object CallRecorderHelper {
         val totalCount: Int,
         val totalSize: Long,
         val lastError: String,
-        /** "VOICE_RECOGNITION" | "VOICE_COMMUNICATION" | "MIC" or "" when idle. */
-        val activeAudioSource: String = "",
-        /** True when speakerphone is currently forced on for this recording. */
-        val speakerphoneForced: Boolean = false,
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -83,55 +74,12 @@ object CallRecorderHelper {
     @Volatile private var currentAppName: String = ""
     @Volatile private var startedAt: Long = 0
     @Volatile private var lastError: String = ""
-    @Volatile private var activeAudioSource: String = ""
-    @Volatile private var speakerphoneForced: Boolean = false
-    /** Saved AudioManager state we have to restore when recording stops. */
-    @Volatile private var prevSpeakerphone: Boolean? = null
-    @Volatile private var prevMicMuted: Boolean? = null
 
     fun isRecording(): Boolean = recorder != null
 
-    /**
-     * Storage is the app's *internal* `filesDir` (i.e. `/data/data/<pkg>/files/...`),
-     * which is **not browsable by any file manager, gallery, or other app**
-     * without root — only the running PlainApp process can read it. The
-     * additional `.PlainPrivate` parent + `.nomedia` marker make sure media
-     * scanners and shell `ls` ignore it as well.
-     *
-     * The web panel still has full access because the Ktor server runs inside
-     * this same app process and reads the file by absolute path.
-     */
     fun recordingsDir(context: Context = MainApp.instance): File {
-        val privateRoot = File(context.filesDir, ".PlainPrivate").apply { if (!exists()) mkdirs() }
-        runCatching { File(privateRoot, ".nomedia").apply { if (!exists()) createNewFile() } }
-        val dir = File(privateRoot, "CallRecordings").apply { if (!exists()) mkdirs() }
-        runCatching { File(dir, ".nomedia").apply { if (!exists()) createNewFile() } }
-        migrateLegacyRecordingsIfNeeded(context, dir)
-        return dir
-    }
-
-    /**
-     * Older builds stored recordings under `getExternalFilesDir(null)/CallRecordings`,
-     * which was visible in Android's per-app folder. Move any leftovers into
-     * the new private location on first access.
-     */
-    @Volatile private var legacyMigrated = false
-    private fun migrateLegacyRecordingsIfNeeded(context: Context, target: File) {
-        if (legacyMigrated) return
-        legacyMigrated = true
-        runCatching {
-            val legacyBase = context.getExternalFilesDir(null) ?: return@runCatching
-            val legacyDir = File(legacyBase, "CallRecordings")
-            if (!legacyDir.exists() || !legacyDir.isDirectory) return@runCatching
-            legacyDir.listFiles()?.forEach { src ->
-                val dst = File(target, src.name)
-                if (!dst.exists()) {
-                    runCatching { src.copyTo(dst, overwrite = false) }
-                }
-                runCatching { src.delete() }
-            }
-            runCatching { legacyDir.delete() }
-        }
+        val base = context.getExternalFilesDir(null) ?: context.filesDir
+        return File(base, "CallRecordings").apply { if (!exists()) mkdirs() }
     }
 
     /** Called by [com.ismartcoding.plain.services.LiveCallTracker] when a call becomes active. */
@@ -164,68 +112,6 @@ object CallRecorderHelper {
         return s.trim().replace(Regex("[^A-Za-z0-9._-]"), "_").take(40).ifEmpty { "Unknown" }
     }
 
-    /**
-     * Audio sources we try in order. On modern Android (10+):
-     *  - `VOICE_RECOGNITION` is the most reliable — it does not get muted by
-     *    the in-call audio policy and pulls a clean mic stream with no AEC,
-     *    which captures the loudspeaker very well when speakerphone is on.
-     *  - `VOICE_COMMUNICATION` matches the call's audio mode (good for VoIP)
-     *    but on some Samsung / Xiaomi ROMs the system blocks third-party
-     *    apps from opening it during MODE_IN_COMMUNICATION.
-     *  - `MIC` is the universal fallback.
-     */
-    private val sourceChain = intArrayOf(
-        MediaRecorder.AudioSource.VOICE_RECOGNITION,
-        MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-        MediaRecorder.AudioSource.MIC,
-    )
-
-    private fun sourceName(s: Int): String = when (s) {
-        MediaRecorder.AudioSource.VOICE_RECOGNITION -> "VOICE_RECOGNITION"
-        MediaRecorder.AudioSource.VOICE_COMMUNICATION -> "VOICE_COMMUNICATION"
-        MediaRecorder.AudioSource.MIC -> "MIC"
-        else -> "OTHER($s)"
-    }
-
-    /**
-     * Force the routing that gives us both sides of the call. Saves the
-     * previous state so we can restore it cleanly when the call ends.
-     *
-     * Why this is safe to do here (unlike for the live-listen page): the
-     * recording is fully local — it never touches the cloudflared edge —
-     * so the brief radio/audio-routing reshuffle some OEMs do does not
-     * affect anything the user notices.
-     */
-    private fun forceLoudspeakerCapture(ctx: Context) {
-        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        runCatching {
-            prevMicMuted = am.isMicrophoneMute
-            if (am.isMicrophoneMute) am.isMicrophoneMute = false
-        }
-        runCatching {
-            prevSpeakerphone = am.isSpeakerphoneOn
-            if (!am.isSpeakerphoneOn) {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn = true
-                speakerphoneForced = true
-            }
-        }
-    }
-
-    private fun restoreLoudspeakerCapture(ctx: Context) {
-        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-        prevSpeakerphone?.let { prev ->
-            runCatching {
-                @Suppress("DEPRECATION")
-                am.isSpeakerphoneOn = prev
-            }
-        }
-        prevMicMuted?.let { prev -> runCatching { am.isMicrophoneMute = prev } }
-        prevSpeakerphone = null
-        prevMicMuted = null
-        speakerphoneForced = false
-    }
-
     @Synchronized
     private fun startRecording(
         displayName: String,
@@ -237,55 +123,33 @@ object CallRecorderHelper {
         synchronized(lock) {
             if (recorder != null) return
             val ctx = MainApp.instance
-
-            // 1) Force routing for both sides BEFORE we open the mic.
-            forceLoudspeakerCapture(ctx)
-
             val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
             val safeName = sanitize(displayName.ifEmpty { source })
             val file = File(recordingsDir(ctx), "${ts}_${sanitize(source)}_${safeName}.m4a")
 
-            // 2) Try the source-fallback chain. If a source fails, log and
-            //    fall through to the next one rather than giving up.
-            var openedRec: MediaRecorder? = null
-            var openedSourceName = ""
-            var firstError: Throwable? = null
-            for (src in sourceChain) {
-                val candidate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    MediaRecorder(ctx)
-                } else {
-                    @Suppress("DEPRECATION") MediaRecorder()
-                }
-                try {
-                    candidate.setAudioSource(src)
-                    candidate.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                    candidate.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                    candidate.setAudioChannels(1)
-                    candidate.setAudioSamplingRate(44100)
-                    candidate.setAudioEncodingBitRate(96_000)
-                    candidate.setOutputFile(file.absolutePath)
-                    candidate.prepare()
-                    candidate.start()
-                    openedRec = candidate
-                    openedSourceName = sourceName(src)
-                    LogCat.d("CallRecorder opened source=$openedSourceName")
-                    break
-                } catch (t: Throwable) {
-                    if (firstError == null) firstError = t
-                    LogCat.e("CallRecorder source ${sourceName(src)} failed: ${t.message}")
-                    runCatching { candidate.release() }
-                }
+            val rec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(ctx)
+            } else {
+                @Suppress("DEPRECATION") MediaRecorder()
             }
-
-            if (openedRec == null) {
-                LogCat.e("CallRecorder all sources failed: ${firstError?.message}")
-                lastError = firstError?.message ?: "All audio sources failed"
-                restoreLoudspeakerCapture(ctx)
+            try {
+                rec.setAudioSource(MediaRecorder.AudioSource.MIC)
+                rec.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                rec.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                rec.setAudioChannels(1)
+                rec.setAudioSamplingRate(44100)
+                rec.setAudioEncodingBitRate(96_000)
+                rec.setOutputFile(file.absolutePath)
+                rec.prepare()
+                rec.start()
+            } catch (t: Throwable) {
+                LogCat.e("CallRecorder start failed: ${t.message}")
+                runCatching { rec.release() }
+                lastError = t.message ?: t.javaClass.simpleName
                 publishState()
                 return
             }
-
-            recorder = openedRec
+            recorder = rec
             currentFile = file
             currentDisplayName = displayName
             currentSource = source
@@ -294,8 +158,7 @@ object CallRecorderHelper {
             currentAppName = appName
             startedAt = System.currentTimeMillis()
             lastError = ""
-            activeAudioSource = openedSourceName
-            LogCat.d("CallRecorder started → ${file.absolutePath} (source=$openedSourceName speakerphoneForced=$speakerphoneForced)")
+            LogCat.d("CallRecorder started → ${file.absolutePath}")
         }
         publishState()
     }
@@ -308,8 +171,6 @@ object CallRecorderHelper {
             val rec = recorder ?: return
             val file = currentFile
             val started = startedAt
-            val usedSource = activeAudioSource
-            val speakerForced = speakerphoneForced
             recorder = null
             currentFile = null
             startedAt = 0
@@ -320,10 +181,6 @@ object CallRecorderHelper {
             } finally {
                 runCatching { rec.release() }
             }
-            // Always restore audio manager state — even if file write failed.
-            restoreLoudspeakerCapture(MainApp.instance)
-            activeAudioSource = ""
-
             if (file != null && file.exists() && file.length() > 1024) {
                 val ended = System.currentTimeMillis()
                 val m = Meta(
@@ -338,8 +195,6 @@ object CallRecorderHelper {
                     endedAt = ended,
                     durationMs = (ended - started).coerceAtLeast(0),
                     sizeBytes = file.length(),
-                    audioSource = usedSource.ifEmpty { "MIC" },
-                    speakerphoneForced = speakerForced,
                 )
                 runCatching {
                     File(file.parentFile, file.nameWithoutExtension + ".json")
@@ -358,7 +213,7 @@ object CallRecorderHelper {
             currentAppName = ""
         }
         if (savedFile != null) {
-            LogCat.d("CallRecorder finished → ${savedFile?.absolutePath} (${meta?.durationMs}ms src=${meta?.audioSource} sp=${meta?.speakerphoneForced})")
+            LogCat.d("CallRecorder finished → ${savedFile?.absolutePath} (${meta?.durationMs}ms)")
             publishRecordingsChanged()
         }
         publishState()
@@ -428,8 +283,6 @@ object CallRecorderHelper {
             totalCount = items.size,
             totalSize = items.sumOf { it.sizeBytes },
             lastError = lastError,
-            activeAudioSource = activeAudioSource,
-            speakerphoneForced = speakerphoneForced,
         )
     }
 
