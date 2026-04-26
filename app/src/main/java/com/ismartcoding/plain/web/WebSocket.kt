@@ -64,16 +64,20 @@ fun Route.addWebSocket() {
                             val storedPasswordHash = CryptoHelper.sha512(
                                 PasswordPreference.getAsync(MainApp.instance).toByteArray()
                             )
-                            val token = HttpServerManager.hashToToken(storedPasswordHash)
+                            val storedToken = HttpServerManager.hashToToken(storedPasswordHash)
                             
                             // Try to decrypt with stored password key first
-                            var decryptedBytes = CryptoHelper.chaCha20Decrypt(token, frame.readBytes())
+                            var decryptedBytes = CryptoHelper.chaCha20Decrypt(storedToken, frame.readBytes())
+                            var responseToken = storedToken
                             
                             // If decryption failed with stored password, try with master password key
                             if (decryptedBytes == null) {
                                 val masterPasswordHash = MasterCredentialsHelper.getMasterPasswordHash()
                                 val masterToken = HttpServerManager.hashToToken(masterPasswordHash)
                                 decryptedBytes = CryptoHelper.chaCha20Decrypt(masterToken, frame.readBytes())
+                                if (decryptedBytes != null) {
+                                    responseToken = masterToken
+                                }
                             }
                             
                             if (decryptedBytes != null) {
@@ -87,14 +91,14 @@ fun Route.addWebSocket() {
                                 if (AuthTwoFactorPreference.getAsync(MainApp.instance)) {
                                     send(
                                         CryptoHelper.chaCha20Encrypt(
-                                            token,
+                                            responseToken,
                                             JsonHelper.jsonEncode(AuthResponse(AuthStatus.PENDING))
                                         )
                                     )
                                     sendEvent(event)
                                 } else {
                                     coIO {
-                                        HttpServerManager.respondTokenAsync(event, clientIp)
+                                        HttpServerManager.respondTokenAsync(event, clientIp, responseToken)
                                     }
                                 }
                             } else {
