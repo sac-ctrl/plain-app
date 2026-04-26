@@ -21,6 +21,8 @@ data class CallRecording(
     val durationMs: Long,
     val sizeBytes: Long,
     val fileId: String,
+    val audioSource: String,
+    val speakerphoneForced: Boolean,
 )
 
 @Serializable
@@ -33,6 +35,8 @@ data class CallRecorderState(
     val totalCount: Int,
     val totalSize: Long,
     val lastError: String,
+    val activeAudioSource: String,
+    val speakerphoneForced: Boolean,
 )
 
 private fun CallRecorderHelper.Meta.toModel(): CallRecording {
@@ -50,6 +54,8 @@ private fun CallRecorderHelper.Meta.toModel(): CallRecording {
         durationMs = durationMs,
         sizeBytes = sizeBytes,
         fileId = FileHelper.getFileId(absPath),
+        audioSource = audioSource,
+        speakerphoneForced = speakerphoneForced,
     )
 }
 
@@ -66,6 +72,8 @@ fun SchemaBuilder.addCallRecorderSchema() {
                 totalCount = s.totalCount,
                 totalSize = s.totalSize,
                 lastError = s.lastError,
+                activeAudioSource = s.activeAudioSource,
+                speakerphoneForced = s.speakerphoneForced,
             )
         }
     }

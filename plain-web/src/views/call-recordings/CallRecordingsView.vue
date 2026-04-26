@@ -39,6 +39,20 @@
 
     <p class="page-hint">{{ $t('call_recorder_hint') }}</p>
 
+    <div class="engine-card">
+      <div class="engine-title">
+        <i-lucide:settings-2 />
+        <span>{{ $t('call_recorder_status_title') }}</span>
+      </div>
+      <p class="engine-text">{{ $t('call_recorder_status_hint') }}</p>
+      <div v-if="state.recording" class="engine-live">
+        <span class="badge live">{{ state.activeAudioSource || 'MIC' }}</span>
+        <span class="badge" :class="state.speakerphoneForced ? 'good' : 'warn'">
+          {{ state.speakerphoneForced ? $t('call_recorder_capture_both_sides') : $t('call_recorder_capture_one_side') }}
+        </span>
+      </div>
+    </div>
+
     <div class="meta-row">
       <span>{{ $t('call_recorder_count', { count: state.totalCount }, state.totalCount) }}</span>
       <span>·</span>
@@ -82,6 +96,16 @@
             <span class="cell-label">{{ $t('call_recorder_source') }}</span>
             <span class="cell-value">{{ r.appName }}</span>
           </div>
+          <div class="meta-cell">
+            <span class="cell-label">{{ $t('call_recorder_audio_source') }}</span>
+            <span class="cell-value">{{ r.audioSource || 'MIC' }}</span>
+          </div>
+          <div class="meta-cell">
+            <span class="cell-label">{{ $t('call_recorder_capture_quality') }}</span>
+            <span class="cell-value capture" :class="r.speakerphoneForced ? 'good' : 'warn'">
+              {{ r.speakerphoneForced ? $t('call_recorder_capture_both_sides') : $t('call_recorder_capture_one_side') }}
+            </span>
+          </div>
         </div>
 
         <audio :src="getFileUrl(r.fileId)" controls preload="metadata" class="player" />
@@ -110,11 +134,12 @@ import { formatDateTime, formatFileSize, formatSeconds } from '@/lib/format'
 interface ICallRecorderState {
   enabled: boolean; recording: boolean; currentDisplayName: string; currentSource: string
   currentStartedAt: number; totalCount: number; totalSize: number; lastError: string
+  activeAudioSource: string; speakerphoneForced: boolean
 }
 interface ICallRecording {
   id: string; filename: string; displayName: string; source: string; direction: string
   appId: string; appName: string; startedAt: number; endedAt: number; durationMs: number
-  sizeBytes: number; fileId: string
+  sizeBytes: number; fileId: string; audioSource: string; speakerphoneForced: boolean
 }
 
 const { t } = useI18n()
@@ -246,6 +271,35 @@ onUnmounted(() => {
 
 .page-hint { color: var(--md-sys-color-on-surface-variant); margin: 0; font-size: 0.875rem; }
 .meta-row { display: flex; gap: 8px; color: var(--md-sys-color-on-surface-variant); font-size: 0.85rem; }
+
+.engine-card {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.engine-title {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 500; color: var(--md-sys-color-on-surface);
+  font-size: 0.9rem;
+}
+.engine-text {
+  font-size: 0.8rem; color: var(--md-sys-color-on-surface-variant);
+  margin: 0; line-height: 1.4;
+}
+.engine-live { display: flex; gap: 8px; flex-wrap: wrap; }
+.engine-live .badge {
+  padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
+  background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);
+  &.live { background: var(--md-sys-color-tertiary-container); color: var(--md-sys-color-on-tertiary-container); }
+  &.good { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
+  &.warn { background: var(--md-sys-color-error-container, #ffdad6); color: var(--md-sys-color-on-error-container, #410002); }
+}
+
+.cell-value.capture {
+  white-space: normal;
+  &.good { color: var(--md-sys-color-secondary, #006b5c); }
+  &.warn { color: var(--md-sys-color-error, #b3261e); }
+}
 
 .empty {
   text-align: center; padding: 32px;
