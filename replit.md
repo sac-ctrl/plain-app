@@ -83,6 +83,17 @@ Files involved:
 - `AndroidManifest.xml` — `KILL_BACKGROUND_PROCESSES` permission.
 - `res/values/strings_settings.xml` — updated `hide_launcher_icon_desc` warns about ghost icons on OEM launchers.
 
+## Live camera & mic: client-side capture/recording
+
+The Live camera and Live microphone screens (`plain-web/src/views/live-monitor/`) record entirely in the browser using the standard `MediaRecorder` API on top of the incoming WebRTC `MediaStream`. Nothing is uploaded to the phone — captures live in-memory as `Blob` URLs and the user downloads them locally.
+
+- `plain-web/src/lib/media-recorder.ts` — shared helper. Exposes `StreamRecorder` (start / stop with format auto-detection: `video/webm vp9/vp8/opus`, `audio/webm opus`, MP4 fallback), `takePhoto(video)` (canvas → JPEG `Blob`), `downloadBlob`, `revokeCapture`, `formatDuration`, `timestampedFilename`.
+- `LiveCameraView.vue` — header buttons: "Take photo", "Start recording" / "Stop recording" (red), plus existing camera-flip and stop-stream. Recording badge overlays the live video. Captures grid below the video shows photo thumbnails and inline `<video controls>` previews with download/delete per item.
+- `LiveMicView.vue` — header buttons: "Start recording" / "Stop recording" plus existing mute and stop-stream. Recording line is shown inside the audio card. Recordings list below the card uses inline `<audio controls>` players with download/delete per item.
+- `plain-web/src/locales/en-US/monitor.ts` — added strings `take_photo`, `start_recording`, `stop_recording`, `recording_now`, `recording_failed`, `capture_failed`, `captures_title`, `recordings_title`, `no_captures_yet`, `no_recordings_yet`, `download`, `delete`, `photo`, `video`, `audio`.
+
+Captures are kept in `ref<CaptureItem[]>` on the page only — they are wiped on navigation away. If the live stream is torn down while a recording is in progress, the recorder is finalized first so the user keeps the file.
+
 ## Device Admin: PIN-protected deactivation
 
 `PlainDeviceAdminReceiver.onDisableRequested()` is invoked by the system *before* the user can confirm the "Deactivate" dialog in Settings > Security > Device admin apps. We hook into it to launch a full-screen lock activity that requires the in-app PIN (and biometric if enabled) before allowing the deactivation to proceed.

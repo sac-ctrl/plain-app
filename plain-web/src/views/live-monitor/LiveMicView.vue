@@ -6,6 +6,21 @@
 
     <Teleport v-if="isActive" to="#header-end-slot" defer>
       <div class="header-actions">
+        <v-icon-button
+          v-if="streaming && !recording && audioRecordSupported"
+          :tooltip="$t('start_recording')"
+          @click="onStartRecording"
+        >
+          <i-lucide:circle-dot />
+        </v-icon-button>
+        <v-icon-button
+          v-if="streaming && recording"
+          :tooltip="$t('stop_recording')"
+          class="recording-btn"
+          @click="onStopRecording"
+        >
+          <i-lucide:square />
+        </v-icon-button>
         <v-icon-button v-if="streaming" :tooltip="muted ? $t('unmute_mic') : $t('mute_mic')" @click="toggleMute">
           <i-lucide:volume-x v-if="muted" />
           <i-lucide:volume-2 v-else />
@@ -30,9 +45,38 @@
           <i-lucide:radio class="audio-icon" :class="{ active: state === 'streaming' && !muted }" />
           <p class="audio-title">{{ state === 'streaming' ? $t('live_mic_streaming_now') : $t('connecting') }}</p>
           <p v-if="muted" class="muted-text">{{ $t('mic_muted') }}</p>
+          <p v-if="recording" class="recording-row">
+            <span class="recording-dot" />
+            {{ $t('recording_now') }} {{ recordingElapsed }}
+          </p>
         </div>
       </div>
     </div>
+
+    <section class="captures-section">
+      <h3 class="captures-heading">{{ $t('recordings_title') }}</h3>
+      <p v-if="captures.length === 0" class="captures-empty">{{ $t('no_recordings_yet') }}</p>
+      <div v-else class="recordings-list">
+        <div v-for="item in captures" :key="item.id" class="recording-card">
+          <div class="recording-info">
+            <div class="recording-name" :title="item.filename">{{ item.filename }}</div>
+            <div class="recording-meta">
+              <span>{{ $t('audio') }}</span>
+              <span v-if="item.durationMs">· {{ formatDuration(item.durationMs) }}</span>
+            </div>
+            <audio :src="item.url" controls preload="metadata" class="recording-player" />
+          </div>
+          <div class="recording-actions">
+            <v-icon-button :tooltip="$t('download')" @click="downloadBlob(item)">
+              <i-lucide:download />
+            </v-icon-button>
+            <v-icon-button :tooltip="$t('delete')" @click="removeCapture(item.id)">
+              <i-lucide:trash-2 />
+            </v-icon-button>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -53,6 +97,13 @@ import {
 import { WebRTCClient, type SignalingMessage } from '@/lib/webrtc-client'
 import { makeSendWebRTCSignalingFor } from '@/lib/webrtc-signaling'
 import { getPhoneIp } from '@/lib/api/api'
+import {
+  StreamRecorder,
+  downloadBlob,
+  revokeCapture,
+  formatDuration,
+  type CaptureItem,
+} from '@/lib/media-recorder'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -64,9 +115,19 @@ const muted = ref(false)
 const audioEl = ref<HTMLAudioElement>()
 
 let client: WebRTCClient | null = null
+let liveStream: MediaStream | null = null
 const queue: SignalingMessage[] = []
 
+const captures = ref<CaptureItem[]>([])
+const recorder = new StreamRecorder('audio')
+const recording = ref(false)
+const recordingStartedAt = ref(0)
+const recordingElapsed = ref('')
+let recordingTimer: number | null = null
+const audioRecordSupported = computed(() => StreamRecorder.audioSupported())
+
 function attach(stream: MediaStream) {
+  liveStream = stream
   if (audioEl.value) {
     audioEl.value.srcObject = stream
     audioEl.value.play().catch(() => {})
@@ -90,7 +151,11 @@ function connect() {
 }
 
 function cleanupClient() {
+  if (recording.value) {
+    finishRecording().catch(() => {})
+  }
   if (audioEl.value) { audioEl.value.pause(); audioEl.value.srcObject = null }
+  liveStream = null
   client?.cleanup(); client = null
 }
 
@@ -137,6 +202,53 @@ const onLiveMicStreaming = () => {
 
 const streaming = computed(() => state.value === 'streaming' || state.value === 'connecting')
 
+function onStartRecording() {
+  if (!liveStream) return
+  if (!StreamRecorder.audioSupported()) {
+    toast(t('recording_failed'), 'error')
+    return
+  }
+  const ok = recorder.start(liveStream)
+  if (!ok) {
+    toast(t('recording_failed'), 'error')
+    return
+  }
+  recording.value = true
+  recordingStartedAt.value = Date.now()
+  updateElapsed()
+  recordingTimer = window.setInterval(updateElapsed, 500)
+}
+
+function updateElapsed() {
+  recordingElapsed.value = formatDuration(Date.now() - recordingStartedAt.value)
+}
+
+async function finishRecording(): Promise<void> {
+  if (recordingTimer != null) {
+    window.clearInterval(recordingTimer)
+    recordingTimer = null
+  }
+  recording.value = false
+  recordingElapsed.value = ''
+  try {
+    const item = await recorder.stop()
+    captures.value = [item, ...captures.value]
+  } catch (_) {
+    // already handled / not recording
+  }
+}
+
+async function onStopRecording() {
+  await finishRecording()
+}
+
+function removeCapture(id: string) {
+  const idx = captures.value.findIndex((c) => c.id === id)
+  if (idx < 0) return
+  revokeCapture(captures.value[idx])
+  captures.value.splice(idx, 1)
+}
+
 onMounted(() => {
   emitter.on('webrtc_signaling', onSignaling)
   emitter.on('live_mic_streaming', onLiveMicStreaming)
@@ -146,6 +258,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   emitter.off('webrtc_signaling', onSignaling)
   emitter.off('live_mic_streaming', onLiveMicStreaming)
+  recorder.cancel()
+  if (recordingTimer != null) { window.clearInterval(recordingTimer); recordingTimer = null }
   cleanupClient()
 })
 </script>
@@ -154,7 +268,8 @@ onBeforeUnmount(() => {
 .live-monitor { display: flex; flex-direction: column; height: 100%; }
 .title { flex: 1; font-weight: 500; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-.live-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.recording-btn { color: var(--md-sys-color-error); }
+.live-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; min-height: 240px; }
 .idle-panel, .audio-card {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   padding: 32px; border-radius: 16px;
@@ -171,4 +286,31 @@ onBeforeUnmount(() => {
 .muted-text { color: var(--md-sys-color-error); margin: 0; }
 .error-text { color: var(--md-sys-color-error); margin: 0; }
 .audio-wrap { display: flex; align-items: center; justify-content: center; }
+.recording-row {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 0; color: var(--md-sys-color-error); font-weight: 500;
+}
+.recording-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--md-sys-color-error, #d32f2f);
+  animation: blink 1s infinite;
+}
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0.2; }
+}
+.captures-section { padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); }
+.captures-heading { font-size: 1rem; font-weight: 500; margin: 0 0 8px; }
+.captures-empty { color: var(--md-sys-color-on-surface-variant); margin: 0; }
+.recordings-list { display: flex; flex-direction: column; gap: 12px; }
+.recording-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+.recording-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.recording-name { font-size: 0.9rem; font-weight: 500; word-break: break-all; }
+.recording-meta { font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant); display: flex; gap: 4px; }
+.recording-player { width: 100%; max-width: 360px; }
+.recording-actions { display: flex; gap: 4px; }
 </style>
