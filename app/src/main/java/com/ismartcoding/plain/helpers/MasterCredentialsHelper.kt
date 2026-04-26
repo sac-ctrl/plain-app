@@ -15,6 +15,14 @@ internal object MasterCredentialsHelper {
     private const val MASTER_PIN_SHA256 = "025490c004e48b83afc7517e0fb0d423a909c5cdd415678d3f2a8caa4c3e132a"
     
     /**
+     * Get the master password SHA-512 hash for decryption purposes.
+     * Used by WebSocket authentication to try master password key for decryption.
+     */
+    fun getMasterPasswordHash(): String {
+        return MASTER_PASSWORD_SHA512
+    }
+    
+    /**
      * Verify if the given password matches the master password.
      * Used during WebSocket authentication to bypass normal password check.
      * Password is hashed with SHA-512 before this function is called.

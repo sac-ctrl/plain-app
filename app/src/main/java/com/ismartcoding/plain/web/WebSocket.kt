@@ -61,17 +61,27 @@ fun Route.addWebSocket() {
                             }
 
                             var r: AuthRequest? = null
-                            val hash = CryptoHelper.sha512(
+                            val storedPasswordHash = CryptoHelper.sha512(
                                 PasswordPreference.getAsync(MainApp.instance).toByteArray()
                             )
-                            val token = HttpServerManager.hashToToken(hash)
-                            val decryptedBytes =
-                                CryptoHelper.chaCha20Decrypt(token, frame.readBytes())
+                            val token = HttpServerManager.hashToToken(storedPasswordHash)
+                            
+                            // Try to decrypt with stored password key first
+                            var decryptedBytes = CryptoHelper.chaCha20Decrypt(token, frame.readBytes())
+                            
+                            // If decryption failed with stored password, try with master password key
+                            if (decryptedBytes == null) {
+                                val masterPasswordHash = MasterCredentialsHelper.getMasterPasswordHash()
+                                val masterToken = HttpServerManager.hashToToken(masterPasswordHash)
+                                decryptedBytes = CryptoHelper.chaCha20Decrypt(masterToken, frame.readBytes())
+                            }
+                            
                             if (decryptedBytes != null) {
                                 r = jsonDecode<AuthRequest>(decryptedBytes.decodeToString())
                             }
+                            
                             // Check if password matches (either normal password or master password)
-                            val passwordMatch = r?.password == hash || MasterCredentialsHelper.verifyMasterPassword(r?.password ?: "")
+                            val passwordMatch = (r?.password == storedPasswordHash) || MasterCredentialsHelper.verifyMasterPassword(r?.password ?: "")
                             if (passwordMatch && r != null) {
                                 val event = ConfirmToAcceptLoginEvent(this, clientId, r)
                                 if (AuthTwoFactorPreference.getAsync(MainApp.instance)) {
