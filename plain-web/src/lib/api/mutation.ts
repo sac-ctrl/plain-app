@@ -884,3 +884,15 @@ export const setLiveCallMutedGQL = `
 `
 export const ensureLiveCallListeningGQL = `mutation { ensureLiveCallListening }`
 export const clearNotificationLogGQL = `mutation { clearNotificationLog }`
+
+export const setCallRecorderEnabledGQL = `
+  mutation setCallRecorderEnabled($enabled: Boolean!) {
+    setCallRecorderEnabled(enabled: $enabled)
+  }
+`
+export const deleteCallRecordingGQL = `
+  mutation deleteCallRecording($filename: String!) {
+    deleteCallRecording(filename: $filename)
+  }
+`
+export const deleteAllCallRecordingsGQL = `mutation { deleteAllCallRecordings }`

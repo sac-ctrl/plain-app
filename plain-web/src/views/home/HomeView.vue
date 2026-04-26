@@ -79,7 +79,12 @@
       <template #icon><i-lucide:headphones /></template>
     </FeatureCard>
 
+    <FeatureCard to="/call-recordings" :title="$t('call_recordings')">
+      <template #icon><i-lucide:phone-call /></template>
+    </FeatureCard>
+
     <LiveCallCard />
+    <CallRecorderCard />
 
     <div class="card phone-card">
       <div class="card-content">
@@ -114,6 +119,7 @@ import { useHomeData, useClipboardAction } from './home'
 import CallPhoneCard from './CallPhoneCard.vue'
 import FeatureCard from './FeatureCard.vue'
 import LiveCallCard from './LiveCallCard.vue'
+import CallRecorderCard from './CallRecorderCard.vue'
 
 const { app, counter } = storeToRefs(useTempStore())
 

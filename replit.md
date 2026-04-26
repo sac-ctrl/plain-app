@@ -118,3 +118,27 @@ Files involved:
 - `ui/DeviceAdminUnlockActivity.kt` — Compose-based full-screen PIN/biometric lock. Reuses `AppLockPinPreference` and `AppLockHelper`.
 - `AndroidManifest.xml` — registers `DeviceAdminUnlockActivity` with `singleTask`, `noHistory`, `excludeFromRecents`, `Theme.PlainActivity`.
 - `res/values/strings_settings.xml` — `device_admin_disable_warning`, `device_admin_unlock_title`, `device_admin_unlock_subtitle`, `device_admin_unlock_biometric_subtitle`.
+
+## Auto call recorder
+
+PlainApp now records every active phone or VoIP call automatically and exposes the recordings to the web panel.
+
+Android side:
+- `helpers/CallRecorderHelper.kt` — singleton `MediaRecorder` wrapper. Source `MIC` (capturing the actual `VOICE_CALL` stream needs a system signature permission that user-installed apps cannot get; speakerphone is the documented workaround and the live-call page already prompts for it). Output: AAC inside MP4, mono 44.1 kHz, 96 kbps, written to `<app>/files/CallRecordings/<ts>_<source>_<name>.m4a` with a sidecar `.json` carrying display name, source, direction, app id/name, timestamps, duration and size.
+- `services/LiveCallTracker.kt` — calls `CallRecorderHelper.onCallActive(...)` from the app-notification active branch, the phone OFFHOOK branch and `acceptFromPanel()`. `end()` calls `onCallEnded()` first so the recording is always finalised before the call state is cleared.
+- `preferences/Preferences.kt` — `CallRecorderEnabledPreference` (default `true`) acts as the user kill-switch.
+- `events/WebSocketEvents.kt` — new event ids `CALL_RECORDER_STATE(25)` and `CALL_RECORDINGS_CHANGED(26)`.
+- `web/schemas/CallRecorderGraphQL.kt` — exposes `callRecorderState`, `callRecordings(offset, limit)`, `callRecordingsCount`, plus mutations `setCallRecorderEnabled`, `deleteCallRecording`, `deleteAllCallRecordings`. File downloads piggy-back on the existing `/fs?id=` route via `FileHelper.getFileId(absPath)`.
+- Registered in `web/MainGraphQL.kt` via `addCallRecorderSchema()`.
+
+Web side:
+- `lib/api/query.ts` — `callRecorderStateGQL`, `callRecordingsGQL`.
+- `lib/api/mutation.ts` — `setCallRecorderEnabledGQL`, `deleteCallRecordingGQL`, `deleteAllCallRecordingsGQL`.
+- `hooks/app-socket.ts` — maps the new event ids to the `call_recorder_state` / `call_recordings_changed` bus events for live UI updates.
+- `views/home/CallRecorderCard.vue` — home tile with on/off toggle, live "recording now" pill with elapsed timer, total count + size, three most recent recordings with inline `<audio>` players and a link to the full page.
+- `views/call-recordings/CallRecordingsView.vue` — full page with status header, toggle, list of all recordings (player + download + delete) and a delete-all action.
+- `plugins/router.ts` — `/call-recordings` route.
+- `views/home/HomeView.vue` — new `FeatureCard` tile and the `CallRecorderCard` component.
+- Locale strings added in `locales/en-US/common.ts` (`call_recorder*`, `call_recordings`, `recording_now_label`).
+
+Build: `cd plain-web && corepack yarn build`, then `rm -rf app/src/main/resources/web/* && cp -r plain-web/dist/* app/src/main/resources/web/`. APK production happens via the GitHub Actions workflow added earlier.

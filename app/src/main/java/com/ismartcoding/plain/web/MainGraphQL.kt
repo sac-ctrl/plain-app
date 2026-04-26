@@ -19,6 +19,7 @@ import com.ismartcoding.plain.web.schemas.addAppLockSchema
 import com.ismartcoding.plain.web.schemas.addAppSchema
 import com.ismartcoding.plain.web.schemas.addAudioSchema
 import com.ismartcoding.plain.web.schemas.addBookmarkSchema
+import com.ismartcoding.plain.web.schemas.addCallRecorderSchema
 import com.ismartcoding.plain.web.schemas.addCallSchema
 import com.ismartcoding.plain.web.schemas.addChatChannelSchema
 import com.ismartcoding.plain.web.schemas.addChatMessageSchema
@@ -75,6 +76,7 @@ class MainGraphQL(val schema: Schema) {
                 addDocQueries()
                 addContactSchema()
                 addCallSchema()
+                addCallRecorderSchema()
                 addPackageSchema()
                 addFileQuerySchema()
                 addFileUploadSchema()

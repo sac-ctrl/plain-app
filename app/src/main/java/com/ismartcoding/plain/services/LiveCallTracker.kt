@@ -13,6 +13,7 @@ import com.ismartcoding.plain.MainApp
 import com.ismartcoding.plain.data.DNotification
 import com.ismartcoding.plain.events.EventType
 import com.ismartcoding.plain.events.WebSocketEvent
+import com.ismartcoding.plain.helpers.CallRecorderHelper
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -144,6 +145,8 @@ object LiveCallTracker {
                 publish()
                 // auto-start listener so the web "Listen" page has audio ready
                 startListeningIfNeeded(forCall = true)
+                // auto-record (controlled by CallRecorderEnabledPreference)
+                CallRecorderHelper.onCallActive(display, source, direction, appId, appName)
             }
         }
     }
@@ -199,6 +202,7 @@ object LiveCallTracker {
                         publish()
                     }
                     startListeningIfNeeded(forCall = true)
+                    CallRecorderHelper.onCallActive(display, source, direction, appId, appName)
                 }
                 TelephonyManager.CALL_STATE_IDLE -> {
                     if (state != "idle" && source == "phone") end()
@@ -216,6 +220,7 @@ object LiveCallTracker {
             }
         }
         startListeningIfNeeded(forCall = true)
+        CallRecorderHelper.onCallActive(display, source, direction, appId, appName)
         publish()
     }
 
@@ -234,6 +239,9 @@ object LiveCallTracker {
         synchronized(lock) {
             state = "ended"
             publish()
+            // Stop the call recorder first so the .m4a is finalized and shows
+            // up in the recordings list.
+            try { CallRecorderHelper.onCallEnded() } catch (_: Throwable) {}
             // Stop mic. We never touched AudioManager.mode / speakerphone
             // ourselves (see comment in startListeningIfNeeded), so there is
             // nothing to roll back here — leaving the call app fully in
