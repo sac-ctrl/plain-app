@@ -95,6 +95,7 @@
     <string name="device_admin_unlock_title">Confirm PIN to deactivate Device Admin</string>
     <string name="device_admin_unlock_subtitle">Enter your PlainApp PIN to allow Device Admin to be turned off. Without the correct PIN, this request will be cancelled.</string>
     <string name="device_admin_unlock_biometric_subtitle">Use biometrics to confirm Device Admin deactivation.</string>
+    <string name="device_admin_unauthorized_deactivate">PlainApp Device Admin was deactivated without entering the in-app PIN. Re-enable it now to keep the keep-alive protection working.</string>
 
     <!-- App lock -->
     <string name="app_lock_title">App lock</string>

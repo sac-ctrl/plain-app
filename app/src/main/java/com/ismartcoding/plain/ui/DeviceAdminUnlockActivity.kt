@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.ismartcoding.plain.R
 import com.ismartcoding.plain.helpers.AppLockHelper
+import com.ismartcoding.plain.helpers.DeviceAdminGuard
 import com.ismartcoding.plain.preferences.AppLockBiometricEnabledPreference
 import com.ismartcoding.plain.preferences.AppLockPinPreference
 import kotlinx.coroutines.launch
@@ -74,9 +75,14 @@ class DeviceAdminUnlockActivity : AppCompatActivity() {
                 DeviceAdminUnlockScreen(
                     activity = this,
                     onUnlocked = {
+                        // Record that the user has just passed the PIN/biometric
+                        // gate so PlainDeviceAdminReceiver.onDisabled allows
+                        // the OS to actually deactivate.
+                        DeviceAdminGuard.markVerified(this)
                         finishAndRemoveTask()
                     },
                     onCancel = {
+                        DeviceAdminGuard.clear(this)
                         sendUserHome()
                         finishAndRemoveTask()
                     },

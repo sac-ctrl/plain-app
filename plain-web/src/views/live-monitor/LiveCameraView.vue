@@ -62,13 +62,20 @@
     </div>
 
     <section class="captures-section">
-      <h3 class="captures-heading">{{ $t('captures_title') }}</h3>
-      <p v-if="captures.length === 0" class="captures-empty">{{ $t('no_captures_yet') }}</p>
-      <div v-else class="captures-grid">
+      <header class="captures-header">
+        <h3 class="captures-heading">{{ $t('captures_title') }}</h3>
+        <RouterLink class="open-full-link" to="/live-captures?source=camera">
+          {{ $t('open_full_captures') }}
+          <i-lucide:arrow-right />
+        </RouterLink>
+      </header>
+      <p v-if="uploading" class="captures-status">{{ $t('live_capture_uploading') }}</p>
+      <p v-if="captures.length === 0 && !uploading" class="captures-empty">{{ $t('no_captures_yet') }}</p>
+      <div v-else-if="captures.length > 0" class="captures-grid">
         <div v-for="item in captures" :key="item.id" class="capture-card">
           <div class="capture-media">
-            <img v-if="item.kind === 'photo'" :src="item.url" :alt="item.filename" />
-            <video v-else :src="item.url" controls preload="metadata" />
+            <img v-if="item.kind === 'photo'" :src="getFileUrl(item.fileId)" :alt="item.filename" />
+            <video v-else :src="getFileUrl(item.fileId)" controls preload="metadata" />
           </div>
           <div class="capture-info">
             <div class="capture-name" :title="item.filename">{{ item.filename }}</div>
@@ -76,14 +83,6 @@
               <span class="capture-kind">{{ item.kind === 'photo' ? $t('photo') : $t('video') }}</span>
               <span v-if="item.durationMs">· {{ formatDuration(item.durationMs) }}</span>
             </div>
-          </div>
-          <div class="capture-actions">
-            <v-icon-button :tooltip="$t('download')" @click="downloadBlob(item)">
-              <i-lucide:download />
-            </v-icon-button>
-            <v-icon-button :tooltip="$t('delete')" @click="removeCapture(item.id)">
-              <i-lucide:trash-2 />
-            </v-icon-button>
           </div>
         </div>
       </div>
@@ -94,11 +93,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRoute } from 'vue-router'
+import { useRoute, RouterLink } from 'vue-router'
 import emitter from '@/plugins/eventbus'
 import toast from '@/components/toaster'
 import type { GqlError } from '@/lib/api/gql-client'
-import { initLazyQuery, liveCameraStateGQL } from '@/lib/api/query'
+import { gqlFetch } from '@/lib/api/gql-client'
+import { initLazyQuery, liveCameraStateGQL, liveCapturesGQL } from '@/lib/api/query'
 import {
   initMutation,
   startLiveCameraGQL,
@@ -108,14 +108,13 @@ import {
 import { WebRTCClient, type SignalingMessage } from '@/lib/webrtc-client'
 import { makeSendWebRTCSignalingFor } from '@/lib/webrtc-signaling'
 import { getPhoneIp } from '@/lib/api/api'
+import { getFileUrl } from '@/lib/api/file'
 import {
   StreamRecorder,
   takePhoto,
-  downloadBlob,
-  revokeCapture,
   formatDuration,
-  type CaptureItem,
 } from '@/lib/media-recorder'
+import { uploadLiveCapture, type ServerLiveCapture } from '@/lib/api/live-captures'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -135,7 +134,8 @@ let client: WebRTCClient | null = null
 let liveStream: MediaStream | null = null
 const queue: SignalingMessage[] = []
 
-const captures = ref<CaptureItem[]>([])
+const captures = ref<ServerLiveCapture[]>([])
+const uploading = ref(false)
 const recorder = new StreamRecorder('video')
 const recording = ref(false)
 const recordingStartedAt = ref(0)
@@ -168,7 +168,6 @@ function connect() {
 }
 
 function cleanupClient() {
-  // If we are currently recording, stop and keep the file before tearing down the stream.
   if (recording.value) {
     finishRecording().catch(() => {})
   }
@@ -222,16 +221,38 @@ const streaming = computed(() => state.value === 'streaming' || state.value === 
 
 watch(videoEl, (el) => {
   if (el && client && state.value !== 'idle') {
-    // re-attach if we already have a stream
     el.play().catch(() => {})
   }
 })
+
+async function reloadCaptures() {
+  try {
+    const r = await gqlFetch<{ liveCaptures: ServerLiveCapture[] }>(liveCapturesGQL, {
+      offset: 0, limit: 4, source: 'camera',
+    })
+    if (!r.errors) captures.value = r.data.liveCaptures
+  } catch (_) {
+    // best-effort
+  }
+}
+
+async function persist(blob: Blob, kind: 'photo' | 'video', mimeType: string, durationMs?: number) {
+  uploading.value = true
+  try {
+    await uploadLiveCapture(blob, { source: 'camera', kind, mimeType, durationMs })
+  } catch (_) {
+    toast(t('live_capture_upload_failed'), 'error')
+  } finally {
+    uploading.value = false
+  }
+}
 
 async function onTakePhoto() {
   if (!videoEl.value) return
   try {
     const item = await takePhoto(videoEl.value)
-    captures.value = [item, ...captures.value]
+    await persist(item.blob, 'photo', item.blob.type || 'image/jpeg')
+    URL.revokeObjectURL(item.url)
   } catch (_) {
     toast(t('capture_failed'), 'error')
   }
@@ -267,7 +288,8 @@ async function finishRecording(): Promise<void> {
   recordingElapsed.value = ''
   try {
     const item = await recorder.stop()
-    captures.value = [item, ...captures.value]
+    await persist(item.blob, 'video', item.blob.type || 'video/webm', item.durationMs)
+    URL.revokeObjectURL(item.url)
   } catch (_) {
     // already handled / not recording
   }
@@ -277,22 +299,20 @@ async function onStopRecording() {
   await finishRecording()
 }
 
-function removeCapture(id: string) {
-  const idx = captures.value.findIndex((c) => c.id === id)
-  if (idx < 0) return
-  revokeCapture(captures.value[idx])
-  captures.value.splice(idx, 1)
-}
+const onCapturesChanged = () => { reloadCaptures() }
 
 onMounted(() => {
   emitter.on('webrtc_signaling', onSignaling)
   emitter.on('live_camera_streaming', onLiveCameraStreaming)
+  emitter.on('live_captures_changed', onCapturesChanged)
   fetchState()
+  reloadCaptures()
 })
 
 onBeforeUnmount(() => {
   emitter.off('webrtc_signaling', onSignaling)
   emitter.off('live_camera_streaming', onLiveCameraStreaming)
+  emitter.off('live_captures_changed', onCapturesChanged)
   recorder.cancel()
   if (recordingTimer != null) { window.clearInterval(recordingTimer); recordingTimer = null }
   cleanupClient()
@@ -303,9 +323,7 @@ onBeforeUnmount(() => {
 .live-monitor { display: flex; flex-direction: column; height: 100%; }
 .title { flex: 1; font-weight: 500; }
 .header-actions { display: flex; gap: 8px; align-items: center; }
-.recording-btn {
-  color: var(--md-sys-color-error);
-}
+.recording-btn { color: var(--md-sys-color-error); }
 .live-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; min-height: 240px; }
 .idle-panel {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -342,8 +360,16 @@ onBeforeUnmount(() => {
   50%, 100% { opacity: 0.2; }
 }
 .captures-section { padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); }
-.captures-heading { font-size: 1rem; font-weight: 500; margin: 0 0 8px; }
+.captures-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.captures-heading { font-size: 1rem; font-weight: 500; margin: 0; }
+.open-full-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  color: var(--md-sys-color-primary);
+  text-decoration: none; font-size: 0.875rem; font-weight: 500;
+  &:hover { text-decoration: underline; }
+}
 .captures-empty { color: var(--md-sys-color-on-surface-variant); margin: 0; }
+.captures-status { color: var(--md-sys-color-on-surface-variant); margin: 0 0 8px; font-size: 0.85rem; }
 .captures-grid {
   display: grid; gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -362,5 +388,4 @@ onBeforeUnmount(() => {
 .capture-info { display: flex; flex-direction: column; gap: 2px; }
 .capture-name { font-size: 0.875rem; font-weight: 500; word-break: break-all; }
 .capture-meta { font-size: 0.75rem; color: var(--md-sys-color-on-surface-variant); }
-.capture-actions { display: flex; gap: 4px; justify-content: flex-end; }
 </style>

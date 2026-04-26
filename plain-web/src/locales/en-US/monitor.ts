@@ -32,4 +32,17 @@ export default {
   photo: 'Photo',
   video: 'Video',
   audio: 'Audio',
+  // Persistent live captures
+  open_full_captures: 'Open full',
+  live_captures_title: 'Live captures',
+  live_captures_camera: 'Camera',
+  live_captures_mic: 'Microphone',
+  live_captures_all: 'All',
+  live_captures_empty: 'Photos, videos and audio recordings you make on the live screens will appear here.',
+  live_captures_view_grid: 'Grid view',
+  live_captures_view_list: 'List view',
+  live_captures_delete_all: 'Delete all',
+  live_captures_delete_all_confirm: 'Delete all live captures? This cannot be undone.',
+  live_capture_uploading: 'Saving capture to phone…',
+  live_capture_upload_failed: 'Could not save capture to phone storage.',
 }

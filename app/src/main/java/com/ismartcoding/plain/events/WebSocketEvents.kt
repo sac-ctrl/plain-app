@@ -59,6 +59,7 @@ enum class EventType(val value: Int) {
     NOTIFICATION_LOG_APPENDED(24),
     CALL_RECORDER_STATE(25),
     CALL_RECORDINGS_CHANGED(26),
+    LIVE_CAPTURES_CHANGED(27),
 }
 
 

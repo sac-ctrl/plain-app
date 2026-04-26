@@ -18,6 +18,7 @@ const EventType: { [key: number]: string } = {
   20: 'live_camera_streaming', 21: 'live_mic_streaming',
   22: 'timeline_event', 23: 'live_call_state', 24: 'notification_log_appended',
   25: 'call_recorder_state', 26: 'call_recordings_changed',
+  27: 'live_captures_changed',
 }
 
 export function useAppSocket() {

@@ -814,3 +814,12 @@ export const callRecordingsGQL = `
     callRecordingsCount
   }
 `
+
+export const liveCapturesGQL = `
+  query liveCaptures($offset: Int!, $limit: Int!, $source: String) {
+    liveCaptures(offset: $offset, limit: $limit, source: $source) {
+      id filename source kind mimeType createdAt durationMs sizeBytes fileId
+    }
+    liveCapturesCount(source: $source)
+  }
+`

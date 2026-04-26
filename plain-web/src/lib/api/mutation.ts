@@ -896,3 +896,14 @@ export const deleteCallRecordingGQL = `
   }
 `
 export const deleteAllCallRecordingsGQL = `mutation { deleteAllCallRecordings }`
+
+export const deleteLiveCaptureGQL = `
+  mutation deleteLiveCapture($filename: String!) {
+    deleteLiveCapture(filename: $filename)
+  }
+`
+export const deleteAllLiveCapturesGQL = `
+  mutation deleteAllLiveCaptures($source: String) {
+    deleteAllLiveCaptures(source: $source)
+  }
+`

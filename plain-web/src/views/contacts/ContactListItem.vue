@@ -3,7 +3,7 @@
     v-if="!isPhone"
     class="contact-item selectable-card"
     :class="{ selected: selectedIds.includes(item.id), selecting: shiftEffectingIds.includes(item.id) }"
-    @click.stop="handleItemClick($event, item, index, () => {})"
+    @click.stop="handleItemClick($event, item, index, () => viewContact(item))"
     @mouseenter.stop="handleMouseOver($event, index)"
   >
     <div class="start">
@@ -56,7 +56,7 @@
     :is-selected="selectedIds.includes(item.id)"
     :is-selecting="shiftEffectingIds.includes(item.id)"
     :checkbox-checked="shiftEffectingIds.includes(item.id) ? shouldSelect : selectedIds.includes(item.id)"
-    @click="handleItemClick($event, item, index, () => {})"
+    @click="handleItemClick($event, item, index, () => viewContact(item))"
     @mouseenter.stop="handleMouseOver($event, index)"
     @checkbox-click="(event: MouseEvent) => toggleSelect(event, item, index)"
   >
@@ -115,7 +115,13 @@ import { DataType } from '@/lib/data'
 import { formatDateTime, formatTimeAgo } from '@/lib/format'
 import { getFileUrl } from '@/lib/api/file'
 import { getContactFullName } from '@/lib/contact/format'
+import { useRouter } from 'vue-router'
 import ContactActionButtons from './ContactActionButtons.vue'
+
+const router = useRouter()
+function viewContact(item: IContact) {
+  router.push(`/contacts/${item.id}/calls`)
+}
 
 interface Props {
   item: IContact

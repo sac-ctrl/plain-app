@@ -86,6 +86,11 @@ const router = createRouter({
           meta: { group: 'contacts' },
         },
         {
+          path: 'contacts/:id/calls',
+          component: () => import('@/views/contacts/ContactCallsView.vue'),
+          meta: { group: 'contacts' },
+        },
+        {
           path: 'images',
           components: {
             default: () => import('@/views/images/ImagesView.vue'),
@@ -170,6 +175,11 @@ const router = createRouter({
           path: 'call-recordings',
           component: () => import('@/views/call-recordings/CallRecordingsView.vue'),
           meta: { group: 'call_recordings' },
+        },
+        {
+          path: 'live-captures',
+          component: () => import('@/views/live-monitor/LiveCapturesView.vue'),
+          meta: { group: 'live_captures' },
         },
         {
           path: 'device-info',
