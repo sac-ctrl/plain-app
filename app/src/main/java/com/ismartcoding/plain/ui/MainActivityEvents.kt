@@ -12,6 +12,8 @@ import com.ismartcoding.lib.helpers.CoroutinesHelper.withIO
 import com.ismartcoding.lib.logcat.LogCat
 import com.ismartcoding.plain.R
 import com.ismartcoding.plain.enums.HttpServerState
+import com.ismartcoding.plain.events.EventType
+import com.ismartcoding.plain.events.WebSocketEvent
 import com.ismartcoding.plain.events.ChannelInviteReceivedEvent
 import com.ismartcoding.plain.events.ConfirmToAcceptLoginEvent
 import com.ismartcoding.plain.events.ExportFileEvent
@@ -63,8 +65,16 @@ internal fun MainActivity.initEvents() {
                 }
                 is StartScreenMirrorEvent -> {
                     try {
-                        if (event.audio && !Permission.RECORD_AUDIO.can(this@initEvents)) recordAudioForMirror.launch(android.Manifest.permission.RECORD_AUDIO)
-                        else screenCapture.launch(mediaProjectionManager.createScreenCaptureIntent())
+                        // Defensive: if a screen mirror session is already running,
+                        // don't trigger Android's consent popup again. This avoids
+                        // repeated prompts when the web client reconnects.
+                        if (com.ismartcoding.plain.services.ScreenMirrorService.instance?.isRunning() == true) {
+                            sendEvent(WebSocketEvent(EventType.SCREEN_MIRRORING, ""))
+                        } else if (event.audio && !Permission.RECORD_AUDIO.can(this@initEvents)) {
+                            recordAudioForMirror.launch(android.Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            screenCapture.launch(mediaProjectionManager.createScreenCaptureIntent())
+                        }
                     } catch (e: IllegalStateException) { LogCat.e("Error launching screen capture: ${e.message}") }
                 }
                 is StartLiveCameraEvent -> {

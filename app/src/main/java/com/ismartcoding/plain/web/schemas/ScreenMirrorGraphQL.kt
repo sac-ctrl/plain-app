@@ -8,8 +8,10 @@ import com.ismartcoding.plain.MainApp
 import com.ismartcoding.plain.data.DScreenMirrorQuality
 import com.ismartcoding.plain.data.ScreenMirrorControlInput
 import com.ismartcoding.plain.enums.ScreenMirrorMode
+import com.ismartcoding.plain.events.EventType
 import com.ismartcoding.plain.events.RequestScreenMirrorAudioEvent
 import com.ismartcoding.plain.events.StartScreenMirrorEvent
+import com.ismartcoding.plain.events.WebSocketEvent
 import com.ismartcoding.plain.features.Permission
 import com.ismartcoding.plain.preferences.ScreenMirrorQualityPreference
 import com.ismartcoding.plain.services.LiveCallTracker
@@ -39,7 +41,14 @@ fun SchemaBuilder.addScreenMirrorSchema() {
     mutation("startScreenMirror") {
         resolver { audio: Boolean ->
             ScreenMirrorService.qualityData = ScreenMirrorQualityPreference.getValueAsync(MainApp.instance)
-            sendEvent(StartScreenMirrorEvent(audio))
+            // If a screen mirror session is already running we must NOT pop the
+            // Android consent dialog again. Just re-broadcast the streaming
+            // event so any (re)connecting browser tab knows to start signalling.
+            if (ScreenMirrorService.instance?.isRunning() == true) {
+                sendEvent(WebSocketEvent(EventType.SCREEN_MIRRORING, ""))
+            } else {
+                sendEvent(StartScreenMirrorEvent(audio))
+            }
             true
         }
     }

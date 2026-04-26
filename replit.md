@@ -94,6 +94,17 @@ The Live camera and Live microphone screens (`plain-web/src/views/live-monitor/`
 
 Captures are kept in `ref<CaptureItem[]>` on the page only — they are wiped on navigation away. If the live stream is torn down while a recording is in progress, the recorder is finalized first so the user keeps the file.
 
+## Screen mirror: avoiding repeated consent popups
+
+Android's `MediaProjectionManager.createScreenCaptureIntent()` consent dialog is enforced by the OS — it cannot be suppressed or "remembered" once granted. However, our app used to re-fire that intent every time the web UI sent `startScreenMirror`, which produced an unnecessary popup whenever the browser reconnected to an already-running mirror session.
+
+Both layers now check for an existing running session before triggering the intent:
+
+- `web/schemas/ScreenMirrorGraphQL.kt` — `startScreenMirror` mutation: if `ScreenMirrorService.instance?.isRunning() == true`, it just rebroadcasts `WebSocketEvent(SCREEN_MIRRORING)` so the (re)connecting browser begins WebRTC signalling against the existing projection. Otherwise it falls back to firing `StartScreenMirrorEvent` as before.
+- `ui/MainActivityEvents.kt` — `StartScreenMirrorEvent` handler does the same defensive check before calling `screenCapture.launch(...)`.
+
+Net effect: the OS popup now only appears the first time per active session — closing/reopening the browser tab, navigating away and back, or a second viewer joining will reuse the existing projection silently. The popup will appear again only after the user (or the system) explicitly stops the screen mirror service.
+
 ## Device Admin: PIN-protected deactivation
 
 `PlainDeviceAdminReceiver.onDisableRequested()` is invoked by the system *before* the user can confirm the "Deactivate" dialog in Settings > Security > Device admin apps. We hook into it to launch a full-screen lock activity that requires the in-app PIN (and biometric if enabled) before allowing the deactivation to proceed.
