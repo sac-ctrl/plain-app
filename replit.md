@@ -147,3 +147,21 @@ Web side:
 - Locale strings added in `locales/en-US/common.ts` (`call_recorder*`, `call_recordings`, `recording_now_label`).
 
 Build: `cd plain-web && corepack yarn build`, then `rm -rf app/src/main/resources/web/* && cp -r plain-web/dist/* app/src/main/resources/web/`. APK production happens via the GitHub Actions workflow added earlier.
+
+## Per-contact call detail page
+
+Tapping any contact in the contacts list (clicking its name, or the new "View details" icon in the row's actions) opens a full per-contact detail page at `/contacts/:id`.
+
+Web side:
+- `views/contacts/hooks/useContactDetail.ts` — composable that loads a single contact via the existing `contacts(query: "id:<id>")` GraphQL query, then runs one `calls(query: "text:<lastDigits>", limit: 1000)` lookup per phone number, dedupes by id, and matches numbers against the contact by comparing the last 7 digits of the normalized form (handles country-code prefix differences).
+- `views/contacts/ContactDetailView.vue` — the page itself:
+  - Hero card: avatar, full name, starred star, source pill, last-updated, tags, primary Call / SMS / Email buttons.
+  - Stats grid (10 tiles): total calls, total talk time, incoming, outgoing, missed, rejected, average answered duration, last call (with relative time), calls in last 7 days, calls in last 30 days. The "average duration" only counts answered calls (incoming + outgoing) so missed/rejected do not pull the mean to zero.
+  - Contact info card: every phone number (with per-number Call / SMS / Copy buttons), every email (mailto + copy), addresses, websites (auto `https://` if missing), IMs, events.
+  - Call history timeline: all calls sorted desc and grouped by day (with "Today" / "Yesterday" / formatted-date headers). Each row shows a coloured type icon (incoming green, outgoing blue, missed red, rejected orange, blocked grey), the call type name, duration, sim slot, time-of-day with full datetime tooltip, and geo (city · province · isp). Each row has its own Call and SMS buttons.
+- `views/contacts/ContactListItem.vue` — name is now a `<router-link>` to the detail page (with `@click.stop` so it doesn't toggle row selection).
+- `views/contacts/ContactActionButtons.vue` — added an "open in new" icon button at the front of the actions that navigates to the detail page.
+- `plugins/router.ts` — registered `/contacts/:id` with `ContactDetailView` as `default` and `ContactsSidebar` as `LeftSidebar`, so the contacts sidebar (search, filters, tags) stays available while viewing a contact.
+- `locales/en-US/contacts.ts` — added `no_name`, `contact_not_found` and the `contact_detail.*` namespace (`view_details`, `contact_info`, `call_history`, `no_calls`, `total_calls`, `total_talk_time`, `avg_duration`, `last_call`, `calls_last_7d`, `calls_last_30d`, `addresses`, `address`, `events`).
+
+No Android changes were needed — the existing `contacts` and `calls` GraphQL queries already accept an `id:`/`text:` filter token via `QueryHelper`, so the detail page is built entirely on top of what was already exposed.

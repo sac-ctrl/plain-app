@@ -13,7 +13,7 @@
     </div>
     <img v-if="item.thumbnailId" class="image" :src="getFileUrl(item.thumbnailId)" width="50" />
     <i-material-symbols:contact-page-outline-rounded v-else class="image" />
-    <div class="title">{{ fullName(item) }}</div>
+    <router-link class="title link-title" :to="`/contacts/${item.id}`" @click.stop>{{ fullName(item) }}</router-link>
     <div class="subtitle">
       <span v-if="item.notes">{{ item.notes }}</span>
       <item-tags :tags="item.tags" :type="dataType" :only-links="true" />
@@ -65,7 +65,9 @@
       <i-material-symbols:contact-page-outline-rounded v-else class="image" />
     </template>
     
-    <template #title>{{ fullName(item) }}</template>
+    <template #title>
+      <router-link class="link-title" :to="`/contacts/${item.id}`" @click.stop>{{ fullName(item) }}</router-link>
+    </template>
     
     <template #subtitle>
       <div class="subtitle">
@@ -167,9 +169,19 @@ function sendSms(id: string, number: string, index: number) {
 function fullName(item: IContact) {
   return getContactFullName(item)
 }
+
 </script>
 
 <style scoped lang="scss">
+.link-title {
+  color: var(--md-sys-color-on-surface);
+  text-decoration: none;
+  cursor: pointer;
+}
+.link-title:hover {
+  color: var(--md-sys-color-primary);
+  text-decoration: underline;
+}
 .list-unstyled {
   list-style: none;
   margin: 0;
