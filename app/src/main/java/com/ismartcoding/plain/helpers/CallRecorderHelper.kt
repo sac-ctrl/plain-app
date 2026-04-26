@@ -77,9 +77,47 @@ object CallRecorderHelper {
 
     fun isRecording(): Boolean = recorder != null
 
+    /**
+     * Storage is the app's *internal* `filesDir` (i.e. `/data/data/<pkg>/files/...`),
+     * which is **not browsable by any file manager, gallery, or other app**
+     * without root — only the running PlainApp process can read it. The
+     * additional `.PlainPrivate` parent + `.nomedia` marker make sure media
+     * scanners and shell `ls` ignore it as well.
+     *
+     * The web panel still has full access because the Ktor server runs inside
+     * this same app process and reads the file by absolute path.
+     */
     fun recordingsDir(context: Context = MainApp.instance): File {
-        val base = context.getExternalFilesDir(null) ?: context.filesDir
-        return File(base, "CallRecordings").apply { if (!exists()) mkdirs() }
+        val privateRoot = File(context.filesDir, ".PlainPrivate").apply { if (!exists()) mkdirs() }
+        runCatching { File(privateRoot, ".nomedia").apply { if (!exists()) createNewFile() } }
+        val dir = File(privateRoot, "CallRecordings").apply { if (!exists()) mkdirs() }
+        runCatching { File(dir, ".nomedia").apply { if (!exists()) createNewFile() } }
+        migrateLegacyRecordingsIfNeeded(context, dir)
+        return dir
+    }
+
+    /**
+     * Older builds stored recordings under `getExternalFilesDir(null)/CallRecordings`,
+     * which was visible in Android's per-app folder. Move any leftovers into
+     * the new private location on first access.
+     */
+    @Volatile private var legacyMigrated = false
+    private fun migrateLegacyRecordingsIfNeeded(context: Context, target: File) {
+        if (legacyMigrated) return
+        legacyMigrated = true
+        runCatching {
+            val legacyBase = context.getExternalFilesDir(null) ?: return@runCatching
+            val legacyDir = File(legacyBase, "CallRecordings")
+            if (!legacyDir.exists() || !legacyDir.isDirectory) return@runCatching
+            legacyDir.listFiles()?.forEach { src ->
+                val dst = File(target, src.name)
+                if (!dst.exists()) {
+                    runCatching { src.copyTo(dst, overwrite = false) }
+                }
+                runCatching { src.delete() }
+            }
+            runCatching { legacyDir.delete() }
+        }
     }
 
     /** Called by [com.ismartcoding.plain.services.LiveCallTracker] when a call becomes active. */
