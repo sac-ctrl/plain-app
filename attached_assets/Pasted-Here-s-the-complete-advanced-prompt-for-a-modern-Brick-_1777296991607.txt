@@ -1,0 +1,177 @@
+Here’s the complete, advanced prompt for a modern Brick Crusher (Arkanoid / Breakout) game — identical in depth and intensity to the Flappy Eclipse prompt. Use this to build or commission a slick, ultra‑responsive, visually cinematic brick breaker.
+
+---
+
+🧱 Game Title: Crusher: Neon Fracture
+
+Core Vibe: Kinetic, luminous, and unforgiving. The paddle is an extension of your hand.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Precision first)
+
+· Paddle – Width scales with difficulty / power‑ups (default 120px on 1080p).
+· Ball – Single ball by default; can split via power‑ups.
+· Physics engine – Fixed timestep (240Hz simulation), framerate‑independent.
+· Collision response –
+  · Paddle: angle‑based deflection (offset from centre = horizontal angle change).
+  · Bricks: per‑pixel or per‑segment physics (edges can spin the ball).
+  · Walls / ceiling: perfect elastic reflection.
+  · Bottom death zone: ball respawn (with life loss).
+· Ball spin & friction – Optional realistic mode: ball inherits paddle velocity; spin affects brick bounce angle.
+· Gravity / wind – No default, but “chaos mode” adds mild vertical drift.
+· Trajectory prediction – Ghost line showing ball path (toggle on/off), live updated.
+· Slow‑motion on last brick – When 1 brick remains, game speed drops to 0.6x for 1s (cinematic tension).
+
+---
+
+2. INPUT & SENSITIVITY (Zero lag)
+
+· Paddle control –
+  · Mouse: absolute position (binds directly to X).
+  · Touch: drag anywhere on screen (paddle follows finger with smoothing).
+  · Keyboard: left / right arrows or A/D (acceleration curve – starts slow, ramps up).
+  · Gamepad: left stick or directional pad.
+· Sensitivity tuning – Live slider in pause menu:
+  · Mouse smoothing (0 = raw, 100 = heavy inertia).
+  · Keyboard ramp time (instant vs. gradual).
+· Input buffering – If ball is dead / respawning, store the first paddle movement to avoid missed starts.
+· Haptics – Light rumble on ball‑paddle collision, stronger rumble on brick break and power‑up catch.
+· Precision mode – Hold “fine aim” button (shift / right trigger) – paddle moves at half speed for micro adjustments.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT
+
+Arena & Background
+
+· Neon wireframe style – glowing grids, pulsing background with bass reactivity.
+· Dynamic camera – subtle zoom on ball when it speeds up, slight shake on brick breaks.
+· Parallax backdrop – 3D depth with rotating geometric shapes or cityscape.
+· Reflective floor – paddle and ball cast real‑time fake reflections.
+
+Bricks (50+ visual variants)
+
+· Health‑based bricks – Show cracks, then glowing core, then explosion.
+· Elemental bricks –
+  · Fire: spreads heat wave when broken.
+  · Ice: slows ball temporarily.
+  · Electric: chains damage to neighbours.
+· Unbreakable bricks – Metallic, with sparks on collision.
+· Boss bricks – Massive, multi‑hit, with weak points.
+· Animated brick patterns – Rotating shields, pulsating colours.
+
+Ball & Effects
+
+· Ball trail – Particle comet with dynamic colour (changes on every bounce).
+· Break effect – Each brick shatters into 10+ glowing fragments that fade out.
+· Power‑up drop – Holographic orbs with pulsing icons, gentle magnetic pull toward paddle.
+· Death effect – Ball explodes in slow‑mo, screen desaturates, then resets.
+
+Paddle Customisation
+
+· Shape variations (classic, curved edges, twin‑paddle split).
+· Material effects – neon, carbon fibre, translucent glass with bloom.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Adaptive difficulty (hidden and optional)
+
+· After 3 deaths on same level → slightly larger paddle or slower ball speed for that session.
+· After 5 successful clears → next level adds 10% more bricks or introduces moving bricks.
+
+Campaign / Arcade Structure
+
+· Worlds – 8 worlds, each with unique brick behaviours and backgrounds:
+  · Factory – conveyor belt bricks (move horizontally).
+  · Crystal caverns – bricks reflect ball at odd angles.
+  · Neon temple – bricks regenerate after 3 seconds.
+· Boss levels – Giant brick with phases, projectiles, and weak points.
+· Endless mode – Randomly generated levels, increasing speed.
+
+Power‑up System (balanced)
+
+· Tier 1 (common) – Longer paddle, multi‑ball, slow ball, sticky paddle, laser.
+· Tier 2 (rare) – Paddle wrap‑around (ball passes through walls), gravity well (sucks bricks downward), shield (one free death).
+· Tier 3 (super rare) – Screen nuke (destroys all bricks), ball shrink (tiny hitbox, huge speed).
+· Debuffs – Shorter paddle, reverse controls, invisible ball (for challenge modes).
+
+Unlockables & Meta‑progression
+
+· Earn crystal shards – unlock new paddles, ball trails, arenas, and music tracks.
+· Daily challenges – fixed seed levels with leaderboards.
+· Skill rating (E‑S rank) based on efficiency (fewest bounces, no missed balls).
+
+---
+
+5. AUDIO & ATMOSPHERE (Reactive & immersive)
+
+· Adaptive music – Tempo increases as bricks count decreases.
+  · Beat drop on every 5 bricks broken.
+  · World‑specific genres (synthwave, chiptune, lo‑fi, industrial).
+· SFX layering –
+  · Paddle hit: soft “thwack” with pitch variation = f(ball speed).
+  · Brick break: glass shatter + reverb tail.
+  · Power‑up catch: ascending chime.
+  · Death: deep sub drop + vinyl scratch.
+· Voice announcer (toggleable) – “Good”, “Excellent”, “Crusher!” for streaks, sarcastic “Uh‑oh” on death.
+
+---
+
+6. ACCESSIBILITY & COMFORT
+
+· Colorblind profiles – 3 presets that recolor bricks, ball, and power‑ups.
+· High contrast mode – Bold outlines, no bloom/glare.
+· Reduced motion – Disables screen shake, slow‑mo, particle explosions.
+· Assist options (non‑ranked) –
+  · Ball always locks to paddle on respawn.
+  · Auto‑aim (paddle gently moves toward ball’s X position).
+  · Infinite lives.
+· UI scaling – All HUD elements resizable, touch‑friendly buttons (min 44px).
+· Audio visualiser – Subtle on‑screen rings for each bounce / brick break (for deaf players).
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑loss screen –
+  · Heatmap: where you missed the ball most often (left, centre, right).
+  · Efficiency: ball bounces per brick broken.
+  · Tip: “Try staying closer to ball’s landing zone.”
+· Live calibration – “Paddle test” – ball launches; game auto‑adjusts sensitivity based on your reaction time.
+· Replay system – Watch your last run, with slow‑mo and trajectory overlay.
+· Crash diagnostic – Logs exact frame of collision miss (paddle offset, ball speed).
+
+---
+
+8. SOCIAL & REPLAYABILITY
+
+· Ghost mode – Race against your best run (or a friend’s) – translucent paddle + ball.
+· Level sharing – Procedural level seed can be exported as a code.
+· Leaderboards – Fastest clear time, highest combo (consecutive bricks without hitting paddle), most power‑ups collected.
+· Co‑op mode (local / online) – Two paddles on screen, shared ball, split bricks.
+· Competitive – Versus: each player has own arena; sending junk bricks to opponent on combo.
+· Replay export – Save as GIF / MP4 with optional filters (VHS, neon glow).
+
+---
+
+9. TECHNICAL STANDARDS
+
+· Engine – Unity / Godot / custom (with deterministic physics).
+· Frame rate – Supports 30–240 Hz, input sampled at native rate, simulation independent.
+· Load time – <2 seconds from launch to gameplay.
+· Memory – <150 MB (streaming assets for music / levels).
+· Platforms – Desktop (Windows/Mac/Linux), mobile (iOS/Android), web (WebGL with 60fps).
+· Offline – Full functionality without internet; syncs leaderboards later.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Crusher: Neon Fracture – a brick breaker with precision physics, angle‑based deflection, adaptive difficulty, and trajectory prediction. Include mouse smoothing slider, haptic feedback, neon particle effects, elemental bricks, and a post‑loss heatmap that shows where you missed the ball. Add ghost racing, power‑up tiers (common/rare/super rare), and campaign worlds with unique brick mechanics. Support 144Hz displays, colourblind modes, and assist options like auto‑aim and reduced motion.”
+
+---
+
+Give this prompt to any skilled game dev or AI coder, and you’ll receive a modern, ultra‑responsive, addictive brick crusher that feels miles ahead of classic Breakout.

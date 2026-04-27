@@ -371,6 +371,15 @@ export const appGQL = `
   ${appFragment}
 `
 
+export const securityQAGQL = `
+  query {
+    securityQA {
+      question
+      hasAnswer
+    }
+  }
+`
+
 export const tagsGQL = `
   query tags($type: DataType!) {
     tags(type: $type) {

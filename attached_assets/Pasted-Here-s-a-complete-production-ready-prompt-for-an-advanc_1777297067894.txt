@@ -1,0 +1,142 @@
+Here’s a complete, production-ready prompt for an advanced, modern Flappy Bird game. Use this to build or commission a version that feels ultra-responsive, visually rich, and deeply engaging.
+
+---
+
+🎮 Game Title: Flappy Eclipse
+
+Core Vibe: Minimalist yet cinematic – smooth as glass, brutal as ever.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (High‑precision)
+
+· Bird – A stylised, animated character (default: geometric phoenix / neon hummingbird).
+· Gravity – Variable, framerate‑independent (delta time). Default: -9.8 m/s² but with optional difficulty‑scaled gravity.
+· Flap impulse – One‑tap gives instantaneous upward velocity + a tiny smoothing curve (ease‑out). No input lag (<16ms).
+· Hold‑to‑ascend (optional alternative mode): longer tap = stronger flap, but slower recharge (fatigue system).
+· Drag & air resistance – Exists subtly; bird slowly reaches terminal velocity (makes diving feel heavy, flaps sharper).
+· Collision – Pixel‑perfect bounding box with a 2px grace margin on pipe edges (to reduce “unfair” clipping). Rotated colliders for pipes.
+· Post‑death – Instant slow‑mo (0.2x speed for 0.4s), screen shake (low intensity), bird ragdoll or dissolve effect.
+
+---
+
+2. INPUT & SENSITIVITY (Responsiveness is key)
+
+· Primary – Tap anywhere (mobile) / Space or Click (PC).
+· Sensitivity tuning – Live slider in pause menu:
+  · Low – heavier bird, less flap impulse.
+  · High – snappy, lighter bird, faster reaction.
+· Predictive input buffering – Taps within 50ms before collision are still executed (fixes “but I tapped!”).
+· Haptic feedback – Light tap vibration on each flap (optional).
+· Mouse wheel – Scroll up = flap (PC alternative).
+· Controller support – A/X button, with rumble on collision / checkpoint.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT
+
+Dynamic Sky & Lighting
+
+· Day/night cycle based on real‑time or in‑game score (score 0–10 = dawn, 10–30 = noon, 30–60 = sunset, 60+ = neon night).
+· Volumetric fog / particles (dust, glowing embers).
+· Procedural clouds that drift and react to wind (slight parallax).
+
+Pipes & Obstacles
+
+· Pipes have soft inner glow + animated corrosion / moss.
+· Variants: double pipes, moving pipes (slow horizontal drift), rotating rings, or energy gates that require precise angle.
+· Distance between pipes: randomised but fair (min / max gap based on current streak).
+· Pipes grow visual cracks when you pass through them (feedback).
+
+Bird & Effects
+
+· Trails – particle system behind wings (colour changes with speed).
+· Every 10th pipe = “Focus mode” – screen edges darken, trail turns gold, audio pitch rises.
+· Death effect – fragment into mempool of glowing triangles, then rebuild on restart.
+
+Animated Foreground / Parallax
+
+· 3 layers: far clouds, mid ground (hills / city silhouette), close ground (repeating tiles with speed matching bird’s X velocity).
+· Ground has subtle bumps / puddles that reflect sky.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Adaptive Difficulty (hidden MMR)
+
+· After 5 deaths below 10 points → pipes gap widens slightly or gravity reduces.
+· After 3 runs above 50 points → pipes get narrower, speed increases incrementally.
+
+Unlockable "Flavours" (skins with tiny gameplay twists)
+
+· Vanilla – default.
+· Rocket Bird – each flap gives short thrust (extreme sensitivity).
+· Ghost Bird – every 10th pipe is intangible.
+· Magnetic – pipes attract bird slightly (risk / reward).
+· Unlocked by achievements (e.g., pass 20 pipes, deathless for 60 sec, etc.)
+
+Daily / Weekly Ladders
+
+· Leaderboard: best streak, total distance, fastest time to 100 points.
+· Ghost runs – race against your own best run (transparent replay overlay).
+
+---
+
+5. AUDIO & ATMOSPHERE (Procedural & Reactive)
+
+· Music – adaptive ambient synthwave / lofi. Layers:
+  · Base calm (below 20 score) → adds beat (20–50) → adds bass + pads (50+).
+  · On death – music mutes for 1 sec, then low‑pass filter sweep.
+· SFX – flap (soft feather rustle), pipe pass (chime in music key), collision (crunch + reverse reverb).
+· Voice (optional) – calm announcer for milestones (“Ten…”, “Twenty”, “Godlike”) or sarcastic comments on death (“Gravity wins again”).
+
+---
+
+6. ACCESSIBILITY & COMFORT
+
+· Colorblind modes – 3 presets (protanopia, deuteranopia, tritanopia) – re‑colours pipes / bird / particles.
+· Reduced motion – disables screen shake, slow‑mo, and heavy particles.
+· Visual cue for flaps – subtle screen pulse instead of haptics.
+· Assist mode (non‑competitive) – toggle “ghost collision” (pass through pipes), or “auto‑flap” (AI flaps to maintain height).
+· UI scaling – buttons, text fully responsive (mobile / desktop / ultrawide).
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS (for developer / player)
+
+· Post‑death screen –
+  · Graph of height over time (shows when you panicked).
+  · Tap heatmap – where you tapped most (too early / late).
+  · Suggestion: “Try tapping 0.1s later before the gap.”
+· Live sensitivity calibration minigame – tap at green prompt to auto‑tune gravity / flap force to your reflex speed.
+· Crash log – records exact frame of collision (you hit pipe top at X:Y).
+
+---
+
+8. SOCIAL & REPLAYABILITY
+
+· One‑tap replay – after death, long press any key to re‑enter instantly (skip menus).
+· Replay editor – record your best runs, export as GIF / MP4 with custom filters.
+· Shared challenges – “Beat my seed” – fixed RNG pipe pattern shareable via link.
+· Live multiplayer (optional) – split‑screen race or deathmatch (who survives longer).
+
+---
+
+9. TECHNICAL STANDARDS (The “will run on everything”)
+
+· Engine: Unity / Godot / Unreal (with fixed timestep for physics).
+· FPS targets: 30/60/120/144hz – input polling at native rate, interpolation for visuals.
+· File size – <80 MB (compressed textures, procedural generation of pipes).
+· Load time – below 1.5 seconds on mobile (asset streaming).
+· Offline first – leaderboards cached, syncs later.
+
+---
+
+10. SAMPLE USAGE PROMPT (for AI / developer)
+
+“Build Flappy Eclipse – a Flappy Bird descendant with pixel‑perfect collision, adaptive difficulty, hold‑to‑flap sensitivity slider, dynamic day/night cycle, haptics, replay heatmaps, and ghost races. Make the bird feel like an extension of the finger – zero input lag, buffered taps, and a post‑death diagnostic that tells the player exactly why they crashed. Support 120Hz displays and colourblind modes.”
+
+---
+
+This prompt contains everything – from physics constants to social features. Hand it to a game dev or an advanced AI with code gen, and you’ll get a modern, ultra‑responsive Flappy Bird that plays like a dream.

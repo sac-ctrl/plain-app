@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useDisguiseStore } from '@/stores/disguise'
 import { pushModal } from '@/components/modal'
 import SecurityGateDialog from '@/components/SecurityGateDialog.vue'
@@ -55,6 +55,10 @@ import GameRunner from './games/GameRunner.vue'
 
 const disguise = useDisguiseStore()
 const activeGame = ref<string | null>(null)
+
+onMounted(() => {
+  disguise.refreshFromServer()
+})
 
 function goGames() {
   disguise.setTab('games')

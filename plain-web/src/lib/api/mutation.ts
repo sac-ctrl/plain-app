@@ -112,6 +112,18 @@ export const setAppPinGQL = `
   }
 `
 
+export const verifySecurityAnswerGQL = `
+  mutation verifySecurityAnswer($answer: String!) {
+    verifySecurityAnswer(answer: $answer)
+  }
+`
+
+export const updateSecurityQAGQL = `
+  mutation updateSecurityQA($currentAnswer: String!, $newQuestion: String!, $newAnswer: String!) {
+    updateSecurityQA(currentAnswer: $currentAnswer, newQuestion: $newQuestion, newAnswer: $newAnswer)
+  }
+`
+
 // --- GraphQL Mutation Definitions ---
 
 export const sendChatItemGQL = `

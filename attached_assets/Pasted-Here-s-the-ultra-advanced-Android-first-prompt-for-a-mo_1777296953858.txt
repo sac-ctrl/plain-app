@@ -1,0 +1,176 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Memory Match (pair matching / concentration game) – built for touch with fluid animations, cognitive progression, and deep polish.
+
+---
+
+🧠 Game Title: Recall: Twin Echo
+
+Core Vibe: Calm, cerebral, satisfying. Every flip reveals a clue; every match clicks like a lock.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Smooth, fair)
+
+· Basic setup –
+  · Grid of facedown cards (adjustable: 2×2 up to 6×6).
+  · Tap to flip a card, reveal symbol/color/character.
+  · Match two identical cards → they stay face up or disappear.
+  · Mismatch → flip back after short delay (0.5–1 sec).
+· Win condition – All pairs matched.
+· Scoring –
+  · Points per match (bonus for consecutive matches).
+  · Time penalty for mismatches.
+  · Star rating based on moves vs ideal moves.
+· Timer – Optional (classic mode untimed, challenge mode timed).
+· Move counter – Tracks total flips / 2.
+
+---
+
+2. INPUT & SENSITIVITY (Tap perfection)
+
+· Primary control – Tap on any card.
+· Sensitivity –
+  · Tap radius per card (avoid accidental adjacent flips).
+  · Debounce time (prevents double‑flip on same card).
+· Haptics –
+  · Light tick on card flip.
+  · Soft buzz on match.
+  · Short buzz on mismatch.
+  · Double buzz on game win.
+· Animation lock – No input accepted during flip‑back animation (queue disabled for fairness).
+· Accessibility option – Confirm tap via long press (for motor control issues).
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Polished & thematic)
+
+Card design
+
+· Front – High‑quality icons, illustrations, or color gradients.
+· Back – Uniform pattern (unlockable backs).
+· Flip animation – 3D smooth rotation (optional speed control).
+· Match effect – Glow, particle burst, slight scale bounce.
+
+Themes (unlockable)
+
+· Animals – Cute pairs (cat, dog, fox).
+· Space – Planets, stars, astronauts.
+· Food – Sushi, pizza, fruit.
+· Geometry – Abstract shapes.
+· Fantasy – Dragons, gems, swords.
+· Nostalgia – Classic playing card emojis.
+
+Background & juice
+
+· Soothing gradient or subtle moving pattern.
+· On match: screen ripple, floating +1 points.
+· On win: confetti, cards dance, victory fanfare.
+· HUD: move count, match count, timer (optional), best score.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Game modes
+
+1. Classic – Standard matching, grid size selectable.
+2. Timed – Beat the clock (60 sec, each match adds +5 sec).
+3. Memory lane – Grid expands after each win.
+4. Mismatch penalty – Wrong match adds extra cards (hardcore).
+5. Zen mode – No timer, no move limit, just relaxing.
+
+Adaptive difficulty
+
+· After 3 mismatches in a row → highlight next match briefly (optional hint).
+· After 5 consecutive matches → increase grid size or shuffle remaining cards.
+· AI tracking of player’s memory span: if consistently struggles with 4×4, suggest smaller grid.
+
+Meta‑progression & unlocks
+
+· Card backs – 20+ unlockable designs.
+· Themes – Background music, sound sets, animations.
+· Avatars – Profile icons for leaderboards.
+· Power‑ups (earned via daily play) –
+  · Reveal (show one pair briefly).
+  · Shuffle (re‑arrange remaining cards).
+  · Freeze timer (5 sec).
+
+Daily & weekly challenges
+
+· Fixed card layout seed – same for all players.
+· Leaderboards: fastest time, fewest moves, highest star rating.
+
+---
+
+5. AUDIO & ATMOSPHERE (Calm & rewarding)
+
+· Music – Lo‑fi / ambient / gentle piano.
+  · Changes subtly with theme.
+  · Intensifies slightly when only few pairs left.
+· SFX –
+  · Flip: soft card swoosh.
+  · Match: pleasant chime (ascending).
+  · Mismatch: gentle “bump”.
+  · Win: cheerful jingle.
+· Voice (toggle) – “Match!”, “Great memory”, “New record”.
+· Audio ducking – Respects background music apps.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 4 presets + shape‑based differentiation (icons instead of colors).
+· Reduced motion – Disables card flip 3D, screen shake, particles.
+· High contrast – Bold card borders, distinct symbols.
+· Assist modes –
+  · Auto‑match after two wrong flips (assisted).
+  · Extra long reveal time (2 sec instead of 1).
+  · Large touch area per card.
+· One‑handed mode – Grid shifted to bottom or right side.
+· Font scaling – UI text respects system size.
+· Battery saver – Cap 30fps, reduce animations, simple card textures.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑game screen –
+  · Heatmap: which card positions you revisited most (inefficient memory).
+  · Efficiency: matches per move ratio.
+  · Time per match graph.
+  · Tip: “You flipped the same unmatched pair twice – try using positional memory.”
+· Live calibration – “Memory test” – short pattern recall; game suggests optimal grid size.
+· Replay – Watch your flip sequence ghosted (show where you hesitated).
+· Stat tracking – Best streaks, average moves per grid size.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Share replay – Export as GIF of your best match sequence.
+· Friend challenges – Send a card layout QR code.
+· Daily leaderboards – Fastest clear.
+· Pass & play – Two players take turns, highest score wins.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot / native (OpenGL).
+· Frame rate – 60/90/120Hz support; animations smooth at all rates.
+· Touch latency – <20ms from tap to flip.
+· Memory – <100 MB.
+· Battery efficiency – Pause when background, minimal CPU idle.
+· Install size – Under 60 MB.
+· Permissions – None (haptics optional).
+· Offline – Fully offline; cloud sync optional.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Recall: Twin Echo – a modern memory match game for Android with tap‑to‑flip cards, adjustable grid sizes (2×2 to 6×6), timed and untimed modes, adaptive difficulty based on player’s success rate, unlockable card backs and themes, daily fixed‑seed challenges, haptic feedback on match/mismatch, colourblind presets with shape icons, assist options (auto‑match, longer reveal), post‑game efficiency heatmap, Google Play leaderboards, and battery saver. Support 120Hz displays and reduced motion. Make every flip satisfying, every match rewarding.”
+
+---
+
+Give this prompt to any mobile developer or AI coder, and you’ll get a polished, cognitive‑stimulating, visually delightful memory match – built for Android touch with modern depth. 🧠🃏📱

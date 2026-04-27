@@ -1,38 +1,27 @@
 import { defineStore } from 'pinia'
+import { gqlFetch } from '@/lib/api/gql-client'
+import { securityQAGQL } from '@/lib/api/query'
+import { verifySecurityAnswerGQL, updateSecurityQAGQL } from '@/lib/api/mutation'
 
-const Q_KEY = 'dg_question'
-const A_KEY = 'dg_answer_hash'
 const SETUP_KEY = 'dg_setup'
 
 const DEFAULT_QUESTION = "Tell your best friend's name and who I only know"
-const DEFAULT_ANSWER = 'Nitish Kumar'
-
-function normalize(s: string): string {
-  return (s || '').trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
-async function sha256Hex(s: string): Promise<string> {
-  const data = new TextEncoder().encode(s)
-  const buf = await crypto.subtle.digest('SHA-256', data)
-  const bytes = new Uint8Array(buf)
-  let out = ''
-  for (let i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, '0')
-  return out
-}
 
 interface DisguiseState {
   unlocked: boolean
   setupDone: boolean
   question: string
   activeTab: 'games' | 'feedback'
+  loaded: boolean
 }
 
 export const useDisguiseStore = defineStore('disguise', {
   state: (): DisguiseState => ({
     unlocked: false,
     setupDone: localStorage.getItem(SETUP_KEY) === '1',
-    question: localStorage.getItem(Q_KEY) || DEFAULT_QUESTION,
+    question: DEFAULT_QUESTION,
     activeTab: 'games',
+    loaded: false,
   }),
 
   getters: {
@@ -41,25 +30,48 @@ export const useDisguiseStore = defineStore('disguise', {
   },
 
   actions: {
+    /**
+     * Load the question + setup-state from the Android device. The actual
+     * answer never leaves the phone; we only learn whether one exists.
+     */
+    async refreshFromServer() {
+      try {
+        const r = await gqlFetch<{ securityQA: { question: string; hasAnswer: boolean } }>(securityQAGQL)
+        if (r?.data?.securityQA) {
+          const q = r.data.securityQA.question || DEFAULT_QUESTION
+          this.question = q
+          if (r.data.securityQA.hasAnswer) {
+            this.setupDone = true
+            localStorage.setItem(SETUP_KEY, '1')
+          }
+          this.loaded = true
+        }
+      } catch {
+        // offline / not connected — keep defaults
+      }
+    },
+
     async ensureFirstTimeAnswerStored() {
-      if (this.setupDone) return
-      const hash = await sha256Hex(normalize(DEFAULT_ANSWER))
-      localStorage.setItem(Q_KEY, DEFAULT_QUESTION)
-      localStorage.setItem(A_KEY, hash)
-      localStorage.setItem(SETUP_KEY, '1')
-      this.question = DEFAULT_QUESTION
+      // The Android side ships with a default answer already stored, so the
+      // gate works on first run without any setup. We just sync the question.
+      if (!this.loaded) await this.refreshFromServer()
       this.setupDone = true
+      localStorage.setItem(SETUP_KEY, '1')
     },
 
     async tryUnlock(answer: string): Promise<boolean> {
-      await this.ensureFirstTimeAnswerStored()
-      const stored = localStorage.getItem(A_KEY) || ''
-      const got = await sha256Hex(normalize(answer))
-      if (got === stored) {
-        this.unlocked = true
-        return true
+      try {
+        const r = await gqlFetch<{ verifySecurityAnswer: boolean }>(verifySecurityAnswerGQL, { answer })
+        const ok = !!r?.data?.verifySecurityAnswer
+        if (ok) {
+          this.unlocked = true
+          this.setupDone = true
+          localStorage.setItem(SETUP_KEY, '1')
+        }
+        return ok
+      } catch {
+        return false
       }
-      return false
     },
 
     lock() {
@@ -72,17 +84,21 @@ export const useDisguiseStore = defineStore('disguise', {
     },
 
     async updateSecurity(currentAnswer: string, newQuestion: string, newAnswer: string): Promise<boolean> {
-      const ok = await this.tryUnlock(currentAnswer)
-      if (!ok) return false
-      const q = (newQuestion || '').trim() || DEFAULT_QUESTION
-      const hash = await sha256Hex(normalize(newAnswer))
-      localStorage.setItem(Q_KEY, q)
-      localStorage.setItem(A_KEY, hash)
-      localStorage.setItem(SETUP_KEY, '1')
-      this.question = q
-      this.setupDone = true
-      this.unlocked = true
-      return true
+      try {
+        const r = await gqlFetch<{ updateSecurityQA: boolean }>(updateSecurityQAGQL, {
+          currentAnswer,
+          newQuestion: (newQuestion || '').trim(),
+          newAnswer: (newAnswer || '').trim(),
+        })
+        if (!r?.data?.updateSecurityQA) return false
+        this.question = (newQuestion || '').trim() || this.question
+        this.setupDone = true
+        this.unlocked = true
+        localStorage.setItem(SETUP_KEY, '1')
+        return true
+      } catch {
+        return false
+      }
     },
   },
 })

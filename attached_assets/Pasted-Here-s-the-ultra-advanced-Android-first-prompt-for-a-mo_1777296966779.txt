@@ -1,0 +1,189 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Aim Trainer – built for reflex sharpening, precision tracking, and buttery‑smooth touch response.
+
+---
+
+🎯 Game Title: Aim Lab: Mobile Strike
+
+Core Vibe: Surgical precision, instant feedback, addictive improvement loops. Every tap is a bullet.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Pixel‑perfect precision)
+
+· Basic setup –
+  · Targets appear on screen at random or predetermined patterns.
+  · Tap / drag / flick to hit (depending on mode).
+  · No crosshair by default (uses touch point), optional dot crosshair.
+· Target types –
+  · Static – circles, heads, diamonds.
+  · Moving – linear, sinusoidal, circular, random walk.
+  · Flying – birds, drones, projectiles.
+  · Peek – appear briefly then hide.
+  · Burst – multiple targets in quick succession.
+· Hit detection – Within target radius (configurable size).
+· Scoring –
+  · Accuracy = hits / shots.
+  · Reaction time = tap delay from target spawn.
+  · Combo = consecutive hits.
+  · Headshot bonus = centre 20% of target.
+· Weapon simulation (optional modes) –
+  · Hitscan (instant).
+  · Projectile (bullet travel time with gravity).
+  · Shotgun (spread).
+
+---
+
+2. INPUT & SENSITIVITY (Zero‑latency tapping)
+
+· Primary control – Tap anywhere on target area.
+  · For precision modes: tap within target radius.
+  · For tracking: drag along moving target (must stay inside).
+· Sensitivity settings –
+  · Tap radius – how close to centre counts as hit (loose to strict).
+  · Dead zone – area near screen edges ignores taps.
+  · Touch prediction – optional (estimates tap offset from movement).
+· Haptics –
+  · Light tap on hit.
+  · Medium buzz on headshot / perfect.
+  · Strong buzz on miss.
+  · Vibration burst on new high score.
+· Click vs drag mode – Switch between tap‑only and hold‑for‑continuous (e.g., auto rifle).
+· Input filtering – Reject accidental palm touches (edge detection).
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Clean, competitive)
+
+Targets & hit feedback
+
+· Targets: glowing, soft shadows, pulsing on spawn.
+· Hit effect: impact splash, crosshair flash, number pop‑up (+10, HEADSHOT).
+· Miss effect: red “X”, screen edge pulse (optional).
+· Death animation: target shatters or fades with particle trail.
+
+Backgrounds & themes
+
+· Minimal – solid colour, grid, or low‑contrast gradient (reduces distraction).
+· Arenas – Unlockable:
+  · Training room (grey walls, mats).
+  · Neon grid (cyber).
+  · Zen garden (calm).
+  · Warzone (smoke, debris).
+· Crosshair overlay – customisable dot, circle, plus, dynamic (expands on hit).
+
+Performance overlays
+
+· Real‑time stats: accuracy, reaction time, hits/misses, combo.
+· Heatmap overlay (post‑run) – where you tap most on screen.
+· Audio visualiser for shots (optional).
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Training modes (extensive)
+
+1. Flick training – static targets, random positions.
+2. Tracking – moving target (smooth or erratic).
+3. Switch – multiple sequential targets.
+4. Reaction – targets appear for 150–500ms only.
+5. Sniper – small targets, long distance (pinch to zoom).
+6. Overwatch – targets hidden behind moving obstacles.
+7. Custom – set size, speed, pattern, duration.
+
+Adaptive difficulty
+
+· After 5 consecutive hits → increase speed or decrease target size.
+· After 3 misses → temporarily slow down or enlarge next target.
+· Personalised difficulty curve based on average reaction time (keeps 70–80% accuracy).
+
+Meta‑progression & unlocks
+
+· Weapon skins – laser, bullet trails, impact effects.
+· Target skins – classic, neon, cartoon, realistic.
+· Arenas – unlock with points.
+· Stat upgrades (cosmetic only – no P2W):
+  · Highlight enemy for longer (visual only).
+  · Audio cues for perfect hit.
+· Rank system – Iron → Bronze → … → Radiant based on ELO across modes.
+
+Daily & weekly challenges
+
+· Fixed seed target sequences – same for all players.
+· Leaderboards: highest accuracy, fastest average RT, longest combo.
+
+---
+
+5. AUDIO & ATMOSPHERE (Precise feedback)
+
+· Music – low‑tempo focus beats (lofi, ambient, electronic) – can be muted.
+· SFX –
+  · Tap shot: crisp gunshot (pitch varies by weapon).
+  · Hit: thud + metallic clink.
+  · Headshot: satisfying ping.
+  · Miss: whiff / ricochet.
+  · Combo: ascending chime every 10 hits.
+· Voice announcer (toggle) – “Headshot”, “Perfect”, “New best”, “Focus”.
+· Audio spatialisation – pan shots based on target position (optional).
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 3 presets (recolour targets, hit markers, crosshair).
+· Reduced motion – Disables screen shake, particle effects, target flash.
+· High contrast – Targets have black outline, high saturation.
+· Assist modes –
+  · Auto‑aim (snap to nearest target).
+  · Larger target hitbox (practice).
+  · Slow motion (0.6x speed).
+· One‑handed mode – UI buttons move to bottom right, tap zone restricted.
+· Font scaling – Respects system settings.
+· Battery saver – Cap 30fps, dim effects, lower sound quality.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Heatmap: touch distribution (where you miss left/right/up/down).
+  · Reaction time histogram.
+  · Accuracy over time graph.
+  · Tip: “You tend to tap low – aim slightly higher.”
+· Live calibration – “Tap test” – hit moving ball; game auto‑adjusts sensitivity and target size based on your raw ability.
+· Replay system – Watch taps overlaid on target movements (show late/early hits).
+· Stat tracking – All‑time bests, improvement curves.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards (accuracy, RT, combo).
+· Ghost runs – Race against your best run (target patterns replayed, your taps shown).
+· Share replay – Export as MP4 with stats overlay.
+· Friend challenges – Send a target pattern QR code.
+· Global rank – Weekly resetting leaderboards.
+· Clans – Clan accuracy competition.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot / native (Vulkan).
+· Frame rate – 60/90/120/144Hz – input sampling at native rate, rendering decoupled.
+· Touch latency – <10ms from tap to hit registration (raw touch + predictive).
+· Memory – <100 MB.
+· Battery efficiency – Pause when background, limit CPU when not shooting.
+· Install size – Under 80 MB.
+· Permissions – None (haptics optional).
+· Offline – Fully offline; cloud sync optional.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Aim Lab: Mobile Strike – an aim trainer for Android with multiple modes (flick, tracking, reaction, sniper), adaptive target speed/size, real‑time accuracy and reaction time overlays, haptic feedback on hit/miss, heatmap of touch distribution, unlockable weapon and target skins, daily challenges, Google Play leaderboards, assist options (auto‑aim, larger hitbox), and colourblind presets. Support 120Hz displays, battery saver, and reduced motion. Make every tap feel crisp, every hit feedback immediate, and every training session trackable.”
+
+---
+
+Hand this to any mobile developer or AI coder, and you’ll get a serious, esports‑ready aim trainer – built for Android touch with surgical precision. 🎯📱

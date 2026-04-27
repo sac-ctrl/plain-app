@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -46,6 +48,18 @@ fun GamesTabContent(navController: NavHostController) {
     val streak = remember(tick) { GamesStore.getStreak() }
     val dailies = remember(tick) { GamesStore.getDailies() }
 
+    var tutorialFor by remember { mutableStateOf<GameMeta?>(null) }
+    tutorialFor?.let { meta ->
+        GameTutorialDialog(
+            meta = meta,
+            onClose = { tutorialFor = null },
+            onPlay = {
+                tutorialFor = null
+                navController.navigate(Routing.GameDetail(meta.id))
+            },
+        )
+    }
+
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
 
         HeroCard(coins, streak)
@@ -68,7 +82,11 @@ fun GamesTabContent(navController: NavHostController) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { meta ->
                     Box(modifier = Modifier.weight(1f)) {
-                        GameTile(meta) { navController.navigate(Routing.GameDetail(meta.id)) }
+                        GameTile(
+                            meta = meta,
+                            onClick = { navController.navigate(Routing.GameDetail(meta.id)) },
+                            onInfo = { tutorialFor = meta },
+                        )
                     }
                 }
                 if (row.size == 1) Box(modifier = Modifier.weight(1f)) {}
@@ -160,7 +178,7 @@ private fun DailyChallengesCard(list: List<DailyChallenge>) {
 }
 
 @Composable
-private fun GameTile(meta: GameMeta, onClick: () -> Unit) {
+private fun GameTile(meta: GameMeta, onClick: () -> Unit, onInfo: () -> Unit) {
     val r = GamesStore.record(meta.id)
     Box(
         modifier = Modifier
@@ -173,10 +191,26 @@ private fun GameTile(meta: GameMeta, onClick: () -> Unit) {
             .padding(14.dp),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Text(meta.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            Spacer(Modifier.height(4.dp))
-            Text(meta.tagline, color = Color.White.copy(0.7f), fontSize = 11.sp,
-                maxLines = 2)
+            Row(verticalAlignment = Alignment.Top) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(meta.title, color = Color.White,
+                        fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(meta.tagline, color = Color.White.copy(0.7f),
+                        fontSize = 11.sp, maxLines = 2)
+                }
+                IconButton(
+                    onClick = onInfo,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(0.35f))
+                        .border(1.dp, Color.White.copy(0.22f), CircleShape),
+                ) {
+                    Icon(Icons.Filled.Info, contentDescription = "How to play",
+                        tint = Color.White, modifier = Modifier.size(16.dp))
+                }
+            }
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(

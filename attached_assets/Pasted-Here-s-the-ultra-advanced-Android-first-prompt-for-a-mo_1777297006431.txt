@@ -1,0 +1,193 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Dino Run (the classic Chrome offline runner – now with depth, progression, and juicy feedback).
+
+---
+
+🦖 Game Title: Dino Dash: Extinction Run
+
+Core Vibe: Fast, minimalist, but deep. One tap to survive, endless desert ahead.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Snappy & fair)
+
+· Basic setup –
+  · Dino runs automatically from left to right (fixed horizontal speed, increases over time).
+  · Tap or press anywhere → jump.
+  · Long press (or second tap mid‑air) → double jump (optional upgrade).
+  · Crouch by swiping down or pressing a button (optional).
+· Obstacles –
+  · Cacti (must jump).
+  · Pterodactyls (must duck or jump over, variable heights).
+  · Small rocks (can be jumped or ignored with crouch).
+  · Moving obstacles (e.g., swinging vines in jungle theme).
+· Collision – One hit = death (unless shield power‑up is active).
+· Score – Distance traveled + coins (optional) + combo (consecutive obstacle clears).
+· Speed curve – Starts at comfy pace, accelerates up to a maximum (exponential fade).
+· Day/night cycle – Visual only (no gameplay change), cycles every 500m.
+
+---
+
+2. INPUT & SENSITIVITY (One‑thumb mastery)
+
+· Primary control – Tap anywhere on bottom half of screen → jump.
+  · Double tap within 200ms → double jump (if unlocked).
+  · Swipe down → crouch.
+  · Swipe up (while crouching) → stand.
+· Sensitivity –
+  · Jump buffer window: tap up to 100ms before landing still triggers jump.
+  · Crouch swipe length threshold (short flick vs long drag).
+· Haptics –
+  · Light tick on jump.
+  · Medium buzz on double jump.
+  · Strong buzz on collision.
+  · Soft pulse on coin collection.
+  · Rumble on speed milestone (e.g., 1000m).
+· Edge protection – Prevents accidental screen edge swipes from registering as crouch.
+· Input buffering – Queue jump during crouch animation (max 1).
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Minimalist but juicy)
+
+Dino & animations
+
+· Dino – Smooth, stylised, with run cycle, jump (legs tuck), crouch (head down).
+· Skins – Unlockable: classic, cyber, bone, lava, ice, gold.
+· Death effect – Dino turns into skeleton or dust cloud + screen shake.
+
+Environments (themes)
+
+· Desert – default, cacti, sandstorms (visual only).
+· Jungle – vines, moving logs, rain.
+· Volcano – lava pools, falling embers.
+· Ice Age – slippery visual, snow, ice spikes.
+· Moon – low gravity visual (cosmetic only).
+
+Obstacles & juice
+
+· Cacti – break apart on collision.
+· Pterodactyls – flap wings, shadow on ground.
+· Coins – float, spin, attract with magnet.
+· Effects –
+  · Landing dust puff.
+  · Near miss: screen edge glow.
+  · Coin collection: particle burst.
+  · Speed lines when above 80% max speed.
+
+Background
+
+· Parallax scrolling: clouds, far mountains, ground details.
+· Day/night transition with smooth tinting.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Game modes
+
+1. Classic – Endless, increasing speed.
+2. Time trial – 60 seconds, most distance.
+3. Boss run – Every 2000m, a boss obstacle (e.g., giant pterodactyl with pattern).
+4. Mission mode – Daily objectives (“jump 50 times”, “collect 100 coins”).
+
+Adaptive difficulty
+
+· After 3 early deaths (<500m) → slower initial speed ramp, more coins.
+· After 3 long runs (>2000m) → introduce moving obstacles earlier, decrease reaction window.
+· Personalised obstacle density based on player’s recent success.
+
+Meta‑progression & unlocks
+
+· Power‑ups (earned via runs or daily rewards):
+  · Shield (1 hit).
+  · Magnet (coin attract).
+  · Slow motion (2 sec).
+  · Double coins.
+· Upgrades (permanent, purchased with coins):
+  · Double jump unlock.
+  · Shield duration increase.
+  · Coin magnet range.
+· Skins & trails – cosmetic only.
+· Pet companions – follow behind, collect coins (visual only).
+
+Daily & weekly challenges
+
+· Fixed seed obstacle sequence – same for all players.
+· Leaderboards: farthest distance, most coins, fastest to 1000m.
+
+---
+
+5. AUDIO & ATMOSPHERE (Retro‑modern)
+
+· Music – Chiptune / synthwave, tempo increases with game speed.
+  · Layers added as distance/combo grows.
+  · Boss run triggers dramatic shift.
+· SFX –
+  · Jump: boing.
+  · Double jump: higher pitch.
+  · Crouch: slide.
+  · Coin: chime.
+  · Near miss: sting.
+  · Collision: crunch + game over tone.
+· Voice announcer (toggle) – “Good”, “Perfect”, “Boss incoming”, “New record”.
+· Audio ducking – Respects background music.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 3 presets (recolour obstacles, coins).
+· Reduced motion – Disables screen shake, speed lines, dust particles.
+· High contrast – Obstacles have bold outlines.
+· Assist modes –
+  · Auto‑jump (jumps automatically when obstacle is close).
+  · Larger collision forgiveness (10% larger hitbox for dino).
+  · Invincibility (practice).
+· One‑handed mode – Tap zone limited to bottom half, UI shifted.
+· Font scaling – Respects system settings.
+· Battery saver – Cap 30fps, reduce particles, simpler backgrounds.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Obstacle heatmap: where you died (cactus vs pterodactyl vs rock).
+  · Reaction time graph (obstacle spawn → your jump/crouch).
+  · Tip: “You jumped too early for high pterodactyls – wait 0.1s longer.”
+· Live calibration – “Jump test” – hit moving obstacles; game adjusts jump buffer window.
+· Replay system – Watch last run with touch overlay.
+· Stat tracking – Longest run, total jumps, accuracy per obstacle type.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Ghost runs – Race your best run (transparent dino).
+· Share replay – Export as MP4.
+· Friend challenges – Send QR code for same obstacle seed.
+· Daily tournaments – Ranked by distance.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot (Vulkan).
+· Frame rate – 60/90/120/144Hz support; game logic 60Hz, rendering at device refresh.
+· Touch latency – <20ms from tap to jump.
+· Memory – <100 MB.
+· Battery efficiency – Pause when background, dynamic resolution.
+· Install size – Under 50 MB.
+· Permissions – None (haptics optional).
+· Offline – Fully offline; cloud sync optional.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Dino Dash: Extinction Run – a modern Chrome‑style endless runner for Android with tap to jump, swipe down to crouch, increasing speed, cacti and pterodactyl obstacles, unlockable skins and power‑ups (shield, magnet, slow motion), adaptive difficulty, daily challenges, Google Play leaderboards, assist modes (auto‑jump, larger hitbox), colourblind presets, and battery saver. Include haptic feedback on jumps and collisions, dynamic music that speeds with run speed, post‑run reaction time heatmap, replay system, and 120Hz support. Make every jump feel crisp, every near miss visceral.”
+
+---
+
+Hand this prompt to any mobile developer or AI coder, and you’ll get a polished, addictive, modernised Dino Run – built for Android touch with nostalgic charm and competitive depth. 🦖💨📱
