@@ -955,6 +955,11 @@ object DinoSettingsJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("dino_settings_json_v1")
 }
 
+object BrickSettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("brick_settings_json_v1")
+}
+
 object GamesThemePreference : BasePreference<String>() {
     override val default = "neon"
     override val key = stringPreferencesKey("games_theme")
