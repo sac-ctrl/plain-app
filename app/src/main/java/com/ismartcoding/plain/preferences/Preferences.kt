@@ -945,6 +945,11 @@ object GamesStateJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("games_state_json_v1")
 }
 
+object FlappySettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("flappy_settings_json_v1")
+}
+
 object GamesThemePreference : BasePreference<String>() {
     override val default = "neon"
     override val key = stringPreferencesKey("games_theme")

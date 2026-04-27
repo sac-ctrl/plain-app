@@ -184,6 +184,15 @@ Key files:
 - `plain-web/src/views/home/FeedbackSettingsModal.vue` — change Q/A.
 - `plain-web/src/views/home/games/` — `gamesStore.ts`, `GameShell.vue`, `GameRunner.vue`, `GamesGrid.vue`, `registry.ts`, plus 15 game components in `impl/`.
 
+### Per-game deep upgrades (going game-by-game)
+
+The 15 mini-games are being individually upgraded to a "deep" feature spec on both web and Android. Status:
+
+1. **Flappy Bird → "Flappy Eclipse"** ✅ web + Android.
+   - Web: `plain-web/src/views/home/games/impl/FlappyBird.vue` — variable gravity, sensitivity slider, hold-mode with charge-meter and fatigue, calibration mini-game, day→dusk→night→space sky, parallax hills, ground tiles, pipe variants (moving + ghost), focus mode every 10th pipe (vignette + golden trail), particles, post-death slow-mo, screen shake, fragments, adaptive MMR difficulty, 4 unlockable bird flavours (vanilla / rocket / ghost / magnetic), daily seed + shareable seeds, layered WebAudio (drone + arpeggio + crash), colourblind SVG filters (protanopia / deuteranopia / tritanopia), reduced-motion + screen-pulse + assist (ghost-collision, auto-flap), gamepad polling, mouse-wheel flap, post-death analytics overlay (height-over-time chart, tap heatmap, suggestion engine, unlock toast), instant replay, fixed 16ms timestep. State persisted in `localStorage` keys: `flappy_settings_v1`, `flappy_unlocks_v1`, `flappy_mmr_v1`, `flappy_daily_v1`.
+   - Android: `app/src/main/java/com/ismartcoding/plain/ui/page/home/games/impl/FlappyGame.kt` — Compose Canvas implementation with the same feature surface (settings sheet, analytics sheet with charts, MMR, unlocks, skins, particles, fragments, day/night, focus mode, assists, haptics, screen pulse, colourblind matrix). Settings persisted via new `FlappySettingsJsonPreference` in `app/src/main/java/com/ismartcoding/plain/preferences/Preferences.kt` (key `flappy_settings_json_v1`).
+2. (Remaining 14 games not yet deeply upgraded — pending user spec for each.)
+
 ## Hide private notes on-device
 
 `NoteHelper.search/count/getIdsAsync/getTrashedIdsAsync` now accept an `excludePrivate: Boolean = false` flag. The Android `NotesViewModel` passes `true` so the on-device Notes screen never lists private notes (their counts are also excluded). The web GraphQL schemas (`NoteGraphQL.kt`, `TagGraphQL.kt`) leave the flag at the default `false`, so the web panel still fetches every note from the device's SQLite database, including private ones.
