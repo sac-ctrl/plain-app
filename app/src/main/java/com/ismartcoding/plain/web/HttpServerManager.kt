@@ -57,6 +57,23 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 import kotlin.concurrent.timerTask
 
+internal fun isLoopbackIp(ip: String): Boolean {
+    val s = ip.trim().lowercase()
+    if (s.isEmpty()) return false
+    val noPort = when {
+        s.startsWith("[") -> s.substringAfter('[').substringBefore(']')
+        s.count { it == ':' } == 1 && !s.contains("::") -> s.substringBefore(':')
+        else -> s
+    }
+    return noPort == "127.0.0.1" ||
+        noPort.startsWith("127.") ||
+        noPort == "::1" ||
+        noPort == "0:0:0:0:0:0:0:1" ||
+        noPort == "::ffff:127.0.0.1" ||
+        noPort.startsWith("::ffff:127.") ||
+        noPort == "localhost"
+}
+
 object HttpServerManager {
     private const val SSL_KEY_ALIAS = Constants.SSL_NAME
     val tokenCache = mutableMapOf<String, ByteArray>() // cache the session token, format: <client_id>:<token>
@@ -359,7 +376,12 @@ object HttpServerManager {
             it.token = token
         }
         HttpServerManager.loadTokenCache()
-        NotificationHelper.sendWebLoginNotification(MainApp.instance, r.browserName, r.browserVersion, r.osName, r.osVersion, clientIp)
+        // Loopback (localhost) logins must stay completely invisible: no Sessions-list entry,
+        // no system notification. The session row + token are still persisted so the local
+        // browser can authenticate normally.
+        if (!isLoopbackIp(clientIp)) {
+            NotificationHelper.sendWebLoginNotification(MainApp.instance, r.browserName, r.browserVersion, r.osName, r.osVersion, clientIp)
+        }
         event.session.send(
             CryptoHelper.chaCha20Encrypt(
                 responseToken ?: passwordToToken(),

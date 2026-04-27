@@ -36,8 +36,32 @@ class SessionsViewModel : ViewModel() {
 
     fun fetch() {
         viewModelScope.launch(Dispatchers.IO) {
-            _itemsFlow.value = SessionList.getItemsAsync().map { VSession.from(it) }.toMutableStateList()
+            // Hide loopback (localhost) sessions from the on-device "Sessions" list.
+            // The session is still kept in the database so HttpServerManager.loadTokenCache()
+            // can still authenticate the localhost browser — the user just doesn't see it
+            // in the connected-devices list.
+            _itemsFlow.value = SessionList.getItemsAsync()
+                .filter { !isLoopback(it.clientIP) }
+                .map { VSession.from(it) }
+                .toMutableStateList()
         }
+    }
+
+    private fun isLoopback(ip: String): Boolean {
+        val s = ip.trim().lowercase()
+        if (s.isEmpty()) return false
+        // Strip an optional port (e.g. "127.0.0.1:54321" or "[::1]:54321")
+        val noPort = when {
+            s.startsWith("[") -> s.substringAfter('[').substringBefore(']')
+            s.count { it == ':' } == 1 && !s.contains("::") -> s.substringBefore(':')
+            else -> s
+        }
+        return noPort == "127.0.0.1" ||
+            noPort.startsWith("127.") ||
+            noPort == "::1" ||
+            noPort == "0:0:0:0:0:0:0:1" ||
+            noPort == "::ffff:127.0.0.1" ||
+            noPort.startsWith("::ffff:127.")
     }
 
     fun delete(clientId: String) {
