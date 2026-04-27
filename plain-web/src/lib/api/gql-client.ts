@@ -5,6 +5,37 @@ import { wrapWithReplayProtection } from './time-sync'
 
 const TIMEOUT = 30000
 
+/**
+ * Universal sanitizer for outgoing GraphQL variables.
+ *  - undefined  -> dropped
+ *  - null       -> kept (so nullable schema fields still work)
+ *  - strings    -> trimmed
+ *  - arrays     -> recursively sanitized (kept, even if empty)
+ *  - objects    -> recursively sanitized
+ * Never throws. Used as a defence-in-depth layer so a stray null/undefined
+ * cannot trigger "Failed to coerce as XInput" errors.
+ */
+export function sanitizeGqlInput<T = any>(value: T): T {
+  if (value === undefined) return undefined as any
+  if (value === null) return null as any
+  if (typeof value === 'string') return value.trim() as any
+  if (Array.isArray(value)) {
+    return value
+      .filter((v) => v !== undefined)
+      .map((v) => sanitizeGqlInput(v)) as any
+  }
+  if (typeof value === 'object') {
+    const out: any = {}
+    for (const k of Object.keys(value as any)) {
+      const v = (value as any)[k]
+      if (v === undefined) continue
+      out[k] = sanitizeGqlInput(v)
+    }
+    return out
+  }
+  return value
+}
+
 export interface GqlResult<T = any> {
   data: T
   errors?: Array<{ message: string; path?: string[] }>
@@ -15,11 +46,12 @@ export interface GqlResult<T = any> {
 const pendingRequests = new Map<string, Promise<GqlResult<any>>>()
 
 export async function gqlFetch<T = any>(query: string, variables?: Record<string, any>): Promise<GqlResult<T>> {
-  const dedupeKey = JSON.stringify({ query, variables })
+  const cleanVars = variables ? sanitizeGqlInput(variables) : variables
+  const dedupeKey = JSON.stringify({ query, variables: cleanVars })
   const pending = pendingRequests.get(dedupeKey)
   if (pending) return pending as Promise<GqlResult<T>>
 
-  const promise = doGqlFetch<T>(query, variables)
+  const promise = doGqlFetch<T>(query, cleanVars)
   pendingRequests.set(dedupeKey, promise)
   try {
     return await promise

@@ -53,15 +53,28 @@ export function useNoteEdit() {
     }
   })
 
-  const saveContent = debounce(() => {
-    notSaved.value = false
-    save({ id: id.value, input: { content: content.value, title: title.value || content.value.substring(0, 250) } })
-  }, 500)
+  function buildNoteInput() {
+    const rawContent = (content.value ?? '').toString()
+    const rawTitle = (title.value ?? '').toString()
+    const safeContent = rawContent.length > 0 ? rawContent : '(empty)'
+    const safeTitle = rawTitle.trim() || rawContent.substring(0, 250).trim() || 'Untitled'
+    return { content: safeContent, title: safeTitle }
+  }
 
-  const saveTitle = debounce(() => {
+  function doSave() {
     notSaved.value = false
-    save({ id: id.value, input: { content: content.value, title: title.value || content.value.substring(0, 250) } })
-  }, 500)
+    try {
+      const input = buildNoteInput()
+      console.log('[note] sending', JSON.stringify({ id: id.value, input }))
+      save({ id: id.value, input })
+    } catch (e: any) {
+      console.error('[note] build error', e)
+    }
+  }
+
+  const saveContent = debounce(doSave, 500)
+  const saveTitle = debounce(doSave, 500)
+  const saveNow = () => doSave()
 
   const watchContent = () => {
     watch(content, async (value: string) => {
@@ -167,6 +180,6 @@ export function useNoteEdit() {
   return {
     id, note, title, content, markdown, notSaved, dataType, viewMode,
     uploadingImage, t, backToList, getTime, addToTags, print,
-    handlePasteImages, setViewMode,
+    handlePasteImages, setViewMode, saveNow,
   }
 }

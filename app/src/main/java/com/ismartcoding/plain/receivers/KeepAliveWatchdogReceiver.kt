@@ -30,7 +30,10 @@ class KeepAliveWatchdogReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION = "com.ismartcoding.plain.action.KEEPALIVE_WATCHDOG"
-        const val INTERVAL_MS = 5 * 60 * 1000L
+        // Tight interval so a dead web service is brought back within ~1 minute
+        // without the user having to open the app. AlarmManager#setExactAndAllowWhileIdle
+        // is honoured down to ~60s on most OEMs even in Doze.
+        const val INTERVAL_MS = 60 * 1000L
 
         fun schedule(context: Context) {
             val am = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return

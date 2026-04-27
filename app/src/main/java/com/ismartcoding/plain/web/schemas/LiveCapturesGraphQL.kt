@@ -47,6 +47,12 @@ fun SchemaBuilder.addLiveCapturesSchema() {
     query("liveCapturesCount") {
         resolver { source: String? -> LiveCaptureHelper.list(source).size }
     }
+    query("liveCapturesTotalSize") {
+        // Returned as a string so JS does not lose precision on > 2^53 bytes.
+        resolver { source: String? ->
+            LiveCaptureHelper.list(source).sumOf { it.sizeBytes }.toString()
+        }
+    }
     mutation("deleteLiveCapture") {
         resolver { filename: String -> LiveCaptureHelper.deleteByFilename(filename) }
     }

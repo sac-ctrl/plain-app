@@ -46,10 +46,15 @@ fun SchemaBuilder.addNoteSchema() {
     }
     mutation("saveNote") {
         resolver { id: ID, input: NoteInput ->
+            // Tolerant fallbacks so empty / whitespace input never errors out.
+            val safeContent = input.content.ifBlank { "(empty)" }
+            val safeTitle = input.title.trim().ifBlank {
+                input.content.cut(250).replace("\n", " ").trim().ifBlank { "Untitled" }
+            }
             val item =
                 NoteHelper.addOrUpdateAsync(id.value) {
-                    title = input.title
-                    content = input.content
+                    title = safeTitle
+                    content = safeContent
                 }
             NoteHelper.getById(item.id)?.toModel()
         }

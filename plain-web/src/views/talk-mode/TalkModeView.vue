@@ -27,7 +27,7 @@
           </div>
         </header>
         <div v-if="micOn" class="embed">
-          <LiveMicView />
+          <LiveMicView :embedded="true" />
         </div>
         <div v-else class="placeholder">
           <i-lucide:mic-off />
@@ -56,7 +56,7 @@
           </div>
         </header>
         <div v-if="cameraOn" class="embed">
-          <LiveCameraView />
+          <LiveCameraView :embedded="true" />
         </div>
         <div v-else class="placeholder">
           <i-lucide:video-off />

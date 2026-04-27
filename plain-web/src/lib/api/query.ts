@@ -821,5 +821,6 @@ export const liveCapturesGQL = `
       id filename source kind mimeType createdAt durationMs sizeBytes fileId
     }
     liveCapturesCount(source: $source)
+    liveCapturesTotalSize(source: $source)
   }
 `

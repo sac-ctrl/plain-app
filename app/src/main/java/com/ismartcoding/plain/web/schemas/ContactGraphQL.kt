@@ -17,8 +17,42 @@ import com.ismartcoding.plain.web.loaders.TagsLoader
 import com.ismartcoding.plain.web.models.Contact
 import com.ismartcoding.plain.web.models.ContactGroup
 import com.ismartcoding.plain.web.models.ContactInput
+import com.ismartcoding.plain.web.models.ContentItemInput
 import com.ismartcoding.plain.web.models.ID
 import com.ismartcoding.plain.web.models.toModel
+
+/**
+ * Defence-in-depth: scrub a ContactInput so that downstream MediaStore writes
+ * never see null/whitespace garbage that would crash the operation.
+ */
+private fun normalizeContactInput(input: ContactInput): ContactInput {
+    fun cleanItems(items: List<ContentItemInput>): List<ContentItemInput> =
+        items.map { ContentItemInput(it.value.trim(), it.type, it.label.trim()) }
+            .filter { it.value.isNotEmpty() }
+    return ContactInput(
+        prefix = input.prefix.trim(),
+        firstName = input.firstName.trim(),
+        middleName = input.middleName.trim(),
+        lastName = input.lastName.trim(),
+        suffix = input.suffix.trim(),
+        nickname = input.nickname.trim(),
+        phoneNumbers = cleanItems(input.phoneNumbers),
+        emails = cleanItems(input.emails),
+        addresses = cleanItems(input.addresses),
+        events = cleanItems(input.events),
+        source = input.source.trim(),
+        starred = input.starred,
+        notes = input.notes.trim(),
+        groupIds = input.groupIds,
+        organization = input.organization?.let {
+            val c = it.company.trim()
+            val tt = it.title.trim()
+            if (c.isEmpty() && tt.isEmpty()) null else com.ismartcoding.plain.web.models.OrganizationInput(c, tt)
+        },
+        websites = cleanItems(input.websites),
+        ims = cleanItems(input.ims),
+    )
+}
 
 fun SchemaBuilder.addContactSchema() {
     query("contacts") {
@@ -84,15 +118,25 @@ fun SchemaBuilder.addContactSchema() {
     mutation("updateContact") {
         resolver { id: ID, input: ContactInput ->
             Permission.WRITE_CONTACTS.checkAsync(MainApp.instance)
-            ContactMediaStoreHelper.updateAsync(id.value, input)
-            ContactMediaStoreHelper.getByIdAsync(MainApp.instance, id.value)?.toModel()
+            try {
+                ContactMediaStoreHelper.updateAsync(id.value, normalizeContactInput(input))
+                ContactMediaStoreHelper.getByIdAsync(MainApp.instance, id.value)?.toModel()
+            } catch (ex: Exception) {
+                LogCat.e("updateContact failed", ex)
+                null
+            }
         }
     }
     mutation("createContact") {
         resolver { input: ContactInput ->
             Permission.WRITE_CONTACTS.checkAsync(MainApp.instance)
-            val id = ContactMediaStoreHelper.createAsync(input)
-            if (id.isEmpty()) null else ContactMediaStoreHelper.getByIdAsync(MainApp.instance, id)?.toModel()
+            try {
+                val id = ContactMediaStoreHelper.createAsync(normalizeContactInput(input))
+                if (id.isEmpty()) null else ContactMediaStoreHelper.getByIdAsync(MainApp.instance, id)?.toModel()
+            } catch (ex: Exception) {
+                LogCat.e("createContact failed", ex)
+                null
+            }
         }
     }
     mutation("createContactGroup") {

@@ -1,17 +1,64 @@
 <template>
   <div class="recordings-page">
     <Teleport v-if="isActive" to="#header-start-slot" defer>
-      <div class="title">{{ $t('call_recordings') }}</div>
+      <div class="title">
+        {{ selectionMode ? $t('call_recorder_selected', { n: selected.size }) : $t('call_recordings') }}
+      </div>
     </Teleport>
 
     <Teleport v-if="isActive" to="#header-end-slot" defer>
       <div class="header-actions">
-        <v-icon-button v-tooltip="$t('refresh')" @click="reload">
-          <i-lucide:refresh-cw />
-        </v-icon-button>
-        <v-icon-button v-if="recordings.length > 0" v-tooltip="$t('call_recorder_delete_all')" @click="onDeleteAll">
-          <i-lucide:trash-2 />
-        </v-icon-button>
+        <template v-if="!selectionMode">
+          <v-icon-button v-tooltip="$t('refresh')" @click="reload">
+            <i-lucide:refresh-cw />
+          </v-icon-button>
+          <v-icon-button
+            v-if="recordings.length > 0"
+            v-tooltip="$t('call_recorder_select')"
+            @click="enterSelection"
+          >
+            <i-lucide:check-square />
+          </v-icon-button>
+          <v-icon-button
+            v-if="recordings.length > 0"
+            v-tooltip="$t('call_recorder_delete_oldest')"
+            @click="onDeleteOldest"
+          >
+            <i-lucide:clock />
+          </v-icon-button>
+          <v-icon-button
+            v-if="recordings.length > 0"
+            v-tooltip="$t('call_recorder_delete_by_dates')"
+            @click="dateModal = true"
+          >
+            <i-lucide:calendar />
+          </v-icon-button>
+          <v-icon-button
+            v-if="recordings.length > 0"
+            v-tooltip="$t('call_recorder_delete_all')"
+            @click="onDeleteAll"
+          >
+            <i-lucide:trash-2 />
+          </v-icon-button>
+        </template>
+        <template v-else>
+          <v-icon-button v-tooltip="$t('select_all')" @click="selectAllVisible">
+            <i-lucide:list-checks />
+          </v-icon-button>
+          <v-icon-button v-tooltip="$t('clear')" @click="clearSelection">
+            <i-lucide:x />
+          </v-icon-button>
+          <v-filled-button
+            class="btn-sm"
+            :disabled="selected.size === 0"
+            @click="onDeleteSelected"
+          >
+            {{ $t('delete') }} ({{ selected.size }})
+          </v-filled-button>
+          <v-icon-button v-tooltip="$t('cancel')" @click="exitSelection">
+            <i-lucide:arrow-left />
+          </v-icon-button>
+        </template>
       </div>
     </Teleport>
 
@@ -62,18 +109,43 @@
     <div v-if="loading && recordings.length === 0" class="empty">{{ $t('loading') }}</div>
     <div v-else-if="recordings.length === 0" class="empty">{{ $t('call_recorder_no_recordings') }}</div>
     <div v-else class="recordings-list">
-      <article v-for="r in recordings" :key="r.filename" class="recording-card">
+      <article
+        v-for="r in recordings"
+        :key="r.filename"
+        class="recording-card"
+        :class="{ selected: selected.has(r.filename), 'select-mode': selectionMode }"
+        @click="onCardClick(r.filename, $event)"
+      >
         <header class="recording-head">
           <div class="recording-title">
+            <label v-if="selectionMode" class="checkbox" @click.stop>
+              <input
+                type="checkbox"
+                :checked="selected.has(r.filename)"
+                @change="toggleSelected(r.filename)"
+              />
+            </label>
             <span class="badge" :class="r.source">{{ r.source }}</span>
             <span class="caller">{{ r.displayName || r.filename }}</span>
-            <span class="dir-badge" :class="r.direction">{{ r.direction === 'incoming' ? $t('incoming') : $t('outgoing') }}</span>
+            <span class="dir-badge" :class="r.direction">
+              {{ r.direction === 'incoming' ? $t('incoming') : $t('outgoing') }}
+            </span>
           </div>
-          <div class="recording-actions">
-            <a :href="getFileUrl(r.fileId) + '&dl=1'" :download="r.filename" class="action-btn" :title="$t('download')">
+          <div v-if="!selectionMode" class="recording-actions">
+            <a
+              :href="getFileUrl(r.fileId) + '&dl=1'"
+              :download="r.filename"
+              class="action-btn"
+              :title="$t('download')"
+              @click.stop
+            >
               <i-lucide:download />
             </a>
-            <button class="action-btn danger" :title="$t('delete')" @click="onDelete(r.filename)">
+            <button
+              class="action-btn danger"
+              :title="$t('delete')"
+              @click.stop="onDelete(r.filename)"
+            >
               <i-lucide:trash-2 />
             </button>
           </div>
@@ -108,8 +180,36 @@
           </div>
         </div>
 
-        <audio :src="getFileUrl(r.fileId)" controls preload="metadata" class="player" />
+        <audio v-if="!selectionMode" :src="getFileUrl(r.fileId)" controls preload="metadata" class="player" @click.stop />
       </article>
+    </div>
+
+    <div v-if="dateModal" class="modal-backdrop" @click.self="dateModal = false">
+      <div class="modal">
+        <h3 class="modal-title">{{ $t('call_recorder_delete_by_dates') }}</h3>
+        <p class="modal-hint">{{ $t('call_recorder_delete_by_dates_hint') }}</p>
+        <div class="date-grid">
+          <button
+            v-for="d in availableDates"
+            :key="d.key"
+            type="button"
+            class="date-chip"
+            :class="{ on: pickedDates.has(d.key) }"
+            @click="togglePickedDate(d.key)"
+          >
+            <i-lucide:calendar-days />
+            <span class="date-label">{{ d.label }}</span>
+            <span class="date-count">{{ $t('call_recorder_count', { count: d.count }, d.count) }}</span>
+          </button>
+        </div>
+        <p v-if="availableDates.length === 0" class="modal-empty">{{ $t('call_recorder_no_recordings') }}</p>
+        <div class="modal-actions">
+          <v-text-button @click="dateModal = false">{{ $t('cancel') }}</v-text-button>
+          <v-filled-button :disabled="pickedDates.size === 0" @click="onDeleteByDates">
+            {{ $t('delete') }}
+          </v-filled-button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -127,6 +227,9 @@ import {
   setCallRecorderEnabledGQL,
   deleteCallRecordingGQL,
   deleteAllCallRecordingsGQL,
+  deleteCallRecordingsGQL,
+  deleteOldestCallRecordingsGQL,
+  deleteCallRecordingsByDatesGQL,
 } from '@/lib/api/mutation'
 import { getFileUrl } from '@/lib/api/file'
 import { formatDateTime, formatFileSize, formatSeconds } from '@/lib/format'
@@ -149,9 +252,15 @@ const isActive = computed(() => route.path === '/call-recordings')
 const state = ref<ICallRecorderState>({
   enabled: true, recording: false, currentDisplayName: '', currentSource: '',
   currentStartedAt: 0, totalCount: 0, totalSize: 0, lastError: '',
+  activeAudioSource: '', speakerphoneForced: false,
 })
 const recordings = ref<ICallRecording[]>([])
 const loading = ref(true)
+
+const selectionMode = ref(false)
+const selected = ref<Set<string>>(new Set())
+const dateModal = ref(false)
+const pickedDates = ref<Set<string>>(new Set())
 
 const tickNow = ref(Date.now())
 let tickHandle: any
@@ -163,9 +272,33 @@ const elapsed = computed(() => {
   return `${m}:${s.toString().padStart(2, '0')}`
 })
 
+function dateKey(ts: number): string {
+  const d = new Date(ts)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+const availableDates = computed(() => {
+  const map = new Map<string, { label: string; count: number; ts: number }>()
+  for (const r of recordings.value) {
+    const k = dateKey(r.startedAt)
+    const cur = map.get(k)
+    if (cur) cur.count++
+    else map.set(k, { label: formatDateTime(new Date(r.startedAt).toISOString()).split(' ')[0] || k, count: 1, ts: r.startedAt })
+  }
+  return Array.from(map.entries())
+    .map(([key, v]) => ({ key, label: v.label, count: v.count, ts: v.ts }))
+    .sort((a, b) => b.ts - a.ts)
+})
+
 const { mutate: mToggle } = initMutation({ document: setCallRecorderEnabledGQL })
 const { mutate: mDel } = initMutation({ document: deleteCallRecordingGQL })
 const { mutate: mDelAll } = initMutation({ document: deleteAllCallRecordingsGQL })
+const { mutate: mDelMany } = initMutation({ document: deleteCallRecordingsGQL })
+const { mutate: mDelOldest } = initMutation({ document: deleteOldestCallRecordingsGQL })
+const { mutate: mDelByDates } = initMutation({ document: deleteCallRecordingsByDatesGQL })
 
 async function reload() {
   loading.value = true
@@ -187,6 +320,7 @@ async function onToggle(e: Event) {
 }
 
 async function onDelete(filename: string) {
+  if (!confirm(t('confirm_delete'))) return
   await mDel({ filename })
   recordings.value = recordings.value.filter((r) => r.filename !== filename)
   toast(t('deleted'))
@@ -196,6 +330,72 @@ async function onDeleteAll() {
   if (!confirm(t('call_recorder_delete_all_confirm'))) return
   await mDelAll()
   recordings.value = []
+  toast(t('deleted'))
+}
+
+function enterSelection() {
+  selectionMode.value = true
+  selected.value = new Set()
+}
+function exitSelection() {
+  selectionMode.value = false
+  selected.value = new Set()
+}
+function clearSelection() { selected.value = new Set() }
+function selectAllVisible() {
+  selected.value = new Set(recordings.value.map((r) => r.filename))
+}
+function toggleSelected(filename: string) {
+  const next = new Set(selected.value)
+  if (next.has(filename)) next.delete(filename)
+  else next.add(filename)
+  selected.value = next
+}
+function onCardClick(filename: string, e: MouseEvent) {
+  if (!selectionMode.value) return
+  if ((e.target as HTMLElement).closest('input,button,a,audio')) return
+  toggleSelected(filename)
+}
+
+async function onDeleteSelected() {
+  if (selected.value.size === 0) return
+  if (!confirm(t('call_recorder_delete_selected_confirm', { n: selected.value.size }))) return
+  const filenames = Array.from(selected.value)
+  await mDelMany({ filenames })
+  recordings.value = recordings.value.filter((r) => !selected.value.has(r.filename))
+  toast(t('deleted'))
+  exitSelection()
+}
+
+async function onDeleteOldest() {
+  const raw = prompt(t('call_recorder_delete_oldest_prompt'), '5')
+  if (raw === null) return
+  const n = parseInt(raw, 10)
+  if (!Number.isFinite(n) || n <= 0) {
+    toast(t('invalid_input'), 'error')
+    return
+  }
+  if (!confirm(t('call_recorder_delete_oldest_confirm', { n }))) return
+  await mDelOldest({ count: n })
+  await reload()
+  toast(t('deleted'))
+}
+
+function togglePickedDate(key: string) {
+  const next = new Set(pickedDates.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  pickedDates.value = next
+}
+
+async function onDeleteByDates() {
+  if (pickedDates.value.size === 0) return
+  if (!confirm(t('call_recorder_delete_by_dates_confirm', { n: pickedDates.value.size }))) return
+  const dates = Array.from(pickedDates.value)
+  await mDelByDates({ dates })
+  pickedDates.value = new Set()
+  dateModal.value = false
+  await reload()
   toast(t('deleted'))
 }
 
@@ -219,7 +419,7 @@ onUnmounted(() => {
 <style scoped lang="scss">
 .recordings-page { padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; height: 100%; }
 .title { flex: 1; font-weight: 500; }
-.header-actions { display: flex; gap: 4px; }
+.header-actions { display: flex; gap: 4px; align-items: center; }
 
 .status-card {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -277,15 +477,8 @@ onUnmounted(() => {
   border-radius: 12px; padding: 12px 14px;
   display: flex; flex-direction: column; gap: 8px;
 }
-.engine-title {
-  display: flex; align-items: center; gap: 6px;
-  font-weight: 500; color: var(--md-sys-color-on-surface);
-  font-size: 0.9rem;
-}
-.engine-text {
-  font-size: 0.8rem; color: var(--md-sys-color-on-surface-variant);
-  margin: 0; line-height: 1.4;
-}
+.engine-title { display: flex; align-items: center; gap: 6px; font-weight: 500; font-size: 0.9rem; }
+.engine-text { font-size: 0.8rem; color: var(--md-sys-color-on-surface-variant); margin: 0; line-height: 1.4; }
 .engine-live { display: flex; gap: 8px; flex-wrap: wrap; }
 .engine-live .badge {
   padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 500;
@@ -309,18 +502,23 @@ onUnmounted(() => {
 }
 
 .recordings-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 24px; }
-
 .recording-card {
   background: var(--md-sys-color-surface-container);
   border-radius: 16px;
   padding: 16px;
   display: flex; flex-direction: column; gap: 12px;
+  transition: outline-color 120ms ease, background 120ms ease;
+  outline: 2px solid transparent;
+  &.select-mode { cursor: pointer; }
+  &.selected {
+    outline-color: var(--md-sys-color-primary);
+    background: var(--md-sys-color-secondary-container);
+  }
 }
-
-.recording-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
+.recording-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .recording-title { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; flex-wrap: wrap; }
+.checkbox { display: inline-flex; align-items: center; justify-content: center; }
+.checkbox input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--md-sys-color-primary); }
 .caller {
   font-size: 1rem; font-weight: 500;
   color: var(--md-sys-color-on-surface);
@@ -365,4 +563,48 @@ onUnmounted(() => {
 .cell-value { font-size: 0.9rem; color: var(--md-sys-color-on-surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .player { width: 100%; }
+
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 640px; width: 100%;
+  max-height: 80vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 16px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+}
+.modal-title { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.modal-hint { margin: 0; color: var(--md-sys-color-on-surface-variant); font-size: 0.875rem; }
+.modal-empty { margin: 0; text-align: center; color: var(--md-sys-color-on-surface-variant); padding: 16px; }
+.date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.date-chip {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  font: inherit;
+  transition: background 120ms ease, border-color 120ms ease;
+  &:hover { background: var(--md-sys-color-surface-container); }
+  &.on {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    border-color: var(--md-sys-color-primary);
+  }
+}
+.date-label { font-weight: 500; font-size: 0.9rem; }
+.date-count { font-size: 0.75rem; opacity: 0.85; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 </style>

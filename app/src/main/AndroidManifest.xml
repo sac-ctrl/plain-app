@@ -282,6 +282,11 @@
         </service>
 
         <service
+            android:name=".workers.KeepAliveJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
             android:name=".services.KeepAliveVpnService"
             android:exported="false"
             android:permission="android.permission.BIND_VPN_SERVICE">

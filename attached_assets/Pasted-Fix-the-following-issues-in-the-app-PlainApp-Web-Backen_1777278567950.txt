@@ -1,0 +1,188 @@
+Fix the following issues in the app (PlainApp Web + Backend GraphQL integration):
+
+---
+
+1. CRITICAL BUG FIX – GraphQL Errors
+
+---
+
+Problem:
+
+- "Failed to coerce as ContactInput"
+- "Failed to coerce as NoteInput"
+
+Root cause:
+
+- Frontend sends null values, empty fields, wrong types (int instead of string), or missing required fields.
+
+Fix:
+
+A. Sanitize ALL outgoing data before sending:
+
+Rules:
+
+- No null values → replace with empty string ""
+- No undefined fields
+- No empty arrays unless allowed
+- Convert numeric enums to strings (e.g. phone type: 2 → "mobile")
+- Trim all strings
+
+Example fix:
+
+Before sending:
+
+- organization = null → ""
+- label = "" → "default"
+- type = 2 → "mobile"
+
+B. Add universal sanitizer function:
+
+JS/TS:
+function sanitize(obj) {
+return JSON.parse(JSON.stringify(obj, (key, value) => {
+if (value === null || value === undefined) return "";
+if (typeof value === "string") return value.trim();
+return value;
+}));
+}
+
+Use before every mutation:
+sendMutation(sanitize(input))
+
+C. Add try-catch to ALL mutations:
+
+try {
+await mutate(...)
+} catch (e) {
+showToast("Something went wrong, retrying...");
+}
+
+D. Backend tolerance (IMPORTANT):
+
+- Make GraphQL schema accept optional fields
+- Avoid strict coercion failure
+- Add default values in resolvers
+
+---
+
+2. NOTE INPUT MUST ACCEPT ANYTHING
+
+---
+
+Requirement:
+
+- User can write ANYTHING (symbols, empty, short, long)
+
+Fix:
+
+- title: optional
+- content: optional
+- If empty → auto-fill:
+  title = "Untitled"
+  content = "(empty)"
+
+Before send:
+if (!title.trim()) title = "Untitled";
+if (!content.trim()) content = "(empty)";
+
+---
+
+3. CONTACT FORM FIX
+
+---
+
+Fix mapping:
+
+phoneNumbers:
+
+- type MUST be string ("mobile", "home")
+- label must not be empty → default "Phone"
+
+addresses:
+
+- label default "Address"
+
+organization:
+
+- never null → ""
+
+---
+
+4. UI IMPROVEMENTS (IMPORTANT)
+
+---
+
+A. Notes UI upgrade:
+
+Add:
+
+- Floating "Save" button (always visible)
+- Auto-save toggle
+- Word counter
+- Character counter
+- Last edited time
+- Undo / Redo buttons
+- Clear button
+- Copy button
+
+B. Toolbar for Notes:
+
+Add top toolbar:
+
+- Bold / Italic (if rich text enabled)
+- Bullet list
+- Numbered list
+
+C. Better UX:
+
+- Show loading spinner on save
+- Disable button while saving
+- Success toast: "Saved successfully"
+- Error toast with retry button
+
+---
+
+5. ADD EXTRA BUTTONS IN NOTES
+
+---
+
+Add buttons:
+
+- 📋 Copy
+- 🗑 Clear
+- 🔁 Undo
+- 🔂 Redo
+- 💾 Save
+- ⚡ Auto-save toggle
+- 📤 Share
+
+---
+
+6. FAIL-SAFE SYSTEM (NO CRASH GUARANTEE)
+
+---
+
+- App must NEVER crash on bad input
+- Always fallback to safe values
+- Always catch errors
+
+---
+
+7. DEBUG LOGGING
+
+---
+
+Before sending mutation:
+console.log("Sending:", JSON.stringify(input))
+
+---
+
+FINAL GOAL:
+
+✔ No "Failed to coerce" error EVER
+✔ Accept ANY user input
+✔ Smooth UI
+✔ Professional note editor
+✔ Stable backend communication
+
+---

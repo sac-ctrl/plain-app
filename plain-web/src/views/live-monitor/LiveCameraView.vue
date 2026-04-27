@@ -61,30 +61,41 @@
       </div>
     </div>
 
-    <section class="captures-section">
-      <header class="captures-header">
-        <h3 class="captures-heading">{{ $t('captures_title') }}</h3>
+    <section v-if="!embedded" class="captures-card">
+      <button class="captures-summary" type="button" @click="capturesOpen = !capturesOpen">
+        <div class="summary-left">
+          <i-lucide:images class="summary-icon" />
+          <div class="summary-text">
+            <div class="summary-title">{{ $t('captures_title') }}</div>
+            <div class="summary-meta">
+              {{ $t('captures_summary', { count: totalCount, size: totalSize }) }}
+            </div>
+          </div>
+        </div>
+        <i-lucide:chevron-down class="summary-chevron" :class="{ open: capturesOpen }" />
+      </button>
+      <div v-if="capturesOpen" class="captures-body">
+        <p v-if="uploading" class="captures-status">{{ $t('live_capture_uploading') }}</p>
+        <p v-if="captures.length === 0 && !uploading" class="captures-empty">{{ $t('no_captures_yet') }}</p>
+        <div v-else-if="captures.length > 0" class="captures-grid">
+          <div v-for="item in captures" :key="item.id" class="capture-card">
+            <div class="capture-media">
+              <img v-if="item.kind === 'photo'" :src="getFileUrl(item.fileId)" :alt="item.filename" />
+              <video v-else :src="getFileUrl(item.fileId)" controls preload="metadata" />
+            </div>
+            <div class="capture-info">
+              <div class="capture-name" :title="item.filename">{{ item.filename }}</div>
+              <div class="capture-meta">
+                <span class="capture-kind">{{ item.kind === 'photo' ? $t('photo') : $t('video') }}</span>
+                <span v-if="item.durationMs">· {{ formatDuration(item.durationMs) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <RouterLink class="open-full-link" to="/live-captures?source=camera">
           {{ $t('open_full_captures') }}
           <i-lucide:arrow-right />
         </RouterLink>
-      </header>
-      <p v-if="uploading" class="captures-status">{{ $t('live_capture_uploading') }}</p>
-      <p v-if="captures.length === 0 && !uploading" class="captures-empty">{{ $t('no_captures_yet') }}</p>
-      <div v-else-if="captures.length > 0" class="captures-grid">
-        <div v-for="item in captures" :key="item.id" class="capture-card">
-          <div class="capture-media">
-            <img v-if="item.kind === 'photo'" :src="getFileUrl(item.fileId)" :alt="item.filename" />
-            <video v-else :src="getFileUrl(item.fileId)" controls preload="metadata" />
-          </div>
-          <div class="capture-info">
-            <div class="capture-name" :title="item.filename">{{ item.filename }}</div>
-            <div class="capture-meta">
-              <span class="capture-kind">{{ item.kind === 'photo' ? $t('photo') : $t('video') }}</span>
-              <span v-if="item.durationMs">· {{ formatDuration(item.durationMs) }}</span>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   </div>
@@ -115,10 +126,16 @@ import {
   formatDuration,
 } from '@/lib/media-recorder'
 import { uploadLiveCapture, type ServerLiveCapture } from '@/lib/api/live-captures'
+import { formatFileSize } from '@/lib/format'
 
+const props = defineProps<{ embedded?: boolean }>()
 const { t } = useI18n()
 const route = useRoute()
-const isActive = computed(() => route.path === '/live-camera')
+const isActive = computed(() => !props.embedded && route.path === '/live-camera')
+const capturesOpen = ref(false)
+const totalCount = ref(0)
+const totalBytes = ref(0)
+const totalSize = computed(() => formatFileSize(totalBytes.value))
 
 type LiveState = 'idle' | 'requesting' | 'connecting' | 'streaming' | 'failed'
 const state = ref<LiveState>('idle')
@@ -226,11 +243,18 @@ watch(videoEl, (el) => {
 })
 
 async function reloadCaptures() {
+  if (props.embedded) return
   try {
-    const r = await gqlFetch<{ liveCaptures: ServerLiveCapture[] }>(liveCapturesGQL, {
-      offset: 0, limit: 4, source: 'camera',
-    })
-    if (!r.errors) captures.value = r.data.liveCaptures
+    const r = await gqlFetch<{
+      liveCaptures: ServerLiveCapture[]
+      liveCapturesCount: number
+      liveCapturesTotalSize: string
+    }>(liveCapturesGQL, { offset: 0, limit: 3, source: 'camera' })
+    if (!r.errors) {
+      captures.value = r.data.liveCaptures
+      totalCount.value = r.data.liveCapturesCount ?? captures.value.length
+      totalBytes.value = Number(r.data.liveCapturesTotalSize ?? 0) || 0
+    }
   } catch (_) {
     // best-effort
   }
@@ -359,17 +383,46 @@ onBeforeUnmount(() => {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0.2; }
 }
-.captures-section { padding: 16px; border-top: 1px solid var(--md-sys-color-outline-variant); }
-.captures-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.captures-heading { font-size: 1rem; font-weight: 500; margin: 0; }
+.captures-card {
+  margin: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-low);
+  overflow: hidden;
+}
+.captures-summary {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit; color: inherit;
+  transition: background 120ms ease;
+  &:hover { background: var(--md-sys-color-surface-container); }
+}
+.summary-left { display: flex; align-items: center; gap: 12px; }
+.summary-icon { font-size: 24px; color: var(--md-sys-color-primary); }
+.summary-text { display: flex; flex-direction: column; gap: 2px; }
+.summary-title { font-size: 0.95rem; font-weight: 600; }
+.summary-meta { font-size: 0.8rem; color: var(--md-sys-color-on-surface-variant); }
+.summary-chevron {
+  font-size: 20px;
+  transition: transform 180ms ease;
+  color: var(--md-sys-color-on-surface-variant);
+  &.open { transform: rotate(180deg); }
+}
+.captures-body { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
 .open-full-link {
+  align-self: flex-end;
   display: inline-flex; align-items: center; gap: 4px;
   color: var(--md-sys-color-primary);
   text-decoration: none; font-size: 0.875rem; font-weight: 500;
   &:hover { text-decoration: underline; }
 }
 .captures-empty { color: var(--md-sys-color-on-surface-variant); margin: 0; }
-.captures-status { color: var(--md-sys-color-on-surface-variant); margin: 0 0 8px; font-size: 0.85rem; }
+.captures-status { color: var(--md-sys-color-on-surface-variant); margin: 0; font-size: 0.85rem; }
 .captures-grid {
   display: grid; gap: 12px;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

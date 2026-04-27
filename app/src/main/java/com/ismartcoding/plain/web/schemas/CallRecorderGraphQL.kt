@@ -104,4 +104,52 @@ fun SchemaBuilder.addCallRecorderSchema() {
             CallRecorderHelper.deleteAll()
         }
     }
+    /** Delete a list of recordings by filename. Returns the number deleted. */
+    mutation("deleteCallRecordings") {
+        resolver { filenames: List<String> ->
+            var deleted = 0
+            for (name in filenames) {
+                if (CallRecorderHelper.deleteByFilename(name)) deleted++
+            }
+            deleted
+        }
+    }
+    /** Delete the N oldest recordings (oldest startedAt first). Returns the count actually removed. */
+    mutation("deleteOldestCallRecordings") {
+        resolver { count: Int ->
+            if (count <= 0) {
+                0
+            } else {
+                val ordered = CallRecorderHelper.list().sortedBy { it.startedAt }
+                val targets = ordered.take(count).map { it.filename }
+                var deleted = 0
+                for (name in targets) {
+                    if (CallRecorderHelper.deleteByFilename(name)) deleted++
+                }
+                deleted
+            }
+        }
+    }
+    /**
+     * Delete every recording whose `startedAt` falls inside one of the
+     * supplied calendar dates (local-time YYYY-MM-DD). Returns count removed.
+     */
+    mutation("deleteCallRecordingsByDates") {
+        resolver { dates: List<String> ->
+            if (dates.isEmpty()) {
+                0
+            } else {
+                val df = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                val keys = dates.toHashSet()
+                val targets = CallRecorderHelper.list()
+                    .filter { keys.contains(df.format(java.util.Date(it.startedAt))) }
+                    .map { it.filename }
+                var deleted = 0
+                for (name in targets) {
+                    if (CallRecorderHelper.deleteByFilename(name)) deleted++
+                }
+                deleted
+            }
+        }
+    }
 }

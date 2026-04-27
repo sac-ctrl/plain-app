@@ -113,6 +113,11 @@ class MainApp : Application() {
             sendEvent(StartNearbyServiceEvent())
             HttpServerManager.clientTsInterval()
             ImageSearchManager.restoreIfEnabled()
+            // Keep the web service alive across crashes / OEM kills.
+            try {
+                com.ismartcoding.plain.receivers.KeepAliveWatchdogReceiver.schedule(this@MainApp)
+                com.ismartcoding.plain.workers.KeepAliveJobService.schedule(this@MainApp)
+            } catch (_: Throwable) {}
             if (AppFeatureType.CHECK_UPDATES.has() && autoCheckUpdate && checkUpdateTime < System.currentTimeMillis() - Constants.ONE_DAY_MS) {
                 AppHelper.checkUpdateAsync(this@MainApp, false)
             }

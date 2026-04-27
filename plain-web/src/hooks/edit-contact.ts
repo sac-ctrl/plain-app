@@ -11,7 +11,9 @@ export function useEditContact(data: IContact | undefined, sources: any[], done:
 
   const editItem = reactive({
     firstName: '', middleName: '', lastName: '', prefix: '', suffix: '',
-    nickname: '', organization: null as any, notes: '', source: '', starred: 0,
+    nickname: '',
+    organization: { company: '', title: '' } as { company: string; title: string },
+    notes: '', source: '', starred: false,
     phoneNumbers: [] as IContactPhoneNumber[],
     emails: [] as IContactContentItem[],
     addresses: [] as IContactContentItem[],
@@ -68,9 +70,48 @@ export function useEditContact(data: IContact | undefined, sources: any[], done:
   const addField = (items: any[]) => { items.push({ type: 1, value: '', label: '' }); addFieldMenuVisible.value = false }
   const deleteField = (items: any[], index: number) => { items.splice(index, 1) }
 
+  function buildPayload() {
+    const fix = (item: any) => ({
+      type: typeof item.type === 'number' ? item.type : parseInt(String(item.type ?? 1), 10) || 1,
+      value: String(item.value ?? '').trim(),
+      label: String(item.label ?? '').trim(),
+    })
+    const org = editItem.organization as any
+    return {
+      firstName: String(editItem.firstName ?? '').trim(),
+      middleName: String(editItem.middleName ?? '').trim(),
+      lastName: String(editItem.lastName ?? '').trim(),
+      prefix: String(editItem.prefix ?? '').trim(),
+      suffix: String(editItem.suffix ?? '').trim(),
+      nickname: String(editItem.nickname ?? '').trim(),
+      notes: String(editItem.notes ?? '').trim(),
+      source: String(editItem.source ?? '').trim(),
+      starred: !!editItem.starred,
+      phoneNumbers: (editItem.phoneNumbers ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      emails: (editItem.emails ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      addresses: (editItem.addresses ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      websites: (editItem.websites ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      events: (editItem.events ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      ims: (editItem.ims ?? []).filter((p: any) => p && (p.value ?? '').toString().trim()).map(fix),
+      groupIds: editItem.groupIds ?? [],
+      organization: org && (String(org.company ?? '').trim() || String(org.title ?? '').trim())
+        ? { company: String(org.company ?? '').trim(), title: String(org.title ?? '').trim() }
+        : null,
+    }
+  }
+
   function doAction() {
-    if (data) { edit({ id: data.id, input: editItem }) }
-    else { editItem.source = sources?.[0]?.name ?? ''; create({ input: editItem }) }
+    try {
+      const input = buildPayload()
+      console.log('[contact] sending', JSON.stringify(input))
+      if (data) { edit({ id: data.id, input }) }
+      else {
+        if (!input.source) input.source = sources?.[0]?.name ?? ''
+        create({ input })
+      }
+    } catch (e: any) {
+      console.error('[contact] build error', e)
+    }
   }
 
   return {

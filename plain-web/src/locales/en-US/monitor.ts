@@ -25,6 +25,7 @@ export default {
   capture_failed: 'Capture failed.',
   captures_title: 'Captures',
   recordings_title: 'Recordings',
+  captures_summary: '{count} items · {size}',
   no_captures_yet: 'Photos and recordings you make on this screen will appear here.',
   no_recordings_yet: 'Audio recordings you make on this screen will appear here.',
   download: 'Download',

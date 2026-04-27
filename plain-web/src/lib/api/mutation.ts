@@ -903,6 +903,22 @@ export const deleteCallRecordingGQL = `
 `
 export const deleteAllCallRecordingsGQL = `mutation { deleteAllCallRecordings }`
 
+export const deleteCallRecordingsGQL = `
+  mutation deleteCallRecordings($filenames: [String!]!) {
+    deleteCallRecordings(filenames: $filenames)
+  }
+`
+export const deleteOldestCallRecordingsGQL = `
+  mutation deleteOldestCallRecordings($count: Int!) {
+    deleteOldestCallRecordings(count: $count)
+  }
+`
+export const deleteCallRecordingsByDatesGQL = `
+  mutation deleteCallRecordingsByDates($dates: [String!]!) {
+    deleteCallRecordingsByDates(dates: $dates)
+  }
+`
+
 export const deleteLiveCaptureGQL = `
   mutation deleteLiveCapture($filename: String!) {
     deleteLiveCapture(filename: $filename)
