@@ -105,7 +105,7 @@ fun LauncherIconPage(navController: NavHostController) {
                     VerticalSpace(dp = 12.dp)
                 }
                 item {
-                    SectionTitle(stringResource(R.string.launcher_icon_built_in))
+                    LauncherSectionTitle(stringResource(R.string.launcher_icon_built_in))
                     PCard {
                         Text(
                             text = stringResource(R.string.launcher_icon_built_in_desc),
@@ -131,7 +131,7 @@ fun LauncherIconPage(navController: NavHostController) {
                     VerticalSpace(dp = 16.dp)
                 }
                 item {
-                    SectionTitle(stringResource(R.string.launcher_icon_custom))
+                    LauncherSectionTitle(stringResource(R.string.launcher_icon_custom))
                     PCard {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
@@ -206,7 +206,7 @@ fun LauncherIconPage(navController: NavHostController) {
                     VerticalSpace(dp = 16.dp)
                 }
                 item {
-                    SectionTitle(stringResource(R.string.launcher_icon_specs_title))
+                    LauncherSectionTitle(stringResource(R.string.launcher_icon_specs_title))
                     PCard {
                         Text(
                             text = stringResource(R.string.launcher_icon_specs_body),
@@ -218,7 +218,7 @@ fun LauncherIconPage(navController: NavHostController) {
                     VerticalSpace(dp = 16.dp)
                 }
                 item {
-                    SectionTitle(stringResource(R.string.launcher_icon_code_title))
+                    LauncherSectionTitle(stringResource(R.string.launcher_icon_code_title))
                     PCard {
                         Text(
                             text = stringResource(R.string.launcher_icon_code_body),
@@ -235,7 +235,7 @@ fun LauncherIconPage(navController: NavHostController) {
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+private fun LauncherSectionTitle(text: String) {
     Text(
         text = text,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
