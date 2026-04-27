@@ -418,7 +418,7 @@ fun Game2048(
                     Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         for (c in 0 until sizeN) {
                             Box(modifier = Modifier.weight(1f).padding(3.dp).clip(RoundedCornerShape(8.dp))
-                                .background(if (Pair(r, c) in blocked) Color(0xFF333) else Color.White.copy(0.04f)))
+                                .background(if (Pair(r, c) in blocked) Color(0xFF333333) else Color.White.copy(0.04f)))
                         }
                     }
                 }
