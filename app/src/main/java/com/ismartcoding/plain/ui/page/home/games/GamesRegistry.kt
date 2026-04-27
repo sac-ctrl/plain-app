@@ -281,8 +281,8 @@ object GamesRegistry {
                     "Don’t chase a missed target — reset.",
                 ),
             )),
-        GameMeta("runner", "Endless Runner", "Jump and slide forever",
-            Color(0xFF1F1B16), Color(0xFFFFD166), listOf("Classic", "Survival"),
+        GameMeta("runner", "Dino Dash · Extinction Run", "Tap to jump, swipe to crouch, run forever",
+            Color(0xFF1F1B16), Color(0xFFFFD166), listOf("Classic", "TimeTrial", "BossRun", "Mission"),
             GameTutorial(
                 howTo = listOf(
                     "Your runner moves forward automatically.",
