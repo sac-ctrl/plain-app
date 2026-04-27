@@ -1,0 +1,384 @@
+// Matrix / hacker terminal theme.
+// Activated by adding `.theme-matrix` to <html>. All overrides are scoped
+// inside that class so the original (classic) theme is left untouched.
+
+:root.theme-matrix {
+  // Color tokens
+  --md-sys-color-background: #050a06;
+  --md-sys-color-on-background: #b6ffcd;
+  --md-sys-color-surface: #060f08;
+  --md-sys-color-surface-dim: #050a06;
+  --md-sys-color-surface-bright: #0d1c12;
+  --md-sys-color-surface-container-lowest: #030705;
+  --md-sys-color-surface-container-low: #061008;
+  --md-sys-color-surface-container: #08160d;
+  --md-sys-color-surface-container-high: #0c1f12;
+  --md-sys-color-surface-container-highest: #112a18;
+  --md-sys-color-on-surface: #c8ffd8;
+  --md-sys-color-surface-variant: #0e1f14;
+  --md-sys-color-on-surface-variant: #6effa1;
+  --md-sys-color-inverse-surface: #c8ffd8;
+  --md-sys-color-inverse-on-surface: #050a06;
+  --md-sys-color-outline: #0fcc6b;
+  --md-sys-color-outline-variant: #0d4023;
+  --md-sys-color-shadow: #000000;
+  --md-sys-color-scrim: #000000;
+  --md-sys-color-surface-tint: #00ff7c;
+  --md-sys-color-primary: #00ff7c;
+  --md-sys-color-on-primary: #001a07;
+  --md-sys-color-primary-container: #003e1d;
+  --md-sys-color-on-primary-container: #6effa1;
+  --md-sys-color-inverse-primary: #006a32;
+  --md-sys-color-secondary: #20e3a3;
+  --md-sys-color-on-secondary: #00210f;
+  --md-sys-color-secondary-container: #003821;
+  --md-sys-color-on-secondary-container: #69ffc6;
+  --md-sys-color-tertiary: #00d8ff;
+  --md-sys-color-on-tertiary: #001f24;
+  --md-sys-color-tertiary-container: #00363f;
+  --md-sys-color-on-tertiary-container: #82f3ff;
+  --md-sys-color-error: #ff4d6d;
+  --md-sys-color-on-error: #1c0008;
+  --md-sys-color-error-container: #3a000f;
+  --md-sys-color-on-error-container: #ffb1c0;
+  --md-sys-color-warning: #ffd60a;
+
+  --border-color: #0d4023;
+  --outlined-field-bg: rgba(0, 255, 124, 0.04);
+  --pl-selecting-container-color: rgba(0, 255, 124, 0.18);
+
+  // Sharper shapes — terminal feel
+  --pl-shape-xl: 6px;
+  --pl-shape-l: 4px;
+  --pl-shape-m: 3px;
+  --pl-shape-s: 2px;
+  --pl-shape-xs: 2px;
+  --border-radius-sm: 2px;
+
+  // Monospace stack everywhere
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace,
+    SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  --md-ref-typeface-brand: 'JetBrains Mono', 'Fira Code', ui-monospace,
+    SFMono-Regular, Menlo, monospace;
+  --md-ref-typeface-plain: 'JetBrains Mono', 'Fira Code', ui-monospace,
+    SFMono-Regular, Menlo, monospace;
+
+  background-color: var(--md-sys-color-background);
+  color: var(--md-sys-color-on-surface);
+  scrollbar-color: var(--md-sys-color-primary) transparent;
+  text-shadow: 0 0 1px rgba(0, 255, 124, 0.18);
+}
+
+// Body backdrop with subtle scanlines + vignette.
+:root.theme-matrix body {
+  background:
+    radial-gradient(ellipse at top, rgba(0, 255, 124, 0.06), transparent 60%),
+    radial-gradient(ellipse at bottom, rgba(0, 255, 124, 0.04), transparent 60%),
+    var(--md-sys-color-background);
+  background-attachment: fixed;
+  position: relative;
+}
+
+:root.theme-matrix body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 255, 124, 0.05) 0px,
+    rgba(0, 255, 124, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+
+:root.theme-matrix body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+// Make sure app content sits above the overlays.
+:root.theme-matrix #app,
+:root.theme-matrix .modal-container,
+:root.theme-matrix .v-toast,
+:root.theme-matrix .tap-phone-container,
+:root.theme-matrix .lightbox {
+  position: relative;
+  z-index: 2;
+}
+
+// Cards / surfaces
+:root.theme-matrix .card,
+:root.theme-matrix .v-card,
+:root.theme-matrix .feature-card,
+:root.theme-matrix .pcard,
+:root.theme-matrix .home-card,
+:root.theme-matrix .feedback-card,
+:root.theme-matrix .locked-card,
+:root.theme-matrix .game-card,
+:root.theme-matrix .panel,
+:root.theme-matrix .quick-content-body,
+:root.theme-matrix .page-content .main {
+  background: linear-gradient(
+      180deg,
+      rgba(0, 255, 124, 0.02),
+      rgba(0, 255, 124, 0.005)
+    ),
+    var(--md-sys-color-surface) !important;
+  border: 1px solid rgba(0, 255, 124, 0.18) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 124, 0.06) inset,
+    0 0 18px rgba(0, 255, 124, 0.08),
+    0 0 1px rgba(0, 255, 124, 0.4) !important;
+  border-radius: var(--pl-shape-l) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+:root.theme-matrix .card::before,
+:root.theme-matrix .v-card::before,
+:root.theme-matrix .feature-card::before,
+:root.theme-matrix .home-card::before,
+:root.theme-matrix .pcard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 255, 124, 0.035) 0px,
+    rgba(0, 255, 124, 0.035) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.4;
+}
+
+// Subtle border-glow pulse for the "active" / hovered cards
+@keyframes mtx-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 255, 124, 0.06) inset, 0 0 12px rgba(0, 255, 124, 0.10); }
+  50%      { box-shadow: 0 0 0 1px rgba(0, 255, 124, 0.10) inset, 0 0 22px rgba(0, 255, 124, 0.20); }
+}
+
+:root.theme-matrix .feature-card:hover,
+:root.theme-matrix .home-card:hover,
+:root.theme-matrix .v-card:hover {
+  animation: mtx-glow 2s ease-in-out infinite;
+  border-color: rgba(0, 255, 124, 0.5) !important;
+}
+
+// Buttons
+:root.theme-matrix button,
+:root.theme-matrix .btn,
+:root.theme-matrix .v-button,
+:root.theme-matrix .open-btn,
+:root.theme-matrix .play-btn {
+  font-family: inherit !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:root.theme-matrix .open-btn,
+:root.theme-matrix .v-button.filled,
+:root.theme-matrix .btn-primary,
+:root.theme-matrix .play-btn,
+:root.theme-matrix .tab.active {
+  background: linear-gradient(135deg, #00ff7c, #00b85a) !important;
+  color: #001a07 !important;
+  border: 1px solid rgba(0, 255, 124, 0.6) !important;
+  box-shadow:
+    0 0 12px rgba(0, 255, 124, 0.45),
+    0 0 30px rgba(0, 255, 124, 0.18) !important;
+  border-radius: var(--pl-shape-m) !important;
+  text-shadow: none !important;
+}
+
+:root.theme-matrix .v-button.outlined,
+:root.theme-matrix .btn-outline {
+  background: transparent !important;
+  color: var(--md-sys-color-primary) !important;
+  border: 1px solid rgba(0, 255, 124, 0.5) !important;
+  box-shadow: 0 0 8px rgba(0, 255, 124, 0.2) !important;
+}
+
+// Inputs
+:root.theme-matrix input,
+:root.theme-matrix textarea,
+:root.theme-matrix .v-text-field,
+:root.theme-matrix .v-outlined-text-field,
+:root.theme-matrix .outlined-field,
+:root.theme-matrix select {
+  font-family: inherit !important;
+  background-color: rgba(0, 255, 124, 0.04) !important;
+  color: var(--md-sys-color-on-surface) !important;
+  caret-color: var(--md-sys-color-primary) !important;
+}
+
+// Links
+:root.theme-matrix a {
+  color: var(--md-sys-color-primary);
+  text-shadow: 0 0 6px rgba(0, 255, 124, 0.5);
+}
+
+// Tabs (used by HomeView)
+:root.theme-matrix .tabs-inner {
+  background: rgba(0, 255, 124, 0.06) !important;
+  border: 1px solid rgba(0, 255, 124, 0.35) !important;
+  box-shadow: 0 0 24px rgba(0, 255, 124, 0.18) !important;
+  border-radius: 6px !important;
+}
+
+:root.theme-matrix .tab {
+  color: rgba(110, 255, 161, 0.85) !important;
+  border-radius: 4px !important;
+}
+
+:root.theme-matrix .tab.active {
+  background: linear-gradient(135deg, #00ff7c, #00b85a) !important;
+  color: #001a07 !important;
+}
+
+// Sidebars / app rail
+:root.theme-matrix .app-rail,
+:root.theme-matrix .sidebar {
+  background: linear-gradient(
+      180deg,
+      rgba(0, 255, 124, 0.04),
+      rgba(0, 255, 124, 0.01)
+    ),
+    var(--md-sys-color-surface);
+  border-right: 1px solid rgba(0, 255, 124, 0.18) !important;
+}
+
+:root.theme-matrix .nav li.active {
+  background: rgba(0, 255, 124, 0.14) !important;
+  border-left: 2px solid var(--md-sys-color-primary);
+}
+
+:root.theme-matrix .nav li:hover {
+  background: rgba(0, 255, 124, 0.08) !important;
+}
+
+// Headers / top app bar
+:root.theme-matrix #header,
+:root.theme-matrix .top-app-bar {
+  border-bottom: 1px solid rgba(0, 255, 124, 0.18) !important;
+  background: linear-gradient(
+      180deg,
+      rgba(0, 255, 124, 0.05),
+      transparent
+    );
+}
+
+// Status badges
+:root.theme-matrix .status-badge {
+  border-color: rgba(0, 255, 124, 0.35) !important;
+  background: rgba(0, 255, 124, 0.05) !important;
+  color: #6effa1 !important;
+}
+
+:root.theme-matrix .status-badge.on {
+  background: rgba(0, 255, 124, 0.18) !important;
+  color: #d6ffe6 !important;
+  box-shadow: 0 0 10px rgba(0, 255, 124, 0.45);
+}
+
+:root.theme-matrix .status-badge.bad {
+  background: rgba(255, 77, 109, 0.18) !important;
+  color: #ffb1c0 !important;
+  border-color: rgba(255, 77, 109, 0.5) !important;
+  box-shadow: 0 0 10px rgba(255, 77, 109, 0.4);
+}
+
+// Top error bar
+:root.theme-matrix .top-error {
+  background: rgba(255, 77, 109, 0.18) !important;
+  color: #ffb1c0 !important;
+  border-bottom: 1px solid rgba(255, 77, 109, 0.5);
+}
+
+// Scrollbars
+:root.theme-matrix ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00ff7c, #008a40);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(0, 255, 124, 0.5);
+}
+
+// Modal dialogs
+:root.theme-matrix .modal,
+:root.theme-matrix .modal-content,
+:root.theme-matrix .dialog {
+  background: var(--md-sys-color-surface) !important;
+  border: 1px solid rgba(0, 255, 124, 0.35) !important;
+  box-shadow: 0 0 30px rgba(0, 255, 124, 0.25) !important;
+  border-radius: var(--pl-shape-l) !important;
+}
+
+// Floating panel theme toggle button
+.theme-toggle-fab {
+  position: fixed;
+  z-index: 9999;
+  bottom: 16px;
+  right: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 255, 124, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  color: #00ff7c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 14px rgba(0, 255, 124, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.theme-toggle-fab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 22px rgba(0, 255, 124, 0.55);
+}
+.theme-toggle-fab .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00ff7c;
+  box-shadow: 0 0 8px #00ff7c;
+}
+:root.theme-classic .theme-toggle-fab {
+  border-color: rgba(63, 81, 181, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  color: #3f51b5;
+  box-shadow: 0 4px 18px rgba(63, 81, 181, 0.25);
+}
+:root.theme-classic .theme-toggle-fab .dot {
+  background: #3f51b5;
+  box-shadow: 0 0 6px #3f51b5;
+}
+
+// Matrix-rain canvas sits behind everything
+.matrix-rain-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.42;
+  mix-blend-mode: screen;
+}
