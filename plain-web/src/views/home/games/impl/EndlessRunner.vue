@@ -150,10 +150,19 @@ function draw() {
 }
 
 let last = 0
+let acc = 0
+const FIXED_DT = 1000 / 60
 function loop(now: number) {
   if (!alive) return
-  const dt = now - (last || now); last = now
-  step(dt); draw()
+  const dt = Math.min(64, now - (last || now)); last = now
+  acc += dt
+  let safety = 0
+  while (acc >= FIXED_DT && alive && safety < 5) {
+    acc -= FIXED_DT
+    step(FIXED_DT)
+    safety++
+  }
+  draw()
   raf = requestAnimationFrame(loop)
 }
 

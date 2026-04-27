@@ -240,10 +240,22 @@ function draw() {
   ctx.fillText('Lives ' + lives.value, 8, 18)
 }
 
-function loop() {
+let lastTs = 0
+let acc = 0
+const FIXED_DT = 1000 / 60
+function loop(ts?: number) {
   if (!alive) return
+  const now = ts || performance.now()
+  const dt = Math.min(64, now - (lastTs || now)); lastTs = now
   if (props.paused) { raf = requestAnimationFrame(loop); return }
-  step(); draw()
+  acc += dt
+  let safety = 0
+  while (acc >= FIXED_DT && alive && safety < 5) {
+    acc -= FIXED_DT
+    step()
+    safety++
+  }
+  draw()
   raf = requestAnimationFrame(loop)
 }
 
