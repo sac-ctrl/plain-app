@@ -1,7 +1,10 @@
 <template>
   <div class="wrap" tabindex="0" ref="root" @keydown="onKey" @click="flap" @touchstart.prevent="flap">
     <canvas ref="cv" class="cv" />
-    <div class="hint">Tap or press Space to flap</div>
+    <div class="hint">
+      <span v-if="hasGhost" class="ghost-tag">👻 Ghost mode active</span>
+      <span v-else>Tap or press Space to flap</span>
+    </div>
   </div>
 </template>
 
@@ -11,7 +14,9 @@ import { useGamesStore } from '../gamesStore'
 
 const props = defineProps<{
   difficulty: 'easy' | 'medium' | 'hard' | 'insane'
+  mode?: 'classic' | 'survival'
   running: boolean
+  paused?: boolean
   onScore: (s: number | ((p: number) => number)) => void
   onGameOver: (final?: number) => void
 }>()
@@ -27,6 +32,10 @@ let pipes: { x: number; gapY: number; passed: boolean }[] = []
 let score = 0
 let alive = true
 let last = 0
+let frameIdx = 0
+let recordedFrames: { y: number }[] = []
+let ghostFrames: { y: number }[] = []
+const hasGhost = ref(false)
 const params: Record<string, { gap: number; gravity: number; speed: number; spawn: number }> = {
   easy: { gap: 170, gravity: 0.45, speed: 2.2, spawn: 1700 },
   medium: { gap: 150, gravity: 0.55, speed: 2.6, spawn: 1500 },
@@ -44,6 +53,16 @@ function reset() {
   alive = true
   last = performance.now()
   spawnT = 0
+  frameIdx = 0
+  recordedFrames = []
+  const g = store.getGhost<{ frames: { y: number }[]; difficulty: string }>('flappy')
+  if (g && g.frames && g.difficulty === props.difficulty) {
+    ghostFrames = g.frames
+    hasGhost.value = true
+  } else {
+    ghostFrames = []
+    hasGhost.value = false
+  }
   props.onScore(0)
 }
 
@@ -60,6 +79,8 @@ function onKey(e: KeyboardEvent) {
 function step(dt: number) {
   bird.vy += cfg.gravity
   bird.y += bird.vy
+  recordedFrames.push({ y: bird.y })
+  frameIdx++
   spawnT += dt
   if (spawnT >= cfg.spawn) {
     spawnT = 0
@@ -84,6 +105,11 @@ function step(dt: number) {
 function die() {
   alive = false
   cancelAnimationFrame(raf)
+  // Save ghost if best
+  const prevBest = store.bestOf('flappy')
+  if (score >= prevBest && score > 0) {
+    store.saveGhost('flappy', { frames: recordedFrames.slice(0, 1500), difficulty: props.difficulty })
+  }
   props.onGameOver(score)
 }
 
@@ -100,9 +126,22 @@ function draw() {
     ctx.fillRect(p.x, p.gapY + cfg.gap, 50, H - p.gapY - cfg.gap)
   })
   ctx.shadowBlur = 0
+  // ghost
+  if (ghostFrames.length > 0 && frameIdx < ghostFrames.length) {
+    const gy = ghostFrames[frameIdx].y
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.35)'
+    ctx.beginPath(); ctx.arc(bird.x, gy, 14, 0, Math.PI * 2); ctx.fill()
+  }
+  // bird
   ctx.fillStyle = '#facc15'
+  ctx.shadowColor = '#facc15'; ctx.shadowBlur = 16
   ctx.beginPath(); ctx.arc(bird.x, bird.y, 14, 0, Math.PI * 2); ctx.fill()
+  ctx.shadowBlur = 0
   ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(bird.x + 5, bird.y - 4, 2, 0, Math.PI * 2); ctx.fill()
+  // wing flap
+  ctx.fillStyle = '#f97316'
+  const flapY = Math.sin(performance.now() / 80) * 4
+  ctx.beginPath(); ctx.ellipse(bird.x - 4, bird.y + flapY, 6, 4, 0, 0, Math.PI * 2); ctx.fill()
   ctx.fillStyle = '#fff'
   ctx.font = 'bold 32px sans-serif'
   ctx.textAlign = 'center'
@@ -113,6 +152,7 @@ function loop(now: number) {
   if (!alive) return
   const dt = now - last
   last = now
+  if (props.paused) { raf = requestAnimationFrame(loop); return }
   step(dt)
   draw()
   raf = requestAnimationFrame(loop)
@@ -130,4 +170,5 @@ watch(() => props.running, (v) => { if (v) { reset(); raf = requestAnimationFram
 .wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; outline: none; user-select: none; }
 .cv { border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); max-width: 100%; height: auto; touch-action: manipulation; }
 .hint { color: rgba(255,255,255,0.7); font-size: 0.85rem; }
+.ghost-tag { background: rgba(250,204,21,0.18); padding: 3px 10px; border-radius: 999px; }
 </style>

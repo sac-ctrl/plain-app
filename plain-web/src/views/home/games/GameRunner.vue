@@ -5,13 +5,16 @@
     :title="def.name"
     :icon="def.icon"
     :desc="def.desc"
+    :modes="def.modes || ['classic']"
     @close="emit('close')"
   >
     <template #default="ctx">
       <component
         :is="def.loader()"
         :difficulty="ctx.difficulty"
+        :mode="ctx.mode"
         :running="ctx.running"
+        :paused="ctx.paused"
         :on-score="ctx.onScore"
         :on-game-over="ctx.onGameOver"
       />

@@ -1,0 +1,1 @@
+import{af as d,aB as s,ag as o}from"./index-CIEulbSk.js";const f=e=>({viewAll:()=>{s(e,"/feeds")},viewFeed:a=>{const u=d([{name:"feed_id",op:"",value:a.id}]);s(e,`/feeds?q=${o(u)}`)},viewToday:()=>{const a=d([{name:"today",op:"",value:"true"}]);s(e,`/feeds?q=${o(a)}`)}});export{f as u};

@@ -1,7 +1,10 @@
 <template>
   <div class="wrap" tabindex="0" ref="root" @keydown.space.prevent="jump" @click="jump" @touchstart.prevent="jump">
     <canvas ref="cv" class="cv" />
-    <div class="hint">Tap to jump. Pass through matching colors.</div>
+    <div class="hud">
+      <div v-if="combo > 1" class="combo">x{{ combo }} COMBO!</div>
+      <div class="hint">Tap to jump. Pass through matching colors.</div>
+    </div>
   </div>
 </template>
 
@@ -11,7 +14,9 @@ import { useGamesStore } from '../gamesStore'
 
 const props = defineProps<{
   difficulty: 'easy' | 'medium' | 'hard' | 'insane'
+  mode?: 'classic' | 'survival'
   running: boolean
+  paused?: boolean
   onScore: (s: number | ((p: number) => number)) => void
   onGameOver: (final?: number) => void
 }>()
@@ -27,6 +32,9 @@ let rings: { y: number; rot: number; rotSpeed: number; passed: boolean }[] = []
 let switches: { y: number; passed: boolean }[] = []
 let scrollY = 0
 let score = 0
+const combo = ref(0)
+let lastPassTs = 0
+let trail: { x: number; y: number; life: number; color: string }[] = []
 const cfg: Record<string, { gravity: number; jump: number; speed: number }> = {
   easy: { gravity: 0.4, jump: -7, speed: 1.4 },
   medium: { gravity: 0.5, jump: -7.5, speed: 1.7 },
@@ -42,6 +50,8 @@ function reset() {
   rings = []
   switches = []
   scrollY = 0
+  combo.value = 0
+  trail = []
   for (let i = 0; i < 6; i++) {
     rings.push({ y: H - 200 - i * 220, rot: Math.random() * Math.PI * 2, rotSpeed: 0.02 + Math.random() * 0.02, passed: false })
     switches.push({ y: H - 320 - i * 220, passed: false })
@@ -59,6 +69,9 @@ function jump() {
 function step() {
   ball.vy += c.gravity
   ball.y += ball.vy
+  trail.push({ x: ball.x, y: ball.y, life: 16, color: colors[ball.color] })
+  trail.forEach((t) => t.life--)
+  trail = trail.filter((t) => t.life > 0)
   if (ball.y < H * 0.4) {
     const dy = H * 0.4 - ball.y
     ball.y = H * 0.4
@@ -80,9 +93,14 @@ function step() {
     }
     if (!r.passed && r.y > ball.y + 100) {
       r.passed = true
-      score += 10
+      const now = performance.now()
+      if (now - lastPassTs < 1500) combo.value++
+      else combo.value = 1
+      lastPassTs = now
+      const points = 10 * Math.max(1, combo.value)
+      score += points
       props.onScore(score)
-      store.beep('tick')
+      store.beep(combo.value > 2 ? 'power' : 'tick')
     }
   }
   for (const s of switches) {
@@ -111,23 +129,39 @@ function draw() {
     const cx = W / 2
     for (let i = 0; i < 4; i++) {
       ctx.strokeStyle = colors[i]
+      ctx.shadowColor = colors[i]; ctx.shadowBlur = 12
       ctx.lineWidth = 26
       ctx.beginPath()
       ctx.arc(cx, r.y, 78, r.rot + (i * Math.PI) / 2, r.rot + ((i + 1) * Math.PI) / 2)
       ctx.stroke()
     }
   }
+  ctx.shadowBlur = 0
   for (const s of switches) {
     if (s.y < -20 || s.y > H + 20) continue
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(W / 2, s.y, 6, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = '#fff'
+    ctx.shadowColor = '#fff'; ctx.shadowBlur = 8
+    ctx.beginPath(); ctx.arc(W / 2, s.y, 6, 0, Math.PI * 2); ctx.fill()
   }
+  ctx.shadowBlur = 0
+  // trail
+  for (const t of trail) {
+    ctx.fillStyle = t.color
+    ctx.globalAlpha = t.life / 16 * 0.4
+    ctx.beginPath(); ctx.arc(t.x, t.y, ball.r, 0, Math.PI * 2); ctx.fill()
+  }
+  ctx.globalAlpha = 1
   ctx.fillStyle = colors[ball.color]
-  ctx.shadowColor = colors[ball.color]; ctx.shadowBlur = 18
+  ctx.shadowColor = colors[ball.color]; ctx.shadowBlur = 24
   ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill()
   ctx.shadowBlur = 0
 }
 
-function loop() { if (!alive) return; step(); draw(); raf = requestAnimationFrame(loop) }
+function loop() {
+  if (!alive) return
+  if (props.paused) { raf = requestAnimationFrame(loop); return }
+  step(); draw(); raf = requestAnimationFrame(loop)
+}
 onMounted(() => { cv.value!.width = W; cv.value!.height = H; reset(); raf = requestAnimationFrame(loop); root.value?.focus() })
 onUnmounted(() => cancelAnimationFrame(raf))
 watch(() => props.running, (v) => { if (v) { reset(); raf = requestAnimationFrame(loop) } })
@@ -136,5 +170,8 @@ watch(() => props.running, (v) => { if (v) { reset(); raf = requestAnimationFram
 <style scoped>
 .wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; outline: none; user-select: none; }
 .cv { border-radius: 14px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); touch-action: manipulation; }
+.hud { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.combo { background: linear-gradient(135deg, #f59e0b, #ef4444); padding: 4px 12px; border-radius: 999px; color: #fff; font-weight: 800; font-size: 0.9rem; animation: bump 0.3s ease; }
+@keyframes bump { from { transform: scale(0.5); } to { transform: scale(1); } }
 .hint { color: rgba(255,255,255,0.7); font-size: 0.85rem; }
 </style>
