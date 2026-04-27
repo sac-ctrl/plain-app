@@ -1,0 +1,1 @@
+import{ad as s,aA as d,ae as o}from"./index-DecZOtvh.js";const l=e=>({viewAll:()=>{d(e,"/feeds")},viewFeed:a=>{const u=s([{name:"feed_id",op:"",value:a.id}]);d(e,`/feeds?q=${o(u)}`)},viewToday:()=>{const a=s([{name:"today",op:"",value:"true"}]);d(e,`/feeds?q=${o(a)}`)}});export{l as u};

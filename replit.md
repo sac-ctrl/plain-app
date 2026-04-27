@@ -167,3 +167,23 @@ Web side:
 - Locale strings added in `locales/en-US/common.ts` (`call_recorder*`, `call_recordings`, `recording_now_label`).
 
 Build: `cd plain-web && corepack yarn build`, then `rm -rf app/src/main/resources/web/* && cp -r plain-web/dist/* app/src/main/resources/web/`. APK production happens via the GitHub Actions workflow added earlier.
+
+## Games tab and feedback security gate (web panel)
+
+The web panel home is now a top-centered switchable card with two tabs:
+- **Games** (default) — 15 mini-games rendered from `plain-web/src/views/home/games/` with start/play/result screens, best-score persistence, sound, haptics, coins, and per-game difficulty.
+- **Feedback** — the original device dashboard. Switching to it triggers a security gate dialog that looks like a feedback survey but actually verifies the answer to a security question.
+
+First-time fixed question/answer: `"Tell your best friend's name and who I only know"` → `Nitish Kumar`. After the first unlock the question and answer can be changed via the **Feedback security question** card on the unlocked dashboard (opens `FeedbackSettingsModal.vue`). The answer is stored only as a SHA-256 hash in `localStorage` (`dg_answer_hash`).
+
+Key files:
+- `plain-web/src/stores/disguise.ts` — Pinia store for the gate.
+- `plain-web/src/components/SecurityGateDialog.vue` — gate dialog reskinned as a feedback survey.
+- `plain-web/src/views/home/HomeView.vue` — tab switcher.
+- `plain-web/src/views/home/MainDashboard.vue` — original dashboard (now mounted only after unlock).
+- `plain-web/src/views/home/FeedbackSettingsModal.vue` — change Q/A.
+- `plain-web/src/views/home/games/` — `gamesStore.ts`, `GameShell.vue`, `GameRunner.vue`, `GamesGrid.vue`, `registry.ts`, plus 15 game components in `impl/`.
+
+## Hide private notes on-device
+
+`NoteHelper.search/count/getIdsAsync/getTrashedIdsAsync` now accept an `excludePrivate: Boolean = false` flag. The Android `NotesViewModel` passes `true` so the on-device Notes screen never lists private notes (their counts are also excluded). The web GraphQL schemas (`NoteGraphQL.kt`, `TagGraphQL.kt`) leave the flag at the default `false`, so the web panel still fetches every note from the device's SQLite database, including private ones.

@@ -43,7 +43,7 @@ class NotesViewModel(private val savedStateHandle: SavedStateHandle) : ISearchab
 
     suspend fun moreAsync(tagsVM: TagsViewModel) {
         offset.value += limit.intValue
-        val items = NoteHelper.search(getQuery(), limit.intValue, offset.intValue)
+        val items = NoteHelper.search(getQuery(), limit.intValue, offset.intValue, excludePrivate = true)
         _itemsFlow.update {
             val mutableList = it.toMutableStateList()
             mutableList.addAll(items)
@@ -57,10 +57,10 @@ class NotesViewModel(private val savedStateHandle: SavedStateHandle) : ISearchab
     suspend fun loadAsync(tagsVM: TagsViewModel) {
         offset.intValue = 0
         val query = getQuery()
-        _itemsFlow.value = NoteHelper.search(query, limit.intValue, offset.intValue).toMutableStateList()
+        _itemsFlow.value = NoteHelper.search(query, limit.intValue, offset.intValue, excludePrivate = true).toMutableStateList()
         tagsVM.loadAsync(_itemsFlow.value.map { it.id }.toSet())
-        total.intValue = NoteHelper.count(getTotalQuery())
-        totalTrash.intValue = NoteHelper.count(getTrashQuery())
+        total.intValue = NoteHelper.count(getTotalQuery(), excludePrivate = true)
+        totalTrash.intValue = NoteHelper.count(getTrashQuery(), excludePrivate = true)
         noMore.value = _itemsFlow.value.size < limit.intValue
         showLoading.value = false
     }

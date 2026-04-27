@@ -13,32 +13,32 @@ object NoteHelper {
         AppDatabase.instance.noteDao()
     }
 
-    suspend fun count(query: String): Int {
+    suspend fun count(query: String, excludePrivate: Boolean = false): Int {
         var sql = "SELECT COUNT(id) FROM notes"
         val where = ContentWhere()
-        parseQuery(where, query)
+        parseQuery(where, query, excludePrivate)
         sql += " WHERE ${where.toSelection()}"
 
         return noteDao.count(SimpleSQLiteQuery(sql, where.args.toTypedArray()))
     }
 
-    suspend fun getIdsAsync(query: String): Set<String> {
+    suspend fun getIdsAsync(query: String, excludePrivate: Boolean = false): Set<String> {
         var sql = "SELECT id FROM notes"
         val where = ContentWhere()
-        if (query.isNotEmpty()) {
-            parseQuery(where, query)
+        if (query.isNotEmpty() || excludePrivate) {
+            parseQuery(where, query, excludePrivate)
             sql += " WHERE ${where.toSelection()}"
         }
 
         return noteDao.getIds(SimpleSQLiteQuery(sql, where.args.toTypedArray())).map { it.id }.toSet()
     }
 
-    suspend fun getTrashedIdsAsync(query: String): Set<String> {
+    suspend fun getTrashedIdsAsync(query: String, excludePrivate: Boolean = false): Set<String> {
         var sql = "SELECT id FROM notes"
         val where = ContentWhere()
         where.trash = true
-        if (query.isNotEmpty()) {
-            parseQuery(where, query)
+        if (query.isNotEmpty() || excludePrivate) {
+            parseQuery(where, query, excludePrivate)
             sql += " WHERE ${where.toSelection()}"
         }
 
@@ -49,10 +49,11 @@ object NoteHelper {
         query: String,
         limit: Int,
         offset: Int,
+        excludePrivate: Boolean = false,
     ): List<DNote> {
         var sql = "SELECT * FROM notes"
         val where = ContentWhere()
-        parseQuery(where, query)
+        parseQuery(where, query, excludePrivate)
         sql += " WHERE ${where.toSelection()}"
 
         sql += if (limit == Int.MAX_VALUE) {
@@ -143,6 +144,7 @@ object NoteHelper {
     private suspend fun parseQuery(
         where: ContentWhere,
         query: String,
+        excludePrivate: Boolean = false,
     ) {
         QueryHelper.parseAsync(query).forEach {
             when (it.name) {
@@ -163,6 +165,9 @@ object NoteHelper {
             where.add("deleted_at IS NOT NULL")
         } else {
             where.add("deleted_at IS NULL")
+        }
+        if (excludePrivate) {
+            where.add("is_private = 0")
         }
     }
 }
