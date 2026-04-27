@@ -739,7 +739,7 @@ private fun drawScene(ds: DrawScope, theme: ThemeDef, skin: SkinDef, lanes: Int,
         // obstacles
         obs.sortedBy { it.z }.forEach { o ->
             val depth = (1f - o.z / 22f).coerceIn(0f, 1f)
-            val (ox, oy) = project(o.lane + (o.width - 1) * 0.5f, 0f, depth)
+            val (ox, oy) = project(o.lane, (o.width - 1) * 0.5f, depth)
             val sz = 16f + 80f * depth
             val color = when (o.kind) {
                 ObsKind.Sedan -> Color(0xFFEF4444); ObsKind.Truck -> Color(0xFF1E3A8A)
@@ -758,7 +758,7 @@ private fun drawScene(ds: DrawScope, theme: ThemeDef, skin: SkinDef, lanes: Int,
                     val widthPx = roadBotHalf * 1.7f * depth.coerceAtLeast(0.4f)
                     drawRect(color, Offset(cx - widthPx, oy - sz * 1.6f), Size(widthPx * 2f, sz * 1.6f))
                     // open lane indicator
-                    val (gx, _) = project(o.bossOpenLane.toFloat(), 0f, depth)
+                    val (gx, _) = project(o.bossOpenLane, 0f, depth)
                     drawRect(Color(0xFFFCD34D), Offset(gx - sz * 0.6f, oy - sz * 1.6f), Size(sz * 1.2f, sz * 1.6f))
                 }
                 ObsKind.Drone -> drawCircle(color, sz * 0.6f, Offset(ox, oy - sz * 1.2f))
@@ -776,7 +776,7 @@ private fun drawScene(ds: DrawScope, theme: ThemeDef, skin: SkinDef, lanes: Int,
         // pickups
         pks.forEach { p ->
             val depth = (1f - p.z / 22f).coerceIn(0f, 1f)
-            val (ox, oy) = project(p.lane.toFloat(), 0f, depth)
+            val (ox, oy) = project(p.lane, 0f, depth)
             val sz = 8f + 22f * depth
             val color = when (p.kind) {
                 PickupKind.Coin -> Color(0xFFFCD34D); PickupKind.Shield -> Color(0xFF38BDF8)
