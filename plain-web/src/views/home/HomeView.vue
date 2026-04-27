@@ -1,252 +1,258 @@
 <template>
-  <div class="home-shell">
-    <div class="tab-card-wrap">
-      <div class="tab-card" role="tablist">
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          :class="{ active: activeTab === 'games' }"
-          :aria-selected="activeTab === 'games'"
-          @click="goGames"
-        >
-          <i-material-symbols:sports-esports-outline-rounded />
-          <span>{{ $t('tab_games') }}</span>
-        </button>
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          :class="{ active: activeTab === 'security' }"
-          :aria-selected="activeTab === 'security'"
-          @click="goSecurity"
-        >
-          <i-material-symbols:shield-lock-outline-rounded />
-          <span>{{ $t('tab_security') }}</span>
-          <i-material-symbols:lock v-if="!disguise.unlocked" class="lock-icon" />
-        </button>
-        <span class="indicator" :class="{ right: activeTab === 'security' }"></span>
+  <div class="grids">
+    <FeatureCard to="/audios" :title="$t('audios')" :count="counter.audios">
+      <template #icon><i-lucide:music /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/images" :title="$t('images')" :count="counter.images">
+      <template #icon><i-lucide:image /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/videos" :title="$t('videos')" :count="counter.videos">
+      <template #icon><i-lucide:video /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/docs" :title="$t('page_title.docs')" :count="counter.docs">
+      <template #icon><i-lucide:file-text /></template>
+    </FeatureCard>
+
+    <FeatureCard :to="filesPath" :title="$t('files')">
+      <template #icon><i-lucide:folder /></template>
+      <div v-if="counter.total >= 0" class="storage-info">
+        {{ $t('storage_free_total', { free: formatFileSize(counter.free), total: formatFileSize(counter.total) }) }}
+      </div>
+    </FeatureCard>
+
+    <FeatureCard v-if="app.channel !== 'GOOGLE'" to="/apps" :title="$t('apps')" :count="counter.packages">
+      <template #icon><i-lucide:layout-grid /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/notes" :title="$t('page_title.notes')" :count="counter.notes">
+      <template #icon><i-lucide:notebook-pen /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/feeds" :title="$t('page_title.feeds')" :count="counter.feedEntries">
+      <template #icon><i-lucide:rss /></template>
+    </FeatureCard>
+
+    <FeatureCard v-if="app.channel !== 'GOOGLE'" to="/messages" :title="$t('messages')" :count="counter.messages">
+      <template #icon><i-lucide:message-square-text /></template>
+    </FeatureCard>
+
+    <FeatureCard v-if="app.channel !== 'GOOGLE'" to="/calls" :title="$t('calls')" :count="counter.calls">
+      <template #icon><i-material-symbols:call-log-outline-rounded /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/contacts" :title="$t('contacts')" :count="counter.contacts">
+      <template #icon><i-lucide:contact-round /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/screen-mirror" :title="$t('screen_mirror')">
+      <template #icon><i-material-symbols:screen-record-rounded /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/live-camera" :title="$t('live_camera')">
+      <template #icon><i-lucide:camera /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/live-mic" :title="$t('live_mic')">
+      <template #icon><i-lucide:mic /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/device-info" :title="$t('device_info')">
+      <template #icon><i-lucide:smartphone /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/utilities" :title="$t('page_title.utilities')">
+      <template #icon><i-lucide:wrench /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/notifications-log" :title="$t('page_title.notifications_log')">
+      <template #icon><i-lucide:bell /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/timeline" :title="$t('page_title.timeline')">
+      <template #icon><i-lucide:activity /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/talk-mode" :title="$t('page_title.talk_mode')">
+      <template #icon><i-lucide:headphones /></template>
+    </FeatureCard>
+
+    <FeatureCard to="/call-recordings" :title="$t('call_recordings')">
+      <template #icon><i-lucide:phone-call /></template>
+    </FeatureCard>
+
+    <LiveCallCard />
+    <CallRecorderCard />
+
+    <div class="card phone-card">
+      <div class="card-content">
+        <h5 class="card-title">{{ $t('send_to_phone_clipboard') }}</h5>
+        <div class="phone-input-row">
+          <v-text-field v-model="clipText" :label="$t('clipboard_text')" class="phone-input" :error="clipTextError" :error-text="$t('valid.required')" @keyup.enter="sendClipboard">
+            <template #trailing-icon>
+              <v-icon-button @click.prevent="pasteClipboardText">
+                <i-material-symbols:content-paste-rounded />
+              </v-icon-button>
+            </template>
+          </v-text-field>
+          <v-filled-button class="call-btn" :loading="setClipLoading" @click.prevent="sendClipboard">
+            {{ $t('send') }}
+          </v-filled-button>
+        </div>
       </div>
     </div>
 
-    <div class="tab-body">
-      <transition name="fade-tab" mode="out-in">
-        <GamesArcade v-if="activeTab === 'games'" key="g" />
-        <MainDashboard v-else-if="disguise.unlocked" key="s" />
-        <div v-else class="locked-screen" key="l">
-          <div class="locked-card">
-            <div class="lock-emblem">
-              <i-material-symbols:shield-lock-outline-rounded />
-            </div>
-            <h2>{{ $t('security_locked_title') }}</h2>
-            <p>{{ $t('security_locked_desc') }}</p>
-            <v-filled-button @click="askGate">{{ $t('security_unlock') }}</v-filled-button>
-          </div>
-        </div>
-      </transition>
-    </div>
+    <CallPhoneCard />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { formatFileSize } from '@/lib/format'
+import { computed } from 'vue'
+import { useTempStore } from '@/stores/temp'
 import { storeToRefs } from 'pinia'
-import { useDisguiseStore } from '@/stores/disguise'
-import { openModal } from '@/components/modal'
-import SecurityGateDialog from '@/components/SecurityGateDialog.vue'
-import GamesArcade from '@/views/games/GamesArcade.vue'
-import MainDashboard from './MainDashboard.vue'
+import { buildQuery } from '@/lib/search'
+import { encodeBase64 } from '@/lib/strutil'
+import { useHomeData, useClipboardAction } from './home'
+import CallPhoneCard from './CallPhoneCard.vue'
+import FeatureCard from './FeatureCard.vue'
+import LiveCallCard from './LiveCallCard.vue'
+import CallRecorderCard from './CallRecorderCard.vue'
 
-const disguise = useDisguiseStore()
-const { activeTab } = storeToRefs(disguise)
+const { app, counter } = storeToRefs(useTempStore())
 
-onMounted(() => {
-  disguise.ensureFirstTimeAnswerStored()
+const { mounts } = useHomeData()
+const { clipText, clipTextError, setClipLoading, pasteClipboardText, sendClipboard } = useClipboardAction()
+
+const filesPath = computed(() => {
+  const internalRoot = mounts.value.find((m) => m.driveType === 'INTERNAL_STORAGE')?.mountPoint || app.value.internalStoragePath
+  const q = buildQuery([
+    { name: 'parent', op: '', value: internalRoot },
+    { name: 'type', op: '', value: 'INTERNAL_STORAGE' },
+    { name: 'root_path', op: '', value: internalRoot },
+  ])
+  return `/files?q=${encodeBase64(q)}`
 })
-
-function goGames() { disguise.setTab('games') }
-
-function goSecurity() {
-  if (disguise.unlocked) {
-    disguise.setTab('security')
-    return
-  }
-  askGate()
-}
-
-function askGate() {
-  openModal(SecurityGateDialog, {
-    onUnlocked: () => disguise.setTab('security'),
-  })
-}
 </script>
 
 <style lang="scss" scoped>
-.home-shell {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
-.tab-card-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 18px 16px 8px;
-}
-
-.tab-card {
-  position: relative;
+.grids {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: 320px;
-  height: 320px;
-  max-width: 90vw;
-  max-height: 60vw;
-  background: var(--md-sys-color-surface-container);
-  border-radius: 28px;
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    0 8px 28px rgba(0, 0, 0, 0.10);
-  overflow: hidden;
-  padding: 8px;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+  padding: 16px;
 }
 
-.tab {
-  position: relative;
-  z-index: 1;
-  border: none;
-  background: transparent;
-  border-radius: 22px;
+:deep(.feature-card) {
   cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 12px;
-  color: var(--md-sys-color-on-surface-variant);
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.2px;
-  transition: color 0.2s ease, transform 0.15s ease;
-
-  svg {
-    width: 44px;
-    height: 44px;
-  }
-
-  .lock-icon {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 18px;
-    height: 18px;
-    opacity: 0.7;
-  }
+  align-items: center;
 
   &:hover {
-    color: var(--md-sys-color-on-surface);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
-  &.active {
-    color: var(--md-sys-color-on-primary-container);
+  .card-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px;
+
+    svg {
+      width: 32px;
+      height: 32px;
+      color: var(--md-sys-color-primary);
+    }
   }
-}
 
-.indicator {
-  position: absolute;
-  top: 8px;
-  bottom: 8px;
-  left: 8px;
-  width: calc(50% - 12px);
-  background: linear-gradient(135deg,
-    var(--md-sys-color-primary-container),
-    color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--md-sys-color-secondary-container)));
-  border-radius: 22px;
-  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
-  z-index: 0;
+  .card-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 
-  &.right {
-    transform: translateX(calc(100% + 8px));
-  }
-}
+    .card-title-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
 
-.tab-body {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  position: relative;
-}
+      .count {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--md-sys-color-primary);
+      }
 
-.tab-body > * {
-  width: 100%;
-}
+      .title {
+        font-size: 0.875rem;
+        text-transform: capitalize;
+        color: var(--md-sys-color-on-surface);
+      }
+    }
 
-.fade-tab-enter-active,
-.fade-tab-leave-active {
-  transition: opacity 0.18s ease, transform 0.22s ease;
-}
-.fade-tab-enter-from,
-.fade-tab-leave-to {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.locked-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 24px;
-}
-
-.locked-card {
-  text-align: center;
-  background: var(--md-sys-color-surface-container);
-  padding: 36px 28px;
-  border-radius: 24px;
-  max-width: 420px;
-  width: 100%;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.08);
-
-  h2 {
-    margin: 0 0 8px;
-    font-size: 1.25rem;
-    color: var(--md-sys-color-on-surface);
-  }
-  p {
-    margin: 0 0 20px;
-    color: var(--md-sys-color-on-surface-variant);
-    line-height: 1.5;
+    .storage-info {
+      font-size: 0.75rem;
+      color: var(--md-sys-color-on-surface-variant);
+      margin-top: 4px;
+    }
   }
 }
 
-.lock-emblem {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--md-sys-color-primary-container);
-  color: var(--md-sys-color-on-primary-container);
-  margin-bottom: 16px;
+.phone-card {
+  grid-column: span 2;
+  min-height: 144px;
 
-  svg {
-    width: 36px;
-    height: 36px;
+  .card-content {
+    text-align: left;
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 500;
+      margin: 0 0 16px 0;
+      text-transform: none;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .phone-input-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+
+      .phone-input {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .call-btn {
+        margin-top: 8px;
+        min-width: 80px;
+      }
+    }
   }
 }
 
-@media (max-width: 600px) {
-  .tab-card {
-    width: 280px;
-    height: 280px;
+@media (max-width: 768px) {
+  .grids {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 12px;
+    margin-block-end: 24px;
+  }
+
+  .phone-card {
+    grid-column: span 2;
   }
 }
 </style>
