@@ -6,7 +6,16 @@
     {{ $t(errorMessage) }}
   </div>
   <template v-else>
-    <div class="layout">
+    <!-- Disguise mode: hide all app chrome until feedback is unlocked. Only the games dashboard is visible. -->
+    <div v-if="disguiseLocked" class="disguise-layout">
+      <main class="disguise-main">
+        <router-view v-slot="{ Component }">
+          <component :is="Component" :key="$route.fullPath" />
+        </router-view>
+      </main>
+      <lightbox />
+    </div>
+    <div v-else class="layout">
       <header id="header">
         <section class="start">
           <v-icon-button
@@ -104,12 +113,21 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue'
+import { computed, inject } from 'vue'
+import { useRoute } from 'vue-router'
 import HeaderSearch from '@/components/HeaderSearch.vue'
 import BookmarkList from '@/views/bookmarks/BookmarkList.vue'
 import { useMainView } from '@/hooks/main-view'
+import { useDisguiseStore } from '@/stores/disguise'
 
 const isTablet = inject('isTablet')
+const route = useRoute()
+const disguise = useDisguiseStore()
+
+// While on the home (games) route and the feedback section is locked,
+// hide every piece of app chrome (left rail / sidebars / header / quick actions).
+// Once the user unlocks feedback the full panel reappears.
+const disguiseLocked = computed(() => route.name === 'home' && !disguise.unlocked)
 
 const {
   store, app, loading, errorMessage,
@@ -121,6 +139,22 @@ const {
 <style lang="scss" scoped>
 .content-loading {
   height: 100vh;
+}
+
+.disguise-layout {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--md-sys-color-background);
+}
+
+.disguise-main {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .layout {
