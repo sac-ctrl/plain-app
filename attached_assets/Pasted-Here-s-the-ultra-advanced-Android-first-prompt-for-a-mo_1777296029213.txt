@@ -1,0 +1,194 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Endless Runner (3‑lane or 4‑lane runner with parkour, sliding, jumping – think Temple Run meets Vector with roguelite progression).
+
+---
+
+🏃‍♂️ Game Title: Infinite Dash: Neon Runway
+
+Core Vibe: Adrenaline‑fueled, one‑thumb mastery. Every swipe is a life‑saving reflex, every run a new story.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Instant responsiveness)
+
+· Basic setup –
+  · Character runs forward automatically at increasing speed.
+  · 3 or 4 lanes (configurable).
+  · Controls: swipe up = jump, swipe down = slide, swipe left/right = change lanes.
+· Obstacles –
+  · Low barriers (must jump).
+  · High barriers (must slide).
+  · Moving obstacles (side‑to‑side).
+  · Falling objects (must dodge lane).
+  · Trapdoors, crumbling floors, laser grids.
+· Power‑ups –
+  · Magnet (collects coins automatically).
+  · Shield (1 hit protection).
+  · Slow motion (2 sec, 0.5x speed).
+  · Boost (speed burst, invincible).
+  · Double coins.
+· Collision – One hit = run ends (shield extends).
+· Score – Distance + coins + combos (consecutive obstacle dodges).
+· Procedural level generation – Infinite, with difficulty curve based on distance.
+
+---
+
+2. INPUT & SENSITIVITY (Swipe perfection)
+
+· Primary controls – Swipe up/down/left/right on bottom half of screen.
+· Sensitivity –
+  · Swipe length threshold (short flick vs long drag).
+  · Dead zone in centre to avoid accidental diagonal swipes.
+· Alternative controls –
+  · Tilt (gyro) for lane change, taps for jump/slide.
+  · On‑screen buttons (accessibility).
+· Haptics –
+  · Light tick on lane change.
+  · Medium buzz on jump/slide.
+  · Strong buzz on collision.
+  · Soft pulse on coin collection.
+  · Rumble on power‑up grab.
+· Input buffering – Queue actions during jump/slide animations (max 1).
+· Edge protection – Cannot swipe beyond leftmost/rightmost lane.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Cinematic runner)
+
+Character & animations
+
+· Multiple unlockable characters (runner, cyber ninja, astronaut, cat).
+· Idle run, jump (flip), slide (dust particles), death (ragdoll + slow‑mo).
+· Customisable trails, outfits, accessories.
+
+Environments (themes)
+
+· Neon city – glowing tracks, holographic ads.
+· Jungle ruins – vines, moving logs, quicksand.
+· Volcanic mine – lava pits, falling rocks, smoke.
+· Arctic base – ice physics, slippery lanes, snow particles.
+· Cyber desert – sandstorms, cacti, heat haze.
+· Each theme has unique obstacles and music.
+
+Visual effects
+
+· Speed lines at high velocity.
+· Near miss: screen edge glow + time dilation (0.95x for 0.1s).
+· Coin collection: particle burst + pop‑up text.
+· Power‑up: screen filter (e.g., gold tint for magnet).
+· Death: camera shake, slow‑mo (0.3x for 0.5s), character tumble.
+
+Dynamic obstacles (30+ variants)
+
+· Moving logs, swinging axes, laser gates, spinning blades, collapsing bridges.
+· Boss events every 2000m – giant monster chasing, must dodge specific patterns.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Game modes
+
+1. Endless – classic, speed increases indefinitely.
+2. Stage rush – fixed distance levels (500m, 1000m, 2000m) with checkpoints.
+3. Time trial – 60 seconds, most distance.
+4. Mission mode – daily objectives (“jump 50 times”, “collect 200 coins”).
+
+Adaptive difficulty
+
+· After 3 early deaths (<500m) → slower speed ramp, more power‑ups.
+· After 3 long runs (>2000m) → add moving obstacles earlier, reduce reaction window.
+· Dynamic obstacle density based on player’s recent success rate.
+
+Meta‑progression & unlocks
+
+· Characters – 20+ (stats: magnet range, shield duration, coin multiplier).
+· Upgrades (earn coins per run):
+  · Shield duration, magnet range, slow‑mo length, double coin chance.
+  · Extra life (once per run).
+· Power‑up improvements – e.g., shield becomes 2 hits.
+· Skins & trails – purely cosmetic.
+
+Daily & weekly challenges
+
+· Fixed seed track – same obstacles for all players, leaderboard for score.
+· Special modifiers: “no coins”, “only jump obstacles”, “speed doubled”.
+
+---
+
+5. AUDIO & ATMOSPHERE (Adaptive & immersive)
+
+· Music – dynamic electronic / synthwave / drum & bass:
+  · Tempo increases with game speed.
+  · Layered instruments added as distance/combo grows.
+  · Boss events trigger dramatic shift.
+· SFX –
+  · Jump: whoosh.
+  · Slide: grind.
+  · Coin: chime.
+  · Power‑up: ascending synth.
+  · Near miss: sting.
+  · Collision: crunch + glass break.
+· Voice announcer (toggle) – “Perfect dodge”, “Power‑up”, “Boss incoming”, “New record”.
+· Audio ducking – Lowers music intensity during menus.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 3 presets (recolour obstacles, coins, power‑ups).
+· Reduced motion – Disables screen shake, slow‑mo, speed lines, particles.
+· High contrast – Bold outlines for all obstacles.
+· Assist modes –
+  · Auto‑jump/slide when obstacle detected (reaction time +200ms).
+  · Lane highlight – current lane glows.
+  · Invincibility (practice mode).
+· One‑handed mode – Swipe zone limited to right/left half, UI shifted.
+· Font scaling – Respects system settings.
+· Battery saver – Cap 30fps, reduce reflections, lower particle count.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Lane change heatmap (which lanes you used).
+  · Reaction time graph: delay between obstacle spawn and your action.
+  · Most deadly obstacle type.
+  · Tip: “You jumped too early on barriers – wait 0.2s longer.”
+· Live calibration – “Swipe test” – perform 5 actions, game sets thresholds.
+· Replay system – Watch last run with touch overlay (swipes shown as arrows).
+· Crash log – Exact frame: obstacle ID, your lane, input received.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Ghost runs – Race against your best run (transparent character).
+· Share replay – Export as MP4 with speedometer.
+· Friend challenges – Send QR code to beat your score on same seed.
+· Clans – Weekly clan distance leaderboard, rewards.
+· Daily login streak – Bonus coins, exclusive skins.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot (Vulkan / OpenGL ES 3.1).
+· Frame rate – 60/90/120/144Hz support; game logic 60Hz, rendering at device refresh.
+· Touch latency – <20ms from swipe to action.
+· Memory – <200 MB (streaming assets for themes).
+· Battery efficiency – Pause when background, dynamic resolution scaling.
+· Install size – Under 150 MB (optional HD assets).
+· Permissions – None (gyro optional).
+· Offline – Full offline play; sync when online.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Infinite Dash: Neon Runway – a lane‑based endless runner for Android with swipe controls (up= jump, down= slide, left/right= lanes), adaptive difficulty, 30+ obstacle types, boss events, unlockable characters and upgrades, daily challenges, Google Play leaderboards, and assist modes (auto‑jump, lane highlight). Include haptic feedback on actions, dynamic music that speeds with run speed, colorblind presets, post‑run reaction time heatmap, replay system, and battery saver. Support 120Hz displays. Make every dodge feel reflexive, every coin satisfying.”
+
+---
+
+Hand this prompt to any skilled mobile developer or AI coder, and you’ll get a polished, addictive, ultra‑responsive endless runner – built for Android touch with modern depth. 🏃💨📱

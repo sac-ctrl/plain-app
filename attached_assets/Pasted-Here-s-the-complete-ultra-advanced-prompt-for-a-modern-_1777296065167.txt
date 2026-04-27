@@ -1,0 +1,186 @@
+Here’s the complete, ultra‑advanced prompt for a modern Snake Game – designed specifically for Android mobile (touch‑first, haptics, adaptive layouts, gestures). Same depth as Flappy Eclipse and Crusher: Neon Fracture.
+
+---
+
+🐍 Game Title: Viper: Evolved
+
+Core Vibe: Smooth, hypnotic, and responsive. The snake bends like liquid, and every move feels deliberate.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Mobile‑first)
+
+· Grid vs. free‑movement – Two modes (selectable):
+  · Classic grid (20x12 cells) – discrete steps.
+  · Smooth vector – snake moves in continuous 2D space, rounded collision radius.
+· Snake body – Each segment follows the head with lag‑interpolated positions (no rigid blockiness unless in grid mode).
+· Movement speed – Adjustable base speed (slow / normal / fast) + power‑ups that temporarily boost speed.
+· Turning – Instant response on swipe. No buffered queue (modern: last swipe within 60ms overrides previous).
+· Collision rules –
+  · Self‑collision: fail unless “phase‑through” power‑up active.
+  · Wall collision: fail by default, but “wrap‑around” mode (optional) lets snake exit left/right, top/bottom.
+· Food types –
+  · Normal (grow +1).
+  · Golden (grow +3, speed burst).
+  · Poison (shrink or reverse controls).
+  · Time‑based (food expires after 5 sec, moves to new location).
+· Score multiplier – Consecutive food eats without hitting anything = combo multiplier (up to 5x).
+
+---
+
+2. INPUT & SENSITIVITY (Swipe perfection)
+
+· Primary control – Swipe anywhere on screen (up/down/left/right).
+  · Sensitivity slider: low = long swipe needed, high = very short flick triggers turn.
+  · Dead zone in centre (optional) for resting thumb.
+· Alternative controls –
+  · Tilt (gyro) – tilt phone to steer (left/right only, forward fixed).
+  · On‑screen directional pad (for accessibility).
+· Haptic feedback –
+  · Light tap on food collection.
+  · Medium buzz on power‑up grab.
+  · Double buzz on death.
+· Edge‑protection turn limit – Cannot turn 180° into itself (prevent instant suicide).
+· Pause on accidental background – Game auto‑pauses if you switch apps or cover proximity sensor (customisable).
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (OLED‑ready)
+
+Snake design
+
+· Head – Distinct shape (viper wedge) with glowing eyes and subtle idle animation.
+· Body – Smooth gradient (head = bright, tail = dark) or neon tube segments.
+· Scales / texture – Optional subtle bump map or holographic shimmer.
+· Tail whip – Last segment leaves a fading particle trail.
+· Death animation – Snake shatters into glowing scales, screen shake, slow‑mo.
+
+Arena & backgrounds
+
+· Dynamic themes – Unlockable backgrounds:
+  · Cyber grid – pulsing neon lines.
+  · Zen garden – sand ripples that react to snake movement.
+  · Toxic waste – bubbling green pools.
+  · Void – pure black with only snake and food (battery saver).
+· Parallax floor – Subtle moving pattern under the snake.
+· Reactive lighting – Food emits soft glow; snake’s eyes illuminate nearby area.
+
+Food & power‑up visuals
+
+· 3D‑style orbs with floating animation.
+· Golden food – spinning, particles, aura.
+· Poison – purple bubbling, skull icon.
+· Magnetic food – slowly drifts toward snake (rare).
+
+Effects & juice
+
+· On eat: screen flash (optional), ripple from head position, number pop‑up (+points).
+· On combo: screen edge pulsing, trail turns gold, music pitch shift.
+· High score celebration – confetti + camera zoom out + slow zoom in.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Adaptive difficulty (mobile retention)
+
+· After 3 deaths below 10 food → slower initial speed, bigger food hitbox.
+· After 3 wins above 30 food → add moving obstacles or shrinking arena.
+· AI‑driven difficulty – Spawns poison more often when player is doing too well.
+
+Game modes
+
+1. Classic – Endless, lives = 1, score = food eaten.
+2. Time attack – 60 seconds, each food adds +2 sec.
+3. Maze mode – Static walls and gates that open/close.
+4. Battle – Two snakes on same device (split screen) or online (turn‑based or real‑time).
+5. Daily maze – New fixed level every day, global leaderboard.
+
+Unlockables & meta‑progression
+
+· Snake skins – Unlocked via achievements:
+  · Neon, Crystal, Lava, Ice, Ghost (semi‑transparent), Pixel, Golden.
+· Trail effects – Sparkles, fire, smoke, rainbow, none.
+· Arenas – Purchase with in‑game coins earned by playing.
+· Power‑up upgrades – Magnetic range, golden food chance, etc.
+
+Daily rewards & streaks
+
+· Login bonus, first‑win‑of‑day multiplier.
+
+---
+
+5. AUDIO & ATMOSPHERE (Mobile‑optimised)
+
+· Adaptive music – Dynamic layers:
+  · Calm (0–10 food) → added bassline (10–30) → percussion + leads (30+).
+  · Death → music drops to low‑pass filter, then rebuilds.
+· SFX –
+  · Eat: soft crunch + ascending note.
+  · Power‑up: arcade chime.
+  · Death: deep “whoosh” + crack.
+  · Turn swipe: subtle tick (optional).
+· Voice hints (disabled by default) – “Nice combo”, “Poison nearby”, “New high score!”
+· Audio focus – Duck other apps’ audio appropriately.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android specific)
+
+· Colorblind modes – 3 presets (red‑green, blue‑yellow, full monochrome).
+· Reduced motion – Disables screen shake, slow‑mo, particle explosions.
+· High contrast – Bold outlines, distinct food shapes.
+· Assist mode (casual) –
+  · Auto‑turn off walls (wrap‑around).
+  · Show predicted next food location (blinking circle).
+  · Undo last move (one per game).
+· Left‑hand mode – Flip UI, move virtual D‑pad to left side.
+· Font scaling – All text respects system font size.
+· Battery saver – Low‑quality particles, reduced frame rate (30fps), disable bloom.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS (for players & devs)
+
+· Post‑game screen –
+  · Path heatmap: where snake spent most time.
+  · Efficiency: average distance travelled between foods.
+  · Reaction map: swipes per second, late vs early turns.
+  · Tip: “You turned too late 3 times – try swiping earlier when approaching wall.”
+· Live calibration – “Swipe sensitivity test” – draw a line, game sets sensitivity to match your natural speed.
+· Replay – Watch your last run with ghost trail.
+· Crash log – Exact frame of death (hit tail at segment 7, direction conflict).
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Share replay – Export as MP4 or GIF – auto‑upload to social media with score overlay.
+· Daily challenge seeds – Same maze for all players, compare scores.
+· Friend ghosts – Race against your friend’s best run (transparent snake).
+· Tournaments – Weekend events, time‑limited, exclusive skins as rewards.
+· QR code / link – Challenge a friend: “Beat my score on this seed.”
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot / custom (Kotlin + Vulkan for smoothness).
+· Frame rate – Locks to device refresh rate (60/90/120/144Hz) – movement update decoupled from visuals (fixed 60 logic ticks).
+· Touch latency – <20ms from swipe to visual turn.
+· Memory – <120 MB, texture compression, stream audio.
+· Battery efficiency – Pause rendering when game idle, low‑power mode optional.
+· Offline – Fully playable without internet; sync saves later.
+· Install size – Under 100 MB (expandable assets downloaded once).
+· Permissions – None required (optional: haptics, gyro, notifications).
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Viper: Evolved – a modern snake game for Android with swipe controls (sensitivity slider), haptics, two movement modes (grid / smooth vector), adaptive difficulty, multiple food types (normal, golden, poison), unlockable skins and arenas, and post‑game heatmap of snake’s path. Include daily challenges, Google Play integration, battery saver mode, and assist options (wrap‑around, undo move). Support 120Hz displays and colourblind presets. Make the snake feel liquid – instant turn response, buttery trailing, and a death effect that shatters into glowing scales.”
+
+---
+
+Give this prompt to any mobile game developer or AI coder, and you’ll get a production‑ready, ultra‑responsive, visually stunning Snake game that feels entirely modern – built for Android touch from the ground up. 🐍📱

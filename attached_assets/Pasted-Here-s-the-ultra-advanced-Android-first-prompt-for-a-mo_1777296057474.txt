@@ -1,0 +1,179 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Space Hunter (a revitalised fixed‑screen / vertical shooter – think Space Invaders meets Galaga with roguelite flair).
+
+---
+
+🚀 Game Title: Space Hunter: Nebula Strike
+
+Core Vibe: Tactile, explosive, and silky smooth. Your ship is a precision instrument; every tap fires, every swipe dodges.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Mobile precision)
+
+· Player ship – Fixed at bottom 15% of screen, moves horizontally (X‑axis only).
+· Movement –
+  · Drag anywhere on screen → ship follows finger instantly (zero smoothing, raw position).
+  · Tilt optional – gyro steering.
+  · Touch zones – left/right screen halves for tapping (accessibility).
+· Firing – Automatic primary weapon (e.g., 5 shots/sec) + manual overdrive (tap with second finger for burst).
+· Enemy waves – Procedurally generated waves with increasing complexity.
+· Collision – Pixel‑perfect hitbox (ship = 24x24px, enemies vary).
+· Invincibility frames – 0.5 seconds after being hit (with blink effect).
+· Health system – 3 hits base, can increase via power‑ups.
+· Score & combo – Kill streak without missing shots = combo multiplier (up to 10x).
+
+---
+
+2. INPUT & SENSITIVITY (Instant, haptic)
+
+· Drag sensitivity – Slider (0 = very slow follow, 100 = 1:1 finger mapping).
+· Edge dead zones – Left/right screen edges ignore drag to prevent accidental exits.
+· Tap‑to‑overdrive – Double‑tap anywhere = special weapon (if charged).
+· Haptics –
+  · Light tap on each shot fired.
+  · Medium buzz on enemy kill.
+  · Strong buzz on player hit.
+  · Triple buzz on boss spawn.
+· Long press – Charged shot (consumes energy).
+· Gyro calibration – On‑device calibration for tilt steering.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (OLED, particle heavy)
+
+Player ship
+
+· Design – Sleek hunter ship with animated engine exhaust, rotating cannons.
+· Customisation – Unlockable hulls (Interceptor, Brawler, Stealth, Healer).
+· Death effect – Ship explodes into debris + slow‑mo + screen shake.
+
+Enemies (15+ types)
+
+· Swarmers – Fast, low health, chase horizontally.
+· Tanks – Slow, high health, shoot back.
+· Snipers – Stay at top, fire homing missiles.
+· Motherships – Spawn smaller enemies.
+· Bosses – Multi‑phase, weak points, pattern attacks.
+· Visuals – Glowing cores, flash on hit, death explosion with particle fountain.
+
+Background & environment
+
+· Dynamic starfield – Parallax scrolling, nebula clouds that shift colour.
+· Planetary overlays – Gas giants, rings, moons – move independently.
+· Debris field – Destroyed ships leave persistent wreckage.
+· UI – Holographic projection style, opacity slider, repositionable.
+
+Weapon effects
+
+· Primary – Laser bolts with glow & trail.
+· Overdrive – Beam or spread shot.
+· Special – Homing missiles, railgun, black hole bomb.
+· On hit – Impact spark, hit number pop‑up, screen flash (optional).
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Campaign / Endless hybrid
+
+· Acts – 5 acts, each with 10 waves + boss.
+· Endless mode – Infinite waves, difficulty scales with wave number.
+· Boss rush – Beat all bosses consecutively.
+
+Adaptive difficulty (keeps challenge alive)
+
+· After 3 deaths on same wave → slightly reduce enemy fire rate or increase player health drop chance.
+· After 5 wins streak → increase enemy density + introduce elite variants.
+
+Meta‑progression (roguelite elements)
+
+· Ship upgrades (currency earned per run):
+  · Fire rate, damage, health, speed, special recharge.
+· Perks – Choose before run (e.g., “Shield on wave start”, “Lifesteal”, “Double shot”).
+· Permanents – Unlock new weapons, ship skins, starting bonuses.
+
+Power‑ups during run
+
+· Health restore, temporary shield, damage boost, slow time, extra life.
+· Drop system – Destroyed enemies have 15% chance to drop a power‑up (floating, magnetic pull toward ship).
+
+Daily & weekly challenges
+
+· Fixed seed waves, leaderboards, unique modifiers (e.g., “only sniper enemies”, “infinite overdrive”).
+
+---
+
+5. AUDIO & ATMOSPHERE (Immersive but mobile‑friendly)
+
+· Music – Cinematic synthwave / orchestral hybrid.
+  · Intensity increases with wave progression.
+  · Boss theme – separate track with dramatic build.
+· SFX –
+  · Player shot: crisp laser pew.
+      – Enemy kill: satisfying pop + low tone.
+  · Hit: crunchy impact with reverb.
+  · Power‑up: melodic chime.
+· Voice announcer (toggle) – “Wave clear”, “Boss approaching”, “New high score”, “Critical health”.
+· Audio ducking – Respects other media playback.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android specific)
+
+· Colorblind modes – 3 presets (recolour enemies, lasers, health bars).
+· Reduced motion – Disables screen shake, camera flash, slow‑mo, explosion particles.
+· High contrast – Enemies have white outlines on dark background.
+· Assist mode –
+  · Auto‑fire (continuous without tapping).
+  · Larger hitbox for player or smaller for enemies.
+  · Invincibility toggle (for story only).
+· One‑handed mode – Drag zone limited to bottom half, UI shifted.
+· Font scaling – Respects system font size.
+· Battery saver – Reduce particles, cap 30fps, lower effects quality.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Heatmap: where you died (left/right/centre).
+  · Accuracy: shots hit / shots fired.
+  · Most dangerous enemy type (killed you most).
+  · Tip: “You got hit by snipers – try moving constantly.”
+· Live calibration – “Drag test” – move finger across screen, game auto‑sets sensitivity.
+· Replay system – Watch last run, with slow‑mo and hit indicators.
+· Crash log – Exact cause of death (enemy bullet ID, frame number).
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards (score, wave, accuracy).
+· Ghost runs – Race against your best run (transparent ship overlay).
+· Share replay – Export as GIF/MP4 with UI toggle.
+· Clans / guilds – Weekly co‑op boss battle (shared damage).
+· QR challenge – Generate a challenge from any run – friend tries to beat it.
+· Daily login – Streak rewards, bonus currency.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot (Vulkan backend).
+· Frame rate – Supports device refresh rate (60–144Hz), input at native rate, logic at 60Hz.
+· Touch latency – <20ms from drag to ship movement.
+· Memory – <150 MB, texture atlasing, audio streaming.
+· Battery efficiency – Pause when background, aggressive culling offscreen enemies.
+· Install size – Under 120 MB (optional HD assets download).
+· Permissions – None required (gyro and haptics optional).
+· Offline – Full single‑player offline; cloud sync optional.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Space Hunter: Nebula Strike – a modern space shooter for Android with drag‑to‑move ship, auto‑fire + manual overdrive, procedurally generated waves, 15+ enemy types, boss fights, roguelite meta‑progression (upgrades, perks), and adaptive difficulty. Include gyro steering option, haptic feedback on kills/hits, dynamic music, post‑run heatmap of death location, Google Play leaderboards, and assist modes (auto‑fire, larger hitbox). Support 120Hz displays, colourblind presets, and battery saver. Make every shot feel punchy, every dodge instant.”
+
+---
+
+Hand this prompt to any skilled mobile game developer or AI coder, and you’ll receive a polished, addictive, visually stunning space shooter – built from the ground up for Android touchscreens. 👾📱

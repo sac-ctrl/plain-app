@@ -1,0 +1,181 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Lane Rush (highway dodging / endless runner – think Subway Surfers meets Dash but with lane‑based precision).
+
+---
+
+🛣️ Game Title: Lane Rush: Velocity Shift
+
+Core Vibe: Blazing fast, one‑thumb perfection. Every lane change is a life‑or‑death flick.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Instant reaction)
+
+· Basic setup –
+  · 3, 4, or 5 lanes (adjustable in settings).
+  · Player automatically moves forward at increasing speed.
+  · Tap / swipe left/right to change lanes instantly (no acceleration curve).
+· Obstacles – Cars, barriers, roadblocks, moving objects.
+  · Some stay in one lane; others weave between lanes.
+· Collision – Pixel‑perfect hitbox; 1 hit = run ends (with shield power‑up as exception).
+· Speed curve – Starts at comfortable pace, ramps exponentially until impossible (endless mode).
+· Pickups –
+  · Shield (1 free hit).
+  · Slow motion (2 sec).
+  · Coin magnet.
+  · Double score for 5 sec.
+· Score system – Points per distance + per overtaken vehicle + combo for consecutive near misses.
+
+---
+
+2. INPUT & SENSITIVITY (Swipe perfection)
+
+· Primary controls –
+  · Swipe left/right on bottom half of screen → lane change.
+  · Tap left/right (accessibility alternative).
+  · Tilt (gyro) – optional, sensitivity slider.
+· Sensitivity –
+  · Swipe length threshold (short flick vs long drag).
+  · Dead zone in centre to avoid accidental lane changes.
+· Haptics –
+  · Light tick on lane change.
+  · Medium burst on near miss (car passes close).
+  · Strong buzz on collision.
+  · Soft pulse on pickup.
+· Buffering – If you swipe during a lane change animation (instant by default), it queues the next change (max 1 buffer).
+· Edge protection – Cannot swipe beyond leftmost/rightmost lane.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Highway fantasy)
+
+Player vehicle
+
+· Sports car with customisable skins, neon underglow, glowing trails.
+· Damage effect on hit – sparks, then crumple + slow‑mo explosion.
+
+Lanes & road
+
+· 3D perspective with smooth horizon.
+· Dynamic road textures: asphalt, rain (reflective), night (streetlights), desert, neon city.
+· Lane markings – white dashed lines that animate toward camera.
+· Weather & time – Day, sunset, night, rain, fog (cycles every 5 runs).
+
+Obstacles (20+ types)
+
+· Standard cars, trucks, police cars (harder hitbox), motorcycles (fast lane changers).
+· Moving obstacles – zigzag drones, rolling barrels.
+· Elite – glowing red enemies that follow your lane.
+· Boss events – every 2000m, a truck blockades all lanes; must fit through moving gap.
+
+Effects & juice
+
+· Speed lines on sides when over 80% max speed.
+· Near miss: screen edge glow + time dilation (very subtle 0.95x for 0.1s).
+· Pickup collection: particle burst, floating text.
+· Death: camera shake, slow‑mo 0.3x for 0.5s, vehicle flips.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Game modes
+
+1. Endless – Classic, speed increases forever.
+2. Stage rush – Fixed distance levels (e.g., 500m, 1000m, 2000m) with checkpoints.
+3. Time trial – 60 seconds, most distance wins.
+4. Mission mode – Daily objectives (“Overtake 20 cars”, “Collect 5 shields”).
+
+Adaptive difficulty (keeps it intense but fair)
+
+· After 3 early deaths (<500m) → slower initial speed ramp.
+· After 3 long runs (>2000m) → introduce moving obstacles earlier.
+· Based on player reaction time (measured from obstacle spawn to lane change), adjust warning time.
+
+Meta‑progression & unlocks
+
+· Vehicles – 20+ cars (stats: handling, visual trail, special ability on long combo).
+· Upgrades (earn coins per run):
+  · Shield duration, magnet range, slow‑motion length, double score duration.
+· Character / driver – skins, voice lines on near miss.
+· Road themes – unlockable via achievements.
+
+Daily & weekly challenges
+
+· Fixed seed road layouts – same obstacles for all players.
+· Leaderboards: fastest to 2000m, longest survival, most pickups.
+
+---
+
+5. AUDIO & ATMOSPHERE (Adaptive & immersive)
+
+· Music – Electronic / synthwave with tempo that matches game speed (higher speed = faster BPM).
+  · Layers: bassline, drums, leads – intensity tied to score multiplier.
+· SFX –
+  · Lane change: soft whoosh.
+  · Near miss: quick sting + adrenaline pulse.
+  · Pickup: ascending chime.
+  · Collision: deep crunch, tire screech, glass break.
+· Voice announcer (toggle) – “Near miss!”, “Shield active”, “Boss incoming”, “New best”.
+· Audio ducking – Lowers background music when notifications play.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 3 presets (recolour obstacles, pickups, lane markers).
+· Reduced motion – Disables screen shake, slow‑mo, speed lines, particles.
+· High contrast – Bold outlines for all obstacles.
+· Assist modes –
+  · Auto‑slow on approach (game slows when obstacle is close).
+  · Lane highlight – current lane glows.
+  · Infinite shields (practice mode).
+· One‑handed mode – Swipe zone limited to right or left half, UI shifted.
+· Font scaling – Respects system settings.
+· Battery saver – Limit 30fps, remove reflections, reduce particles.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Lane change heatmap (which lanes you used most).
+  · Reaction time graph: delay between obstacle spawn and your lane change.
+  · Most deadly obstacle type.
+  · Tip: “You hesitated before trucks – try reacting 0.2s earlier.”
+· Live sensitivity calibration – “Swipe test” – perform 5 lane changes, game sets threshold.
+· Replay system – Watch last run with camera behind car.
+· Crash log – Exact frame: obstacle ID, your lane, input received.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Ghost runs – Race your best run (transparent car).
+· Share replay – Export as MP4 with speedometer overlay.
+· Friend challenges – Send QR code to beat your score on same seed.
+· Clubs – Weekly club distance leaderboard, rewards.
+· Daily login streak – Bonus coins, exclusive skins.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot (Vulkan / OpenGL ES 3.1).
+· Frame rate – 60/90/120/144Hz support; game logic at 60Hz fixed, rendering at device refresh.
+· Touch latency – <20ms from swipe to lane change.
+· Memory – <200 MB (streaming assets for music / themes).
+· Battery efficiency – Pause when game is background; dynamic resolution scaling.
+· Install size – Under 150 MB (optional HD assets download).
+· Permissions – None (gyro optional).
+· Offline – Full offline play; sync when online.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Lane Rush: Velocity Shift – a lane‑based endless runner for Android with swipe/tilt controls, 3–5 adjustable lanes, increasing speed, 20+ obstacle types (moving, static, boss events), unlockable vehicles and upgrades, and adaptive difficulty. Include near‑miss mechanics, haptic feedback on lane changes/collisions, dynamic music that speeds up with game, post‑run reaction time heatmap, Google Play leaderboards, assist modes (auto‑slow, lane highlight), and battery saver. Support 120Hz displays, colourblind presets, and one‑handed mode. Make every lane change instant, every near miss visceral.”
+
+---
+
+Hand this prompt to any skilled mobile developer or AI coder, and you’ll get a polished, addictive, ultra‑responsive lane runner – built for Android touch with precision and style. 🚗💨📱

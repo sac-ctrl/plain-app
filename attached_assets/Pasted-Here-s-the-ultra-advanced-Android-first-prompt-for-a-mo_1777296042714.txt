@@ -1,0 +1,192 @@
+Here’s the ultra‑advanced, Android‑first prompt for a modern Color Switch (the iconic timing‑based color matcher – tap to jump through rotating obstacles).
+
+---
+
+🎨 Game Title: Chroma Dash
+
+Core Vibe: Hypnotic, synesthetic, and brutally precise. Every tap bends light itself.
+
+---
+
+1. CORE GAMEPLAY & PHYSICS (Pixel‑perfect timing)
+
+· Basic mechanic –
+  · Ball bounces automatically (gravity = 1.2× normal, fixed).
+  · Tap = reverse gravity direction (up/down toggle).
+  · Ball must touch only obstacles whose color matches its current color.
+  · Ball changes color after passing through a color‑swap star or after a set number of obstacles.
+· Obstacles – Rotating multicolored bars, spirals, moving walls, zigzag paths, shrinking gaps.
+· Collision rule –
+  · If ball touches non‑matching color → instant death (unless shielded).
+  · Matching color → pass through, add to score.
+· Physics precision – Fixed timestep (240Hz collision detection), no clipping through thin obstacles.
+· Score system – 1 point per matching obstacle passed. Combo: consecutive matches without touching a swap star = bonus multiplier.
+· Power‑ups (rare) –
+  · Shield (3 sec, passes any color).
+  · Slow motion (2 sec, game speed 0.5x).
+  · Magnet (attracts nearby stars).
+
+---
+
+2. INPUT & SENSITIVITY (Tap perfection)
+
+· Primary control – Tap anywhere on screen → reverse gravity.
+· Sensitivity –
+  · Tap debounce time (prevents double‑tap accidental flips).
+  · Optional hold‑to‑float (instead of tap toggle, hold reverses gravity while pressed).
+· Haptics –
+  · Light tap on gravity flip.
+  · Medium buzz on color change (star pickup).
+  · Strong buzz on death.
+  · Soft pulse on passing a matching obstacle.
+· Edge detection – Ball near top/bottom triggers automatic warning (subtle screen edge glow).
+· Input buffering – Tap within 50ms before landing on obstacle is still accepted.
+
+---
+
+3. MODERN VISUALS & ENVIRONMENT (Neon dreamscape)
+
+Ball design
+
+· Glowing orb with inner core, pulsing to music.
+· Color shift animation – smooth gradient transition, not instant snap.
+· Trail – color‑matched particle trail that fades.
+· Death effect – shatter into colored shards, screen desaturates then resets.
+
+Obstacles (30+ patterns)
+
+· Classic – rotating colored spokes.
+· Moving – horizontal/vertical color bars that slide.
+· Spiral – inward‑outward color rings.
+· Color wave – undulating path where color changes along length.
+· Boss patterns – complex, multi‑segment obstacles with timing windows.
+· Visuals – neon glow, subtle rotation blur, particle edges.
+
+Background & environments
+
+· Themes – Unlockable:
+  · Synthwave grid – pulsing lines.
+  · Cosmic void – stars, nebulae.
+  · Abstract geometry – rotating 3D shapes.
+  · Paper cutout – flat design.
+· Dynamic color – Background hue shifts subtly with ball’s color.
+· Parallax layers – Foreground, mid, background move at different speeds.
+
+Effects & juice
+
+· On matching obstacle: screen flash (color of ball), ring ripple from impact point.
+· On color swap: particle burst, screen tint shift.
+· On death: slow‑mo 0.2x for 0.3s, camera shake, color drain.
+· Combo meter – visual flames around ball, screen edge pulsing.
+
+---
+
+4. PROGRESSION & DIFFICULTY ECOSYSTEM
+
+Game modes
+
+1. Classic – Endless, increasing speed and obstacle complexity.
+2. Level pack – 100 hand‑crafted levels, each with checkpoints.
+3. Time attack – 60 seconds, most passes wins.
+4. Daily shuffle – Random obstacle sequence, same for all players.
+5. Zen mode – No death, practice timing.
+
+Adaptive difficulty (keeps flow state)
+
+· After 3 deaths on same obstacle → slight slowdown or increase color star frequency.
+· After 5 successful passes in a row → increase rotation speed or add extra obstacle segment.
+· Hidden “flow score” – adjusts spawn rate of complex patterns based on reaction time.
+
+Meta‑progression & unlocks
+
+· Ball skins – 20+ (fire, ice, neon, chrome, glass, pixel, hologram) – purely visual.
+· Trail effects – Sparkles, smoke, rainbow, void.
+· Themes – backgrounds unlockable via achievements.
+· Upgrades (earn stars per run):
+  · Shield duration, slow‑mo length, magnet range.
+  · Starting combo multiplier, extra life (once per run).
+
+Daily & weekly challenges
+
+· Fixed seed obstacle courses – leaderboards for score.
+· Special modifiers: “invisible ball”, “gravity increases over time”, “only red obstacles”.
+
+---
+
+5. AUDIO & ATMOSPHERE (Synesthetic core)
+
+· Music – Adaptive electronic / ambient:
+  · BPM matches game speed (speed increases → faster tempo).
+  · Instrument layers added as combo grows.
+  · Color change triggers a harmonic chord shift.
+· SFX –
+  · Tap: soft synthetic pop.
+  · Pass obstacle: chime in key of current color (red = C, green = E, blue = G, etc.).
+  · Color swap: ascending arpeggio.
+  · Death: descending dissonant tone + static.
+· Voice announcer (toggle) – “Perfect”, “Swap”, “Combo”, “New best”.
+· Audio ducking – Lowers music intensity during pause / menus.
+
+---
+
+6. ACCESSIBILITY & COMFORT (Android first)
+
+· Colorblind modes – 4 presets:
+  · Protanopia/deuteranopia/tritanopia + monochrome (shape‑based cues).
+  · Add symbols on obstacles (circle = red, square = blue, triangle = green).
+· Reduced motion – Disables screen shake, slow‑mo, particle explosions.
+· High contrast – Bold outlines on obstacles, ball has halo.
+· Assist modes –
+  · Auto‑flip (game reverses gravity for you at optimal time).
+  · Show path prediction (ghost ball ahead).
+  · Slower base speed.
+· One‑handed mode – Tap zone limited to bottom half or right half.
+· Font scaling – Respects system settings.
+· Battery saver – Cap 30fps, reduce glow effects, lower particle count.
+
+---
+
+7. ANALYTICS & FEEDBACK LOOPS
+
+· Post‑run screen –
+  · Timing heatmap: where you tapped too early/late relative to obstacle center.
+  · Color mistake analysis: which color caused most deaths.
+  · Reaction time graph (tap latency after obstacle appears).
+  · Tip: “You struggle with blue obstacles – try tapping 0.1s later.”
+· Live calibration – “Tap rhythm test” – match beats; game sets tap debounce and gravity sensitivity.
+· Replay system – Watch last run with input overlay (taps shown as circles).
+· Crash log – Frame of death: obstacle type, ball color, tap timing offset.
+
+---
+
+8. SOCIAL & REPLAYABILITY (Android integration)
+
+· Google Play Games – Achievements, leaderboards, cloud saves.
+· Ghost runs – Race your best run (translucent ball).
+· Share replay – Export as MP4/GIF with beat‑visualizer overlay.
+· Friend challenges – QR code to challenge same obstacle seed.
+· Weekly tournaments – Ranked leaderboards, exclusive skins as rewards.
+· Daily login streak – Bonus currency, free theme spins.
+
+---
+
+9. TECHNICAL STANDARDS (Android performance)
+
+· Engine – Unity / Godot / custom (Kotlin + OpenGL).
+· Frame rate – 60/90/120/144Hz support; physics at 120Hz, rendering at device refresh.
+· Touch latency – <16ms from tap to gravity reversal.
+· Memory – <100 MB (procedural obstacle generation, texture atlasing).
+· Battery efficiency – Pause when background, limit draw calls.
+· Install size – Under 80 MB.
+· Permissions – None (haptics optional).
+· Offline – Fully offline; cloud sync on reconnect.
+
+---
+
+10. SAMPLE PROMPT (for AI or developer)
+
+“Build Chroma Dash – a modern Color Switch game for Android with tap‑to‑reverse gravity, color‑matching obstacles (30+ patterns), adaptive difficulty, combo multipliers, unlockable ball skins and themes, and post‑run timing heatmap. Include haptic feedback on taps and matches, dynamic music that speeds with game, colorblind modes with shape cues, assist options (auto‑flip, slower speed), replay system, Google Play leaderboards, and battery saver. Support 120Hz displays and reduced motion. Make every color transition fluid, every tap feel musical.”
+
+---
+
+Hand this prompt to any skilled mobile developer or AI coder, and you’ll get a polished, trance‑inducing, rhythmically precise Color Switch – built for modern Android touchscreens. 🔴🟢🔵📱
