@@ -5,16 +5,19 @@
     ref="root"
     @keydown="onKey"
     @keyup="onKeyUp"
-    @mousedown.prevent="onPress"
-    @mouseup.prevent="onRelease"
-    @touchstart.prevent="onPress"
-    @touchend.prevent="onRelease"
-    @wheel.prevent="onWheel"
   >
-    <div class="canvas-frame" :class="{ shake: shakeT > 0, focus: inFocusMode }">
+    <div
+      class="canvas-frame"
+      :class="{ shake: shakeT > 0, focus: inFocusMode }"
+      @mousedown.prevent="onPress"
+      @mouseup.prevent="onRelease"
+      @touchstart.prevent="onPress"
+      @touchend.prevent="onRelease"
+      @wheel.prevent="onWheel"
+    >
       <canvas ref="cv" class="cv" :style="{ filter: cbFilter }" />
       <div v-if="screenPulse" class="pulse"></div>
-      <button class="settings-btn" @click.stop="settingsOpen = true" title="Settings">⚙</button>
+      <button class="settings-btn" @click.stop="settingsOpen = true" @touchstart.stop @touchend.stop @mousedown.stop @mouseup.stop title="Settings">⚙</button>
     </div>
 
     <div class="hint">
@@ -25,7 +28,7 @@
     </div>
 
     <!-- Settings overlay -->
-    <div v-if="settingsOpen" class="overlay" @click.self="settingsOpen = false">
+    <div v-if="settingsOpen" class="overlay" @click.self="settingsOpen = false" @touchstart.stop @touchend.stop @mousedown.stop @mouseup.stop @wheel.stop>
       <div class="panel">
         <div class="p-head">
           <div class="p-title">Flappy Eclipse · Settings</div>
@@ -97,7 +100,7 @@
     </div>
 
     <!-- Calibration overlay -->
-    <div v-if="calibrating" class="overlay" @click.self="calibrating = false">
+    <div v-if="calibrating" class="overlay" @click.self="calibrating = false" @touchstart.stop @touchend.stop @mousedown.stop @mouseup.stop @wheel.stop>
       <div class="panel small">
         <div class="p-title">Reflex calibration</div>
         <div class="cal-stage" :class="{ go: calGo }" @click="onCalTap">
@@ -110,7 +113,7 @@
     </div>
 
     <!-- Post-death analytics overlay -->
-    <div v-if="showAnalytics" class="overlay">
+    <div v-if="showAnalytics" class="overlay" @touchstart.stop @touchend.stop @mousedown.stop @mouseup.stop @wheel.stop>
       <div class="panel">
         <div class="p-head">
           <div class="p-title">Run analysis · Score {{ score }}</div>
