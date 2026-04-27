@@ -980,6 +980,16 @@ object MemorySettingsJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("memory_settings_json_v1")
 }
 
+object Game2048SettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("game2048_settings_json_v1")
+}
+
+object TapPatternSettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("tap_pattern_settings_json_v1")
+}
+
 object GamesThemePreference : BasePreference<String>() {
     override val default = "neon"
     override val key = stringPreferencesKey("games_theme")
