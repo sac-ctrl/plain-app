@@ -15,6 +15,7 @@ data class Settings(
     val customPrimaryColor: String,
     val darkTheme: Int,
     val amoledDarkTheme: Boolean,
+    val panelTheme: Int,
     val locale: Locale?,
     val web: Boolean,
     val keepScreenOn: Boolean,
@@ -26,6 +27,7 @@ val LocalThemeIndex = compositionLocalOf { ThemeIndexPreference.default }
 val LocalCustomPrimaryColor = compositionLocalOf { CustomPrimaryColorPreference.default }
 val LocalDarkTheme = compositionLocalOf { DarkThemePreference.default }
 val LocalAmoledDarkTheme = compositionLocalOf { AmoledDarkThemePreference.default }
+val LocalPanelTheme = compositionLocalOf { PanelThemePreference.default }
 val LocalLocale = compositionLocalOf<Locale?> { null }
 val LocalWeb = compositionLocalOf { WebPreference.default }
 val LocalKeepScreenOn = compositionLocalOf { KeepScreenOnPreference.default }
@@ -48,6 +50,7 @@ fun SettingsProvider(content: @Composable () -> Unit) {
         customPrimaryColor = CustomPrimaryColorPreference.default,
         darkTheme = DarkThemePreference.default,
         amoledDarkTheme = AmoledDarkThemePreference.default,
+        panelTheme = PanelThemePreference.default,
         locale = null,
         web = WebPreference.default,
         keepScreenOn = KeepScreenOnPreference.default,
@@ -61,6 +64,7 @@ fun SettingsProvider(content: @Composable () -> Unit) {
                 customPrimaryColor = CustomPrimaryColorPreference.get(it),
                 darkTheme = DarkThemePreference.get(it),
                 amoledDarkTheme = AmoledDarkThemePreference.get(it),
+                panelTheme = PanelThemePreference.get(it),
                 locale = LanguagePreference.getLocale(it),
                 web = WebPreference.get(it),
                 keepScreenOn = KeepScreenOnPreference.get(it),
@@ -75,6 +79,7 @@ fun SettingsProvider(content: @Composable () -> Unit) {
         LocalCustomPrimaryColor provides settings.customPrimaryColor,
         LocalDarkTheme provides settings.darkTheme,
         LocalAmoledDarkTheme provides settings.amoledDarkTheme,
+        LocalPanelTheme provides settings.panelTheme,
         LocalLocale provides settings.locale,
         LocalWeb provides settings.web,
         LocalKeepScreenOn provides settings.keepScreenOn,

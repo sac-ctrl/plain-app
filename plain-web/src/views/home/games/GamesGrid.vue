@@ -62,7 +62,17 @@
       >
         <div class="gc-top">
           <div class="gc-icon">{{ g.icon }}</div>
-          <div v-if="g.badge" class="gc-badge">{{ g.badge }}</div>
+          <div class="gc-top-right">
+            <div v-if="g.badge" class="gc-badge">{{ g.badge }}</div>
+            <button
+              class="gc-info"
+              title="How to play"
+              aria-label="How to play"
+              @click.stop="openTutorial(g.id)"
+            >
+              <i-lucide:info />
+            </button>
+          </div>
         </div>
         <div class="gc-body">
           <div class="gc-name">{{ g.name }}</div>
@@ -76,17 +86,28 @@
         </div>
       </div>
     </div>
+
+    <GameTutorialModal
+      :game="tutorialGame"
+      @close="tutorialGame = null"
+      @play="(id) => { tutorialGame = null; emit('play', id) }"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useGamesStore, type ThemeName } from './gamesStore'
-import { gameList, getGame } from './registry'
+import { gameList, getGame, type GameDef } from './registry'
+import GameTutorialModal from './GameTutorialModal.vue'
 
 const emit = defineEmits<{ play: [string] }>()
 const store = useGamesStore()
 const games = gameList
+const tutorialGame = ref<GameDef | null>(null)
+function openTutorial(id: string) {
+  tutorialGame.value = getGame(id) || null
+}
 const dailies = computed(() => store.todayChallenges)
 const lastGame = computed(() => (store.lastPlayed ? getGame(store.lastPlayed) : null))
 const themeLabel = computed(() => ({ neon: 'Neon', dark: 'Dark', glass: 'Glass', sunset: 'Sunset' } as Record<ThemeName, string>)[store.theme])
@@ -141,9 +162,12 @@ function cycleTheme() {
 .game-card { position: relative; border-radius: 18px; padding: 16px; color: #fff; cursor: pointer; min-height: 170px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: transform 0.18s ease, box-shadow 0.18s ease; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22); }
 .game-card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(120% 60% at 100% 0%, rgba(255, 255, 255, 0.18), transparent 60%); pointer-events: none; }
 .game-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3); }
-.gc-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.gc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.gc-top-right { display: inline-flex; align-items: center; gap: 6px; }
 .gc-icon { font-size: 2rem; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25)); }
 .gc-badge { background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 999px; padding: 2px 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.gc-info { background: rgba(0, 0, 0, 0.32); color: #fff; border: 1px solid rgba(255, 255, 255, 0.28); width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, transform 0.15s; }
+.gc-info:hover { background: rgba(0, 0, 0, 0.5); transform: scale(1.08); }
 .gc-name { font-weight: 800; font-size: 1.05rem; }
 .gc-desc { font-size: 0.78rem; opacity: 0.92; margin-top: 2px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gc-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 0.74rem; flex-wrap: wrap; }

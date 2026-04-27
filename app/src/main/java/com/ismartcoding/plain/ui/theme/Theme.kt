@@ -8,16 +8,64 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import com.ismartcoding.plain.enums.DarkTheme
+import com.ismartcoding.plain.enums.PanelTheme
 import com.ismartcoding.plain.preferences.LocalAmoledDarkTheme
 import com.ismartcoding.plain.preferences.LocalDarkTheme
+import com.ismartcoding.plain.preferences.LocalPanelTheme
 
 @Composable
 fun AppTheme(useDarkTheme: Boolean, content: @Composable () -> Unit) {
+    val panel = PanelTheme.parse(LocalPanelTheme.current)
+    val scheme = when {
+        panel == PanelTheme.Matrix -> plainMatrixColorScheme()
+        useDarkTheme -> plainDarkColorScheme()
+        else -> plainLightColorScheme()
+    }
     MaterialTheme(
-        colorScheme = if (useDarkTheme) plainDarkColorScheme() else plainLightColorScheme(),
+        colorScheme = scheme,
         typography = SystemTypography.applyTextDirection(),
         shapes = Shapes,
         content = content,
+    )
+}
+
+/**
+ * Matrix theme — pure black background with neon-green accents, mirrors the
+ * web panel's "matrix" theme so the whole app stays in character whichever
+ * surface the user is on. Designed for OLED devices.
+ */
+@Composable
+private fun plainMatrixColorScheme(): ColorScheme {
+    val matrixGreen = Color(0xFF00FF66)
+    val matrixGreenDim = Color(0xFF00B848)
+    val pure = Color(0xFF000000)
+    val nearBlack = Color(0xFF0A0F0A)
+    val panel = Color(0xFF0E1A12)
+    val panelHi = Color(0xFF132018)
+    return darkColorScheme(
+        primary = matrixGreen, onPrimary = pure,
+        primaryContainer = Color(0xFF003D1A), onPrimaryContainer = matrixGreen,
+        inversePrimary = matrixGreenDim,
+        secondary = matrixGreen, onSecondary = pure,
+        secondaryContainer = Color(0xFF002B12), onSecondaryContainer = matrixGreen,
+        tertiary = Color(0xFF66FFAA), onTertiary = pure,
+        tertiaryContainer = Color(0xFF002B12), onTertiaryContainer = Color(0xFF66FFAA),
+        error = Color(0xFFFF6B6B), onError = pure,
+        errorContainer = Color(0xFF3A0E0E), onErrorContainer = Color(0xFFFFB4AB),
+        background = pure, onBackground = matrixGreen,
+        surface = nearBlack, onSurface = matrixGreen,
+        surfaceVariant = panel, onSurfaceVariant = matrixGreenDim,
+        surfaceTint = matrixGreen.copy(alpha = 0.10f),
+        inverseSurface = matrixGreen, inverseOnSurface = pure,
+        outline = Color(0xFF1F3525), outlineVariant = Color(0xFF14241A),
+        scrim = pure,
+        surfaceBright = panelHi,
+        surfaceDim = pure,
+        surfaceContainer = nearBlack,
+        surfaceContainerLowest = pure,
+        surfaceContainerLow = pure,
+        surfaceContainerHigh = panel,
+        surfaceContainerHighest = panelHi,
     )
 }
 

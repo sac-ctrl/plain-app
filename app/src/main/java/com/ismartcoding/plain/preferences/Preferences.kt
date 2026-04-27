@@ -281,6 +281,12 @@ object ThemeIndexPreference : BasePreference<Int>() {
     override val key = intPreferencesKey("theme_index")
 }
 
+object PanelThemePreference : BasePreference<Int>() {
+    // Default: Matrix (0) - matches the web panel default
+    override val default = 0
+    override val key = intPreferencesKey("panel_theme")
+}
+
 object KeepScreenOnPreference : BasePreference<Boolean>() {
     override val default = false
     override val key = booleanPreferencesKey("keep_screen_on")

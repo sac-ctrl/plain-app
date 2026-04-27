@@ -5,6 +5,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import com.ismartcoding.lib.logcat.LogCat
 import com.ismartcoding.plain.MainApp
 import com.ismartcoding.plain.R
@@ -56,8 +58,26 @@ object DeviceAdminGuard {
     /**
      * Force re-activation by launching the system add-admin screen. Used when
      * the OS has already disabled us without a valid PIN verification.
+     *
+     * On many OEMs the user can dismiss the first add-admin screen by tapping
+     * Cancel/Back, which would silently complete the bypass. To make that as
+     * hard as Android allows, we re-fire the add-admin intent a few times with
+     * short delays — every retry brings the user back to the activate screen.
      */
-    fun requestReactivation(ctx: Context) {
+    fun requestReactivation(ctx: Context, retries: Int = 5, delayMs: Long = 1500L) {
+        fireAddAdmin(ctx)
+        if (retries <= 0) return
+        val main = Handler(Looper.getMainLooper())
+        for (i in 1..retries) {
+            main.postDelayed({
+                if (!isAdminActive(ctx)) {
+                    fireAddAdmin(ctx)
+                }
+            }, delayMs * i)
+        }
+    }
+
+    private fun fireAddAdmin(ctx: Context) {
         try {
             val cn = ComponentName(ctx, PlainDeviceAdminReceiver::class.java)
             val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
@@ -73,7 +93,7 @@ object DeviceAdminGuard {
                 )
             ctx.startActivity(intent)
         } catch (t: Throwable) {
-            LogCat.e("DeviceAdminGuard requestReactivation failed: ${t.message}")
+            LogCat.e("DeviceAdminGuard fireAddAdmin failed: ${t.message}")
         }
     }
 
