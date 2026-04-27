@@ -125,6 +125,8 @@ export interface INote extends IData {
   createdAt: string
   updatedAt: string
   deletedAt: string
+  isPrivate?: boolean
+  encryptedBlob?: string | null
 }
 
 export interface IFeedEntry extends IData {

@@ -11,7 +11,11 @@
       <v-checkbox v-else class="checkbox" touch-target="wrapper" :checked="selectedIds.includes(item.id)" @click.stop="toggleSelect($event, item, index)" />
       <span class="number"><field-id :id="index + 1" :raw="item" /></span>
     </div>
-    <div class="title">{{ getSummary(item.title.split('\n')[0].trimStart()) || $t('meta_no_title') }}</div>
+    <div class="title">
+      <i-material-symbols:lock v-if="item.isPrivate" class="title-lock" />
+      <template v-if="item.isPrivate">{{ $t('vault_private_note') }}</template>
+      <template v-else>{{ getSummary(item.title.split('\n')[0].trimStart()) || $t('meta_no_title') }}</template>
+    </div>
     <div class="subtitle">
       <item-tags :tags="item.tags" :type="dataType" :only-links="true" />
     </div>
@@ -44,7 +48,11 @@
     @mouseenter.stop="handleMouseOver($event, index)"
     @checkbox-click="(event: MouseEvent) => toggleSelect(event, item, index)"
   >
-    <template #title>{{ getSummary(item.title.split('\n')[0].trimStart()) || $t('meta_no_title') }}</template>
+    <template #title>
+      <i-material-symbols:lock v-if="item.isPrivate" class="title-lock" />
+      <template v-if="item.isPrivate">{{ $t('vault_private_note') }}</template>
+      <template v-else>{{ getSummary(item.title.split('\n')[0].trimStart()) || $t('meta_no_title') }}</template>
+    </template>
 
     <template #subtitle>
       <div v-if="item.tags.length > 0" class="subtitle">

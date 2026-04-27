@@ -251,6 +251,8 @@ export const noteFragment = `
     id
     title
     content
+    isPrivate
+    encryptedBlob
     deletedAt
     createdAt
     updatedAt

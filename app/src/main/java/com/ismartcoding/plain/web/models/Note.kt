@@ -11,10 +11,12 @@ data class Note(
     val deletedAt: Instant?,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val isPrivate: Boolean,
+    val encryptedBlob: String?,
 )
 
 fun DNote.toModel(): Note {
-    return Note(ID(id), title, content, deletedAt, createdAt, updatedAt)
+    return Note(ID(id), title, content, deletedAt, createdAt, updatedAt, isPrivate, encryptedBlob)
 }
 
 
@@ -26,8 +28,10 @@ data class ExportNote(
     val createdAt: Instant,
     val updatedAt: Instant,
     val tags: List<Tag>,
+    val isPrivate: Boolean = false,
+    val encryptedBlob: String? = null,
 )
 
 fun DNote.toExportModel(tags: List<Tag>): ExportNote {
-    return ExportNote(ID(id), title, content, createdAt, updatedAt, tags)
+    return ExportNote(ID(id), title, content, createdAt, updatedAt, tags, isPrivate, encryptedBlob)
 }

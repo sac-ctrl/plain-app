@@ -46,15 +46,27 @@ fun SchemaBuilder.addNoteSchema() {
     }
     mutation("saveNote") {
         resolver { id: ID, input: NoteInput ->
-            // Tolerant fallbacks so empty / whitespace input never errors out.
-            val safeContent = input.content.ifBlank { "(empty)" }
-            val safeTitle = input.title.trim().ifBlank {
-                input.content.cut(250).replace("\n", " ").trim().ifBlank { "Untitled" }
-            }
             val item =
-                NoteHelper.addOrUpdateAsync(id.value) {
-                    title = safeTitle
-                    content = safeContent
+                if (input.isPrivate) {
+                    // Private mode: device never sees plaintext. Persist only the opaque
+                    // ciphertext blob produced by the browser; title/content are placeholders.
+                    NoteHelper.addOrUpdateAsync(id.value) {
+                        title = ""
+                        content = ""
+                        isPrivate = true
+                        encryptedBlob = input.encryptedBlob
+                    }
+                } else {
+                    val safeContent = input.content.ifBlank { "(empty)" }
+                    val safeTitle = input.title.trim().ifBlank {
+                        input.content.cut(250).replace("\n", " ").trim().ifBlank { "Untitled" }
+                    }
+                    NoteHelper.addOrUpdateAsync(id.value) {
+                        title = safeTitle
+                        content = safeContent
+                        isPrivate = false
+                        encryptedBlob = null
+                    }
                 }
             NoteHelper.getById(item.id)?.toModel()
         }

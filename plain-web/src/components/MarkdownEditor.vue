@@ -189,6 +189,94 @@ function insertText(text: string) {
   v.focus()
 }
 
+function getSelectionText(): string {
+  const v = view.value
+  if (!v) return ''
+  const { from, to } = v.state.selection.main
+  return v.state.sliceDoc(from, to)
+}
+
+function replaceSelection(text: string) {
+  const v = view.value
+  if (!v) return
+  const { from, to } = v.state.selection.main
+  v.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length } })
+  v.focus()
+}
+
+function surroundSelection(prefix: string, suffix = prefix, placeholderText = '') {
+  const v = view.value
+  if (!v) return
+  const { from, to } = v.state.selection.main
+  const sel = v.state.sliceDoc(from, to)
+  const inner = sel || placeholderText
+  const insert = `${prefix}${inner}${suffix}`
+  const anchor = from + prefix.length
+  const head = anchor + inner.length
+  v.dispatch({ changes: { from, to, insert }, selection: { anchor, head } })
+  v.focus()
+}
+
+function toggleLinePrefix(prefix: string) {
+  const v = view.value
+  if (!v) return
+  const { from, to } = v.state.selection.main
+  const fromLine = v.state.doc.lineAt(from)
+  const toLine = v.state.doc.lineAt(to)
+  const changes: { from: number; to: number; insert: string }[] = []
+  for (let n = fromLine.number; n <= toLine.number; n++) {
+    const line = v.state.doc.line(n)
+    if (line.text.startsWith(prefix)) {
+      changes.push({ from: line.from, to: line.from + prefix.length, insert: '' })
+    } else {
+      changes.push({ from: line.from, to: line.from, insert: prefix })
+    }
+  }
+  v.dispatch({ changes })
+  v.focus()
+}
+
+function setHeading(level: number) {
+  const v = view.value
+  if (!v) return
+  const { from } = v.state.selection.main
+  const line = v.state.doc.lineAt(from)
+  const stripped = line.text.replace(/^#{1,6}\s+/, '')
+  const insert = `${'#'.repeat(level)} ${stripped}`
+  v.dispatch({ changes: { from: line.from, to: line.to, insert } })
+  v.focus()
+}
+
+function getDoc(): string {
+  return view.value?.state.doc.toString() ?? ''
+}
+
+function getSelectionRange(): { from: number; to: number } {
+  const v = view.value
+  if (!v) return { from: 0, to: 0 }
+  const { from, to } = v.state.selection.main
+  return { from, to }
+}
+
+function findAndReplace(pattern: string, replacement: string, all: boolean): number {
+  const v = view.value
+  if (!v || !pattern) return 0
+  const doc = v.state.doc.toString()
+  const re = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), all ? 'g' : '')
+  const matches = [...doc.matchAll(re)]
+  if (!matches.length) return 0
+  const changes = matches.map((m) => ({
+    from: m.index!, to: m.index! + m[0].length, insert: replacement,
+  }))
+  v.dispatch({ changes })
+  v.focus()
+  return matches.length
+}
+
+function focusEditor() {
+  view.value?.focus()
+}
+
 function replaceTheme() {
   const v = view.value
   if (!v) return
@@ -223,7 +311,11 @@ watch(
   },
 )
 
-defineExpose({ insertText })
+defineExpose({
+  insertText, getSelectionText, replaceSelection, surroundSelection,
+  toggleLinePrefix, setHeading, getDoc, getSelectionRange, findAndReplace,
+  focusEditor,
+})
 </script>
 
 <style scoped>

@@ -396,6 +396,8 @@ export const notesGQL = `
     notes(offset: $offset, limit: $limit, query: $query) {
       id
       title
+      isPrivate
+      encryptedBlob
       deletedAt
       createdAt
       updatedAt

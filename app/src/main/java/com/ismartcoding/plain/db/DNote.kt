@@ -20,6 +20,12 @@ data class DNote(
 
     var content: String = ""
 
+    @ColumnInfo(name = "is_private", defaultValue = "0")
+    var isPrivate: Boolean = false
+
+    @ColumnInfo(name = "encrypted_blob")
+    var encryptedBlob: String? = null
+
     fun getSummary(): String {
         return content.replace("\n", "").replaceFirst("^\\s*".toRegex(), "")
     }
