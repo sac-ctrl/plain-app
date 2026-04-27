@@ -128,6 +128,7 @@ declare module 'vue' {
     GameTutorialModal: typeof import('./src/views/home/games/GameTutorialModal.vue')['default']
     HeaderActions: typeof import('./src/components/HeaderActions.vue')['default']
     HeaderSearch: typeof import('./src/components/HeaderSearch.vue')['default']
+    HollowMinds: typeof import('./src/views/home/games/impl/HollowMinds.vue')['default']
     HomeView: typeof import('./src/views/home/HomeView.vue')['default']
     'ILucide:activity': typeof import('~icons/lucide/activity')['default']
     'ILucide:alertTriangle': typeof import('~icons/lucide/alert-triangle')['default']

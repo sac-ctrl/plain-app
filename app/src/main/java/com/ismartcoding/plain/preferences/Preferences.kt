@@ -990,6 +990,11 @@ object TapPatternSettingsJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("tap_pattern_settings_json_v1")
 }
 
+object HollowSettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("hollow_settings_json_v1")
+}
+
 object GamesThemePreference : BasePreference<String>() {
     override val default = "neon"
     override val key = stringPreferencesKey("games_theme")

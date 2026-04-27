@@ -208,6 +208,11 @@ The 15 mini-games are being individually upgraded to a "deep" feature spec on bo
    - Android: `app/src/main/java/com/ismartcoding/plain/ui/page/home/games/impl/TapGame.kt` — Compose parity with all 4 modes (rhythm uses falling notes in BoxWithConstraints, cascade animates yPct), themes / sound packs / effects, power-ups, settings dialog, post-game heat-map + timing histogram. Settings persisted via new `TapPatternSettingsJsonPreference` in `Preferences.kt` (key `tap_pattern_settings_json_v1`).
 7. (Remaining 9 games not yet deeply upgraded — pending user spec for each.)
 
+### New game added: "Hollow Minds · Cipher Break" (Mastermind-style code-breaker, inspired by aloarte/Hollow-Minds)
+- Web: `plain-web/src/views/home/games/impl/HollowMinds.vue` — Mastermind-style logic puzzle. 4 modes (classic / daily-seed / blitz 90s / endless chain), code length 3–6, palette 4–8 colours, duplicates toggle, 4 themes (neon / candy / mono / nature) + colourblind glyphs. Power-ups: Reveal a peg, Eliminate a wrong colour, Undo last guess (refilled daily). Black/white feedback peg algorithm in `score()`; daily seed via xorshift on the date so all clients get the same code per day. Stats persist via `localStorage` keys `plain.hollowminds.v1` and `plain.hollowminds.powers.v1`.
+- Android: `app/src/main/java/com/ismartcoding/plain/ui/page/home/games/impl/HollowGame.kt` — Compose parity with the Vue version: same scoring, same palettes, same modes, same power-up budget. Settings persisted via new `HollowSettingsJsonPreference` in `Preferences.kt` (key `hollow_settings_json_v1`).
+- Registered as `id: "hollow"` in `plain-web/src/views/home/games/registry.ts` (with `badge: 'NEW'`) and `GamesRegistry.kt`. Routed in `GamePage.kt` `GameRouter`.
+
 ## Hide private notes on-device
 
 `NoteHelper.search/count/getIdsAsync/getTrashedIdsAsync` now accept an `excludePrivate: Boolean = false` flag. The Android `NotesViewModel` passes `true` so the on-device Notes screen never lists private notes (their counts are also excluded). The web GraphQL schemas (`NoteGraphQL.kt`, `TagGraphQL.kt`) leave the flag at the default `false`, so the web panel still fetches every note from the device's SQLite database, including private ones.

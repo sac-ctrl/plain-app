@@ -406,6 +406,37 @@ object GamesRegistry {
                     "Stack combo bonuses for multiplied scores — keep accuracy above 90 %.",
                 ),
             )),
+        GameMeta("hollow", "Hollow Minds", "Crack the cipher · 4 modes · power-ups · daily seed",
+            Color(0xFF160E2C), Color(0xFF38FFB1), listOf("Classic", "Daily", "Blitz", "Endless"),
+            GameTutorial(
+                howTo = listOf(
+                    "A secret colour code is hidden — guess it within the attempts shown.",
+                    "Tap colours from the palette to fill your guess slots, then Submit.",
+                    "Each row gives feedback: black peg = right colour, right slot. White peg = right colour, wrong slot.",
+                    "Use deduction across rows to narrow down the cipher before attempts run out.",
+                ),
+                controls = listOf(
+                    GameControl("Tap colour", "Fill the next empty slot"),
+                    GameControl("Tap slot", "Clear that slot"),
+                    GameControl("Submit", "Lock in the guess and read feedback"),
+                    GameControl("⚙", "Switch mode, theme, code length, palette size"),
+                ),
+                features = listOf(
+                    "4 modes: Classic · Daily seed · Blitz (90s) · Endless chain",
+                    "Adjustable code length 3–6 and palette 4–8 colours",
+                    "Toggle duplicates allowed for harder ciphers",
+                    "Power-ups: Reveal a peg, Eliminate a wrong colour, Undo last guess (refilled daily)",
+                    "4 themes (neon · candy · mono · nature) + colourblind glyphs",
+                    "Daily seed — same code for everyone, persists last-played date",
+                    "Tracks best score, fewest-guesses record, total wins & losses",
+                    "Difficulty multiplier: Easy ×1, Hard ×2, Insane ×3, plus time bonus in Blitz",
+                ),
+                tips = listOf(
+                    "Spend the first guess sampling four different colours to map presence fast.",
+                    "Treat blacks and whites separately — a black peg fixes a position, a white only hints presence.",
+                    "Save Reveal for late game when one slot blocks all your deductions.",
+                ),
+            )),
     )
 
     fun byId(id: String): GameMeta? = all.firstOrNull { it.id == id }

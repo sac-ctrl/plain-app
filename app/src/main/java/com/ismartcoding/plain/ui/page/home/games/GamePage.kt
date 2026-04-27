@@ -118,5 +118,6 @@ fun GameRouter(
         "runner" -> RunnerGame(difficulty, mode, paused, onScore, onGameOver, accent)
         "math" -> MathGame(difficulty, mode, paused, onScore, onGameOver, accent)
         "tap" -> TapGame(difficulty, mode, paused, onScore, onGameOver, accent)
+        "hollow" -> HollowGame(difficulty, mode, paused, onScore, onGameOver, accent)
     }
 }

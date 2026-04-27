@@ -576,6 +576,47 @@ export const gameList: GameDef[] = [
     },
     loader: () => defineAsyncComponent(() => import('./impl/TapPattern.vue')),
   },
+  {
+    id: 'hollow',
+    name: 'Hollow Minds',
+    icon: '🧠',
+    desc: 'Crack the secret colour code · 4 modes · power-ups · daily seed.',
+    badge: 'NEW',
+    rating: 4.8,
+    gradient: 'linear-gradient(135deg, #0B1024, #38FFB1)',
+    modes: ['classic', 'daily', 'blitz', 'endless'],
+    tutorial: {
+      tagline: 'A modern Mastermind — deduce the hidden cipher peg by peg before attempts run out.',
+      howTo: [
+        'A secret colour code is hidden — guess it within the attempts shown.',
+        'Tap colours from the palette to fill your guess slots, then Submit.',
+        'Each row gives feedback: black peg = right colour & slot. White peg = right colour, wrong slot.',
+        'Use deduction across rows to narrow down the cipher before attempts run out.',
+      ],
+      controls: [
+        { key: 'Tap colour', action: 'Fill the next empty slot' },
+        { key: 'Tap slot', action: 'Clear that slot' },
+        { key: 'Submit', action: 'Lock in the guess and read feedback' },
+        { key: '⚙ Settings', action: 'Switch mode, theme, code length, palette size' },
+      ],
+      features: [
+        '4 modes: Classic · Daily seed · Blitz (90s) · Endless chain',
+        'Adjustable code length 3–6 and palette 4–8 colours',
+        'Toggle duplicates allowed for harder ciphers',
+        'Power-ups: Reveal a peg, Eliminate a wrong colour, Undo last guess (refilled daily)',
+        '4 themes (neon · candy · mono · nature) + colourblind glyphs',
+        'Daily seed — same code for everyone worldwide each day',
+        'Tracks best score, fewest-guesses record, total wins & losses',
+        'Difficulty multiplier: Easy ×1, Hard ×2, Insane ×3, plus time bonus in Blitz',
+      ],
+      tips: [
+        'Spend the first guess sampling four different colours to map presence fast.',
+        'Treat blacks and whites separately — a black peg fixes a position, a white only hints presence.',
+        'Save Reveal for late game when one slot blocks all your deductions.',
+      ],
+    },
+    loader: () => defineAsyncComponent(() => import('./impl/HollowMinds.vue')),
+  },
 ]
 
 export function getGame(id: string): GameDef | undefined {
