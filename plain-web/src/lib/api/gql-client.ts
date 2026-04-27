@@ -8,17 +8,18 @@ const TIMEOUT = 30000
 /**
  * Universal sanitizer for outgoing GraphQL variables.
  *  - undefined  -> dropped
- *  - null       -> kept (so nullable schema fields still work)
- *  - strings    -> trimmed
- *  - arrays     -> recursively sanitized (kept, even if empty)
+ *  - null       -> kept (nullable schema fields still work)
+ *  - strings    -> kept VERBATIM (must NOT trim: WebRTC SDP/ICE payloads
+ *                  rely on exact `\r\n` line endings — trimming breaks the
+ *                  remote SDP parser and the camera/mic stream never starts)
+ *  - arrays     -> recursively sanitized
  *  - objects    -> recursively sanitized
- * Never throws. Used as a defence-in-depth layer so a stray null/undefined
- * cannot trigger "Failed to coerce as XInput" errors.
+ * Never throws.
  */
 export function sanitizeGqlInput<T = any>(value: T): T {
   if (value === undefined) return undefined as any
   if (value === null) return null as any
-  if (typeof value === 'string') return value.trim() as any
+  if (typeof value === 'string') return value as any
   if (Array.isArray(value)) {
     return value
       .filter((v) => v !== undefined)
