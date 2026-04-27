@@ -970,6 +970,16 @@ object BrickSettingsJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("brick_settings_json_v1")
 }
 
+object SpaceSettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("space_settings_json_v1")
+}
+
+object MemorySettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("memory_settings_json_v1")
+}
+
 object GamesThemePreference : BasePreference<String>() {
     override val default = "neon"
     override val key = stringPreferencesKey("games_theme")
