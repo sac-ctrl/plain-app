@@ -1,20 +1,26 @@
 package com.ismartcoding.plain.ui.page.home.games.impl
 
 import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.speech.tts.TextToSpeech
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -27,145 +33,187 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate as drawRotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ismartcoding.plain.preferences.DinoSettingsJsonPreference
+import com.ismartcoding.plain.preferences.LaneRushSettingsJsonPreference
+import com.ismartcoding.plain.ui.page.home.games.GamesStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Calendar
 import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
-private enum class ObsKind { CACTUS, ROCK, PTERO, LOG }
+// ----------------------------- Settings ---------------------------------
 
-private data class DObs(
-    var x: Float, var y: Float, val w: Float, val h: Float,
-    val kind: ObsKind, var passed: Boolean = false, val spawnAtMs: Long,
-)
-
-private data class DCoin(var x: Float, var y: Float, var got: Boolean = false, var phase: Float = 0f)
-private data class DPart(var x: Float, var y: Float, var vx: Float, var vy: Float, var life: Int, val max: Int, val col: Color, val size: Float)
-
-private data class DinoSettings(
-    var jumpBuffer: Int = 100,
-    var swipeMin: Int = 22,
+private data class LaneRushSettings(
+    var laneCount: Int = 3,            // 3 / 4 / 5
+    var sound: Boolean = true,
+    var music: Boolean = true,
+    var voiceCalls: Boolean = true,
     var haptics: Boolean = true,
+    var tilt: Boolean = false,
+    var tiltSensitivity: Float = 0.5f, // 0..1
+    var swipeStrength: Float = 0.5f,
+    var tapZones: Boolean = true,      // tap halves to steer
+    var oneHanded: Boolean = false,    // moves controls into bottom band
+    var leftyMirror: Boolean = false,
     var reducedMotion: Boolean = false,
     var highContrast: Boolean = false,
-    var oneHanded: Boolean = false,
     var batterySaver: Boolean = false,
-    var announcer: Boolean = true,
-    var assistAutoJump: Boolean = false,
-    var assistBigBox: Boolean = false,
-    var assistInvincible: Boolean = false,
-    var colorblind: String = "off",
-    var skin: String = "classic",
-    var theme: String = "desert",
-    var upgradeDoubleJump: Boolean = false,
-    var upgradeShield: Int = 0,
-    var upgradeMagnet: Int = 0,
-    var unlockedCyber: Boolean = false,
-    var unlockedBone: Boolean = false,
-    var unlockedLava: Boolean = false,
-    var unlockedIce: Boolean = false,
-    var unlockedGold: Boolean = false,
-    var coins: Int = 0,
-    var longestM: Int = 0,
-    var totalJumps: Int = 0,
-    var recentDeaths: List<Int> = emptyList(),
+    var colorblind: String = "none",   // none / deutan / protan / tritan
+    var bigHud: Boolean = false,
+    var skin: String = "starter",
+    var trail: Boolean = true,
+    var theme: String = "auto",        // auto / asphalt / rain / night / desert / neon
+    var ghost: Boolean = true,
+    var dailySeed: Boolean = false,
+    var pendingThemeUnlocks: MutableList<String> = mutableListOf(),
+    var unlockedSkins: MutableList<String> = mutableListOf("starter"),
+    var ownedThemes: MutableList<String> = mutableListOf("asphalt"),
+    var mmr: Float = 1000f,
+    var totalDistance: Int = 0,
+    var totalCoins: Int = 0,
+    var bossesBeat: Int = 0,
+    var perfectRuns: Int = 0,
+    var runsCompleted: Int = 0,
 )
 
-private fun parseDino(j: String): DinoSettings {
-    val s = DinoSettings()
-    if (j.isBlank() || j == "{}") return s
+private fun parseLR(json: String): LaneRushSettings {
+    val s = LaneRushSettings()
     try {
-        val o = JSONObject(j)
-        s.jumpBuffer = o.optInt("jumpBuffer", 100)
-        s.swipeMin = o.optInt("swipeMin", 22)
-        s.haptics = o.optBoolean("haptics", true)
-        s.reducedMotion = o.optBoolean("reducedMotion", false)
-        s.highContrast = o.optBoolean("highContrast", false)
-        s.oneHanded = o.optBoolean("oneHanded", false)
-        s.batterySaver = o.optBoolean("batterySaver", false)
-        s.announcer = o.optBoolean("announcer", true)
-        s.assistAutoJump = o.optBoolean("assistAutoJump", false)
-        s.assistBigBox = o.optBoolean("assistBigBox", false)
-        s.assistInvincible = o.optBoolean("assistInvincible", false)
-        s.colorblind = o.optString("colorblind", "off")
-        s.skin = o.optString("skin", "classic")
-        s.theme = o.optString("theme", "desert")
-        s.upgradeDoubleJump = o.optBoolean("upgradeDoubleJump", false)
-        s.upgradeShield = o.optInt("upgradeShield", 0)
-        s.upgradeMagnet = o.optInt("upgradeMagnet", 0)
-        s.unlockedCyber = o.optBoolean("unlockedCyber", false)
-        s.unlockedBone = o.optBoolean("unlockedBone", false)
-        s.unlockedLava = o.optBoolean("unlockedLava", false)
-        s.unlockedIce = o.optBoolean("unlockedIce", false)
-        s.unlockedGold = o.optBoolean("unlockedGold", false)
-        s.coins = o.optInt("coins", 0)
-        s.longestM = o.optInt("longestM", 0)
-        s.totalJumps = o.optInt("totalJumps", 0)
-        val arr = o.optJSONArray("recentDeaths")
-        if (arr != null) s.recentDeaths = (0 until arr.length()).map { arr.getInt(it) }
-    } catch (_: Exception) { }
+        val o = JSONObject(if (json.isBlank()) "{}" else json)
+        s.laneCount = o.optInt("laneCount", s.laneCount).coerceIn(3, 5)
+        s.sound = o.optBoolean("sound", s.sound)
+        s.music = o.optBoolean("music", s.music)
+        s.voiceCalls = o.optBoolean("voiceCalls", s.voiceCalls)
+        s.haptics = o.optBoolean("haptics", s.haptics)
+        s.tilt = o.optBoolean("tilt", s.tilt)
+        s.tiltSensitivity = o.optDouble("tiltSensitivity", s.tiltSensitivity.toDouble()).toFloat()
+        s.swipeStrength = o.optDouble("swipeStrength", s.swipeStrength.toDouble()).toFloat()
+        s.tapZones = o.optBoolean("tapZones", s.tapZones)
+        s.oneHanded = o.optBoolean("oneHanded", s.oneHanded)
+        s.leftyMirror = o.optBoolean("leftyMirror", s.leftyMirror)
+        s.reducedMotion = o.optBoolean("reducedMotion", s.reducedMotion)
+        s.highContrast = o.optBoolean("highContrast", s.highContrast)
+        s.batterySaver = o.optBoolean("batterySaver", s.batterySaver)
+        s.colorblind = o.optString("colorblind", s.colorblind)
+        s.bigHud = o.optBoolean("bigHud", s.bigHud)
+        s.skin = o.optString("skin", s.skin)
+        s.trail = o.optBoolean("trail", s.trail)
+        s.theme = o.optString("theme", s.theme)
+        s.ghost = o.optBoolean("ghost", s.ghost)
+        s.dailySeed = o.optBoolean("dailySeed", s.dailySeed)
+        s.mmr = o.optDouble("mmr", s.mmr.toDouble()).toFloat()
+        s.totalDistance = o.optInt("totalDistance", s.totalDistance)
+        s.totalCoins = o.optInt("totalCoins", s.totalCoins)
+        s.bossesBeat = o.optInt("bossesBeat", s.bossesBeat)
+        s.perfectRuns = o.optInt("perfectRuns", s.perfectRuns)
+        s.runsCompleted = o.optInt("runsCompleted", s.runsCompleted)
+        s.unlockedSkins = parseStrArr(o.optJSONArray("unlockedSkins"), listOf("starter"))
+        s.ownedThemes = parseStrArr(o.optJSONArray("ownedThemes"), listOf("asphalt"))
+    } catch (_: Throwable) {}
     return s
 }
 
-private fun toJson(s: DinoSettings): String {
+private fun parseStrArr(a: JSONArray?, def: List<String>): MutableList<String> {
+    if (a == null) return def.toMutableList()
+    val out = mutableListOf<String>()
+    for (i in 0 until a.length()) out += a.optString(i)
+    return if (out.isEmpty()) def.toMutableList() else out
+}
+
+private fun toJson(s: LaneRushSettings): String {
     val o = JSONObject()
-    o.put("jumpBuffer", s.jumpBuffer); o.put("swipeMin", s.swipeMin)
-    o.put("haptics", s.haptics); o.put("reducedMotion", s.reducedMotion); o.put("highContrast", s.highContrast)
-    o.put("oneHanded", s.oneHanded); o.put("batterySaver", s.batterySaver); o.put("announcer", s.announcer)
-    o.put("assistAutoJump", s.assistAutoJump); o.put("assistBigBox", s.assistBigBox); o.put("assistInvincible", s.assistInvincible)
-    o.put("colorblind", s.colorblind); o.put("skin", s.skin); o.put("theme", s.theme)
-    o.put("upgradeDoubleJump", s.upgradeDoubleJump); o.put("upgradeShield", s.upgradeShield); o.put("upgradeMagnet", s.upgradeMagnet)
-    o.put("unlockedCyber", s.unlockedCyber); o.put("unlockedBone", s.unlockedBone); o.put("unlockedLava", s.unlockedLava)
-    o.put("unlockedIce", s.unlockedIce); o.put("unlockedGold", s.unlockedGold)
-    o.put("coins", s.coins); o.put("longestM", s.longestM); o.put("totalJumps", s.totalJumps)
-    val arr = org.json.JSONArray(); s.recentDeaths.forEach { arr.put(it) }; o.put("recentDeaths", arr)
+    o.put("laneCount", s.laneCount); o.put("sound", s.sound); o.put("music", s.music)
+    o.put("voiceCalls", s.voiceCalls); o.put("haptics", s.haptics); o.put("tilt", s.tilt)
+    o.put("tiltSensitivity", s.tiltSensitivity.toDouble()); o.put("swipeStrength", s.swipeStrength.toDouble())
+    o.put("tapZones", s.tapZones); o.put("oneHanded", s.oneHanded); o.put("leftyMirror", s.leftyMirror)
+    o.put("reducedMotion", s.reducedMotion); o.put("highContrast", s.highContrast)
+    o.put("batterySaver", s.batterySaver); o.put("colorblind", s.colorblind); o.put("bigHud", s.bigHud)
+    o.put("skin", s.skin); o.put("trail", s.trail); o.put("theme", s.theme); o.put("ghost", s.ghost)
+    o.put("dailySeed", s.dailySeed); o.put("mmr", s.mmr.toDouble())
+    o.put("totalDistance", s.totalDistance); o.put("totalCoins", s.totalCoins)
+    o.put("bossesBeat", s.bossesBeat); o.put("perfectRuns", s.perfectRuns)
+    o.put("runsCompleted", s.runsCompleted)
+    o.put("unlockedSkins", JSONArray(s.unlockedSkins))
+    o.put("ownedThemes", JSONArray(s.ownedThemes))
     return o.toString()
 }
 
-private fun applyCb(c: Color, mode: String): Color {
-    if (mode == "off") return c
-    val r = c.red; val g = c.green; val b = c.blue
-    val (nr, ng, nb) = when (mode) {
-        "protanopia" -> Triple(0.567f * r + 0.433f * g, 0.558f * r + 0.442f * g, 0.242f * g + 0.758f * b)
-        "deuteranopia" -> Triple(0.625f * r + 0.375f * g, 0.7f * r + 0.3f * g, 0.3f * g + 0.7f * b)
-        "tritanopia" -> Triple(0.95f * r + 0.05f * g, 0.433f * g + 0.567f * b, 0.475f * g + 0.525f * b)
-        else -> Triple(r, g, b)
-    }
-    return Color(nr.coerceIn(0f, 1f), ng.coerceIn(0f, 1f), nb.coerceIn(0f, 1f), c.alpha)
-}
+// ----------------------------- Catalog ----------------------------------
 
-private fun vibrate(ctx: Context, ms: Long) {
-    try {
-        val v = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return
-        if (android.os.Build.VERSION.SDK_INT >= 26)
-            v.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE))
-        else @Suppress("DEPRECATION") v.vibrate(ms)
-    } catch (_: Throwable) { }
-}
+private data class SkinDef(val id: String, val label: String, val price: Int, val color: Color, val accent: Color)
 
-private fun todaySeed(): Int {
-    val cal = Calendar.getInstance()
-    val s = "${cal.get(Calendar.YEAR)}${cal.get(Calendar.MONTH) + 1}${cal.get(Calendar.DAY_OF_MONTH)}"
-    var h = 7; for (c in s) h = h * 31 + c.code
-    return h
-}
+private val SKINS = listOf(
+    SkinDef("starter", "Starter Hatch", 0, Color(0xFF7DD3FC), Color(0xFF0EA5E9)),
+    SkinDef("muscle", "Muscle V8", 100, Color(0xFFEF4444), Color(0xFF7F1D1D)),
+    SkinDef("hyper", "Hyper Coupe", 200, Color(0xFFF59E0B), Color(0xFFB45309)),
+    SkinDef("rally", "Rally Beast", 250, Color(0xFF22C55E), Color(0xFF15803D)),
+    SkinDef("emt", "EMT Sprinter", 300, Color(0xFFFFFFFF), Color(0xFFDC2626)),
+    SkinDef("taxi", "City Taxi", 220, Color(0xFFFACC15), Color(0xFF111827)),
+    SkinDef("limo", "Stretch Limo", 400, Color(0xFF111827), Color(0xFFE5E7EB)),
+    SkinDef("ute", "Outback Ute", 280, Color(0xFFA16207), Color(0xFF422006)),
+    SkinDef("kei", "Kei Kart", 180, Color(0xFFA78BFA), Color(0xFF4C1D95)),
+    SkinDef("tow", "Tow Truck", 350, Color(0xFFEAB308), Color(0xFF1F2937)),
+    SkinDef("fire", "Fire Engine", 500, Color(0xFFB91C1C), Color(0xFFFEF3C7)),
+    SkinDef("astro", "Astro Pod", 650, Color(0xFFE0E7FF), Color(0xFF6366F1)),
+    SkinDef("hover", "Hover Glide", 800, Color(0xFF06B6D4), Color(0xFF155E75)),
+    SkinDef("retro", "Retro Wagon", 240, Color(0xFFFB7185), Color(0xFF881337)),
+    SkinDef("glass", "Glass GT", 700, Color(0xFFBAE6FD), Color(0xFF1E3A8A)),
+    SkinDef("plat", "Platinum Saloon", 900, Color(0xFFCBD5E1), Color(0xFF334155)),
+    SkinDef("monster", "Monster Truck", 1200, Color(0xFF65A30D), Color(0xFF1A2E05)),
+    SkinDef("phantom", "Phantom Drift", 1400, Color(0xFF1F2937), Color(0xFF8B5CF6)),
+    SkinDef("eclipse", "Eclipse R", 1700, Color(0xFF0F172A), Color(0xFFFCD34D)),
+    SkinDef("aurora", "Aurora Concept", 2000, Color(0xFF34D399), Color(0xFFA7F3D0)),
+)
+
+private data class ThemeDef(
+    val id: String, val label: String, val sky: List<Color>, val road: Color, val line: Color,
+    val accent: Color, val particles: String, val price: Int,
+)
+
+private val THEMES = listOf(
+    ThemeDef("asphalt", "Asphalt Sunset", listOf(Color(0xFFFB923C), Color(0xFF7C2D12), Color(0xFF1F2937)), Color(0xFF1F2937), Color(0xFFFCD34D), Color(0xFFFB923C), "dust", 0),
+    ThemeDef("rain", "Rainy Boulevard", listOf(Color(0xFF1E3A8A), Color(0xFF312E81), Color(0xFF111827)), Color(0xFF111827), Color(0xFF93C5FD), Color(0xFF60A5FA), "rain", 200),
+    ThemeDef("night", "Neon Tunnel", listOf(Color(0xFF000000), Color(0xFF0F0F2E), Color(0xFF000000)), Color(0xFF0B0F1A), Color(0xFF22D3EE), Color(0xFFEC4899), "neon", 300),
+    ThemeDef("desert", "Desert Cliff", listOf(Color(0xFFFCD34D), Color(0xFFB45309), Color(0xFF7C2D12)), Color(0xFF78350F), Color(0xFFFEF3C7), Color(0xFFFB923C), "dust", 350),
+    ThemeDef("neon", "Synthwave Grid", listOf(Color(0xFF7C3AED), Color(0xFFDB2777), Color(0xFF111827)), Color(0xFF1E1B4B), Color(0xFFE879F9), Color(0xFFA855F7), "grid", 500),
+)
+
+// --------------------------- Game Entities ------------------------------
+
+private enum class ObsKind { Sedan, Truck, Bus, Police, Moto, Block, Barrel, Cone, Drone, Beam, Wall, Boss, Elite, Slick, Pothole, Spike }
+private enum class PickupKind { Coin, Shield, SlowMo, Magnet, Double, Heart }
+
+private data class Obs(
+    var kind: ObsKind, var lane: Int, var z: Float, var ttlMs: Float = 0f,
+    var lateral: Float = 0f, var locked: Boolean = false, var hp: Int = 1,
+    var width: Int = 1, var bossOpenLane: Int = 0,
+)
+
+private data class Pkp(var kind: PickupKind, var lane: Int, var z: Float)
+
+private data class Crash(val zoneX: Float, val zoneY: Float, val time: Float, val obstacle: String)
+
+private data class Reaction(val time: Float, val ms: Float)
+
+// ============================== UI ======================================
 
 @Composable
 fun RunnerGame(
@@ -174,809 +222,863 @@ fun RunnerGame(
 ) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    val settings = remember { mutableStateOf(DinoSettings()) }
-    LaunchedEffect(Unit) { settings.value = parseDino(DinoSettingsJsonPreference.getAsync(ctx)) }
-    fun save() { scope.launch { DinoSettingsJsonPreference.putAsync(ctx, toJson(settings.value)) } }
+    val settings = remember { mutableStateOf(LaneRushSettings()) }
+    LaunchedEffect(Unit) { settings.value = parseLR(LaneRushSettingsJsonPreference.getAsync(ctx)) }
+    fun save() { scope.launch { LaneRushSettingsJsonPreference.putAsync(ctx, toJson(settings.value)) } }
 
     // TTS
-    val tts = remember { mutableStateOf<TextToSpeech?>(null) }
+    val ttsRef = remember { mutableStateOf<TextToSpeech?>(null) }
     DisposableEffect(Unit) {
-        val t = TextToSpeech(ctx) { status ->
-            if (status == TextToSpeech.SUCCESS) tts.value?.language = Locale.getDefault()
+        val t = TextToSpeech(ctx) { st ->
+            if (st == TextToSpeech.SUCCESS) ttsRef.value?.language = Locale.getDefault()
         }
-        tts.value = t
-        onDispose { try { t.stop(); t.shutdown() } catch (_: Throwable) { } }
+        ttsRef.value = t
+        onDispose { try { t.stop(); t.shutdown() } catch (_: Throwable) {} }
     }
-    fun say(text: String) {
-        if (!settings.value.announcer) return
-        try { tts.value?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "dino") } catch (_: Throwable) { }
-    }
-
-    // World
-    var w by remember { mutableStateOf(0f) }
-    var h by remember { mutableStateOf(0f) }
-    val groundOffset = 60f
-    var groundY by remember { mutableStateOf(0f) }
-    val obstacles = remember { mutableStateListOf<DObs>() }
-    val coins = remember { mutableStateListOf<DCoin>() }
-    val particles = remember { mutableStateListOf<DPart>() }
-    var playerY by remember { mutableStateOf(0f) }
-    var vy by remember { mutableStateOf(0f) }
-    var sliding by remember { mutableStateOf(false) }
-    var jumpsUsed by remember { mutableStateOf(0) }
-    var alive by remember { mutableStateOf(true) }
-    var started by remember { mutableStateOf(false) }
-    var distance by remember { mutableStateOf(0f) }
-    var runCoins by remember { mutableStateOf(0) }
-    var combo by remember { mutableStateOf(0) }
-    var maxCombo by remember { mutableStateOf(0) }
-    var jumpCount by remember { mutableStateOf(0) }
-    var spd by remember { mutableStateOf(4f) }
-    var maxSpd by remember { mutableStateOf(11f) }
-    var spawnAcc by remember { mutableStateOf(0f) }
-    var bossSpawned by remember { mutableStateOf(false) }
-    var dayTime by remember { mutableStateOf(0f) }
-    var shieldCharges by remember { mutableStateOf(0) }
-    var magnetT by remember { mutableStateOf(0) }
-    var slowMoT by remember { mutableStateOf(0) }
-    var doubleCoinT by remember { mutableStateOf(0) }
-    var powerName by remember { mutableStateOf("") }
-    var powerLeft by remember { mutableStateOf(0) }
-    var bufferUntilMs by remember { mutableStateOf(0L) }
-    var settingsOpen by remember { mutableStateOf(false) }
-    var showAnalytics by remember { mutableStateOf(false) }
-    var calActive by remember { mutableStateOf(false) }
-    var calCount by remember { mutableStateOf(0) }
-    val calReact = remember { mutableStateListOf<Float>() }
-    val reactions = remember { mutableStateListOf<Float>() }
-    val deathBuckets = remember { mutableStateMapOf("cactus" to 0, "ptero" to 0, "rock" to 0, "log" to 0) }
-    var deathKind by remember { mutableStateOf("") }
-    val unlockedNow = remember { mutableStateListOf<String>() }
-    var runTip by remember { mutableStateOf("") }
-    var ttEnd by remember { mutableStateOf(0L) }
-    var lastMileK by remember { mutableStateOf(-1) }
-    var flashGlow by remember { mutableStateOf(0) }
-    val seededRng = remember { mutableStateOf(Random(System.currentTimeMillis())) }
-
-    fun rand(): Float {
-        val srng = seededRng.value
-        return srng.nextFloat()
+    fun speak(s: String) {
+        if (!settings.value.voiceCalls || !settings.value.sound) return
+        try { ttsRef.value?.speak(s, TextToSpeech.QUEUE_FLUSH, null, "lr") } catch (_: Throwable) {}
     }
 
-    fun configure() {
-        val diffMul = when (difficulty) { "Easy" -> 0.85f; "Hard" -> 1.18f; "Insane" -> 1.35f; else -> 1f }
-        spd = 4.4f * diffMul
-        maxSpd = 11.5f * diffMul
-        val recents = settings.value.recentDeaths
-        val shorts = recents.count { it < 500 }
-        val longs = recents.count { it > 2000 }
-        if (shorts >= 3) spd *= 0.9f
-        if (longs >= 3) maxSpd *= 1.08f
-        seededRng.value = if (mode == "Mission") Random(todaySeed().toLong()) else Random(System.currentTimeMillis())
-    }
-
-    fun resetRun() {
-        configure()
-        obstacles.clear(); coins.clear(); particles.clear()
-        playerY = groundY; vy = 0f; sliding = false; jumpsUsed = 0
-        distance = 0f; runCoins = 0; combo = 0; maxCombo = 0; jumpCount = 0
-        spawnAcc = 0f; bossSpawned = false; dayTime = 0f
-        shieldCharges = settings.value.upgradeShield
-        magnetT = 0; slowMoT = 0; doubleCoinT = 0
-        powerName = ""; powerLeft = 0
-        alive = true; started = false
-        deathBuckets["cactus"] = 0; deathBuckets["ptero"] = 0; deathBuckets["rock"] = 0; deathBuckets["log"] = 0
-        deathKind = ""
-        reactions.clear()
-        unlockedNow.clear()
-        runTip = ""; lastMileK = -1; flashGlow = 0
-        ttEnd = if (mode == "TimeTrial") System.currentTimeMillis() + 60000L else 0L
-        showAnalytics = false
-        onScore(0)
-    }
-
-    LaunchedEffect(w, h) {
-        if (w > 0 && h > 0) {
-            groundY = h - groundOffset
-            if (playerY == 0f) playerY = groundY
-            if (obstacles.isEmpty() && !started && alive) resetRun()
+    // Tones
+    val tone = remember { try { ToneGenerator(AudioManager.STREAM_MUSIC, 70) } catch (_: Throwable) { null } }
+    DisposableEffect(Unit) { onDispose { try { tone?.release() } catch (_: Throwable) {} } }
+    fun beep(kind: String) {
+        if (!settings.value.sound) return
+        val code = when (kind) {
+            "tap" -> ToneGenerator.TONE_PROP_BEEP
+            "win" -> ToneGenerator.TONE_PROP_ACK
+            "lose" -> ToneGenerator.TONE_CDMA_LOW_PBX_L
+            "power" -> ToneGenerator.TONE_PROP_PROMPT
+            "tick" -> ToneGenerator.TONE_DTMF_1
+            else -> ToneGenerator.TONE_PROP_BEEP
         }
+        try { tone?.startTone(code, 70) } catch (_: Throwable) {}
     }
 
-    fun jump() {
-        if (!alive) return
-        if (!started) started = true
-        val onGround = playerY >= groundY - 0.5f
-        val canDouble = settings.value.upgradeDoubleJump && !onGround && jumpsUsed < 2
-        if (onGround) {
-            vy = -11.6f; jumpsUsed = 1
-            if (settings.value.haptics) vibrate(ctx, 8L)
-            jumpCount += 1
-            // record reaction time vs next obstacle
-            val next = obstacles.firstOrNull { !it.passed }
-            if (next != null) reactions.add((System.currentTimeMillis() - next.spawnAtMs).toFloat())
-        } else if (canDouble) {
-            vy = -10.5f; jumpsUsed = 2
-            if (settings.value.haptics) vibrate(ctx, 14L)
-            jumpCount += 1
-        } else {
-            bufferUntilMs = System.currentTimeMillis() + settings.value.jumpBuffer
+    // Vibrator
+    val vib = remember { ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator }
+    fun haptic(ms: Long = 20) {
+        if (!settings.value.haptics) return
+        try { vib?.vibrate(VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)) } catch (_: Throwable) {}
+    }
+
+    // Tilt sensor
+    val sensorManager = remember { ctx.getSystemService(Context.SENSOR_SERVICE) as? SensorManager }
+    val tiltX = remember { mutableStateOf(0f) }
+    DisposableEffect(settings.value.tilt) {
+        if (!settings.value.tilt || sensorManager == null) return@DisposableEffect onDispose {}
+        val sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(e: SensorEvent) {
+                if (e.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                    tiltX.value = e.values[0]
+                }
+            }
+            override fun onAccuracyChanged(s: Sensor?, a: Int) {}
         }
-    }
-    fun crouch(start: Boolean) {
-        if (!alive) return
-        if (start && playerY >= groundY - 0.5f) {
-            sliding = true
-            if (settings.value.haptics) vibrate(ctx, 4L)
-        } else if (!start) sliding = false
+        sensorManager.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_GAME)
+        onDispose { sensorManager.unregisterListener(listener) }
     }
 
-    LaunchedEffect(paused, w, h, alive) {
-        if (w == 0f) return@LaunchedEffect
-        var lastDraw = 0L
-        val frame = if (settings.value.batterySaver) 33L else 16L
-        while (true) {
-            delay(frame)
-            if (paused || settingsOpen || showAnalytics) continue
-            // pre-start bob
-            if (!started && alive) {
-                playerY = groundY - kotlin.math.abs(sin(System.currentTimeMillis() / 250.0).toFloat()) * 4f
-                continue
-            }
-            if (!alive) {
-                // continue particle physics
-                val it = particles.iterator()
-                while (it.hasNext()) { val p = it.next(); p.x += p.vx; p.y += p.vy; p.vy += 0.1f; p.life -= 1; if (p.life <= 0) it.remove() }
-                continue
-            }
-            val slow = if (slowMoT > 0) { slowMoT -= 1; 0.5f } else 1f
-            if (magnetT > 0) magnetT -= 1
-            if (doubleCoinT > 0) doubleCoinT -= 1
-            if (powerLeft > 0) powerLeft -= 1
-            if (powerLeft <= 0) powerName = ""
+    // -------------------- Mutable game state --------------------
+    val laneCount = settings.value.laneCount
+    val carLane = remember { mutableStateOf(laneCount / 2) }
+    val targetLane = remember { mutableStateOf(laneCount / 2) }
+    val carLerp = remember { mutableStateOf(carLane.value.toFloat()) }
+    val isJumping = remember { mutableStateOf(false) }
+    val jumpT = remember { mutableStateOf(0f) }
+    val isSliding = remember { mutableStateOf(false) }
+    val slideT = remember { mutableStateOf(0f) }
 
-            // physics
-            vy += 0.62f * slow
-            playerY += vy * slow
-            if (playerY >= groundY) {
-                playerY = groundY; vy = 0f; jumpsUsed = 0
-                if (bufferUntilMs > System.currentTimeMillis()) { jump(); bufferUntilMs = 0 }
-            }
-            // assist auto-jump
-            if (settings.value.assistAutoJump) {
-                val next = obstacles.firstOrNull { it.x in (w / 4f)..(w / 4f + 90f) && !it.passed && it.kind != ObsKind.PTERO }
-                if (next != null && playerY >= groundY - 0.5f) jump()
-            }
-            // speed curve
-            spd += (maxSpd - spd) * 0.0008f
-            distance += (spd * slow) / 7f
-            dayTime += spd * slow
+    val distance = remember { mutableStateOf(0f) }
+    val score = remember { mutableStateOf(0) }
+    val coinsEarned = remember { mutableStateOf(0) }
+    val combo = remember { mutableStateOf(1f) }
+    val nearMissCount = remember { mutableStateOf(0) }
+    val perfectStretch = remember { mutableStateOf(0f) }
 
-            // spawn
-            spawnAcc += spd * slow
-            val gap = max(110f, 180f - spd * 4f)
-            if (spawnAcc > gap + rand() * 90f) {
-                spawnAcc = 0f
-                val now = System.currentTimeMillis()
-                val mileK = (distance / 2000f).toInt()
-                if (mode == "BossRun" && mileK > 0 && !bossSpawned && (distance.toInt() % 2000) < 50) {
-                    bossSpawned = true; say("Boss incoming")
-                    for (i in 0 until 5) obstacles.add(DObs(w + i * 90f, groundY - 50f - (i % 2) * 30f, 32f, 24f, ObsKind.PTERO, false, now))
-                } else {
-                    if (mileK > (lastMileK + 0).coerceAtLeast(0) && mode == "BossRun") bossSpawned = false
-                    val r = rand()
-                    when {
-                        r < 0.35f -> obstacles.add(DObs(w + 10f, groundY - 26f, 18f, 26f, ObsKind.CACTUS, false, now))
-                        r < 0.6f  -> obstacles.add(DObs(w + 10f, groundY - 14f, 22f, 14f, ObsKind.ROCK, false, now))
-                        r < 0.85f -> {
-                            val high = rand() < 0.5f
-                            obstacles.add(DObs(w + 10f, if (high) groundY - 70f else groundY - 40f, 28f, 18f, ObsKind.PTERO, false, now))
-                        }
-                        else -> {
-                            if (settings.value.theme == "jungle") obstacles.add(DObs(w + 10f, groundY - 40f, 22f, 40f, ObsKind.LOG, false, now))
-                            else obstacles.add(DObs(w + 10f, groundY - 22f, 18f, 22f, ObsKind.CACTUS, false, now))
-                        }
-                    }
-                    if (rand() < 0.5f) coins.add(DCoin(w + 60f + rand() * 40f, groundY - 60f - rand() * 30f, false, rand() * 6f))
-                }
-                // power-up roll
-                if (rand() < 0.012f) {
-                    val pool = mutableListOf("slowmo", "double")
-                    if (settings.value.upgradeShield > 0) pool.add("shield")
-                    if (settings.value.upgradeMagnet > 0) pool.add("magnet")
-                    when (pool.random(seededRng.value)) {
-                        "shield"  -> { shieldCharges = min(shieldCharges + 1, 1 + settings.value.upgradeShield); powerName = "Shield"; powerLeft = 60 * 6; say("Shielded") }
-                        "magnet"  -> { magnetT = 60 * 8; powerName = "Magnet"; powerLeft = magnetT; say("Magnet on") }
-                        "slowmo"  -> { slowMoT = 60 * 2; powerName = "Slow-mo"; powerLeft = slowMoT; say("Slow motion") }
-                        "double"  -> { doubleCoinT = 60 * 8; powerName = "2x Coins"; powerLeft = doubleCoinT; say("Double coins") }
-                    }
-                }
+    val baseSpeed = remember { mutableStateOf(20f) } // m/s logical
+    val speedBoost = remember { mutableStateOf(1f) } // multiplier
+    val slowMoT = remember { mutableStateOf(0f) }
+    val shieldT = remember { mutableStateOf(0f) }
+    val magnetT = remember { mutableStateOf(0f) }
+    val doubleT = remember { mutableStateOf(0f) }
+    val hearts = remember { mutableStateOf(if (mode == "Stage" || mode == "Mission") 3 else 1) }
+
+    val obstacles = remember { mutableStateOf<List<Obs>>(emptyList()) }
+    val pickups = remember { mutableStateOf<List<Pkp>>(emptyList()) }
+    val crashes = remember { mutableStateOf<List<Crash>>(emptyList()) }
+    val reactions = remember { mutableStateOf<List<Reaction>>(emptyList()) }
+    val laneTime = remember { mutableStateOf(FloatArray(laneCount)) }
+
+    val started = remember { mutableStateOf(false) }
+    val gameOver = remember { mutableStateOf(false) }
+    val showSettings = remember { mutableStateOf(false) }
+    val showShop = remember { mutableStateOf(false) }
+    val showCalibration = remember { mutableStateOf(false) }
+    val showAnalytics = remember { mutableStateOf(false) }
+    val ghostMode = remember { mutableStateOf(false) }
+
+    val bossActive = remember { mutableStateOf(false) }
+    val nextBossDist = remember { mutableStateOf(2000f) }
+    val stage = remember { mutableStateOf(1) }
+    val timeLeftMs = remember { mutableStateOf(60_000f) }
+
+    val seed = remember(mode, settings.value.dailySeed) {
+        if (settings.value.dailySeed) {
+            val today = java.text.SimpleDateFormat("yyyyMMdd", Locale.US).format(java.util.Date()).toLong()
+            today
+        } else System.currentTimeMillis()
+    }
+    val rng = remember(seed) { Random(seed) }
+
+    // theme rotation
+    val themeIdx = remember { mutableStateOf(((settings.value.runsCompleted) / 5) % THEMES.size) }
+    val theme = if (settings.value.theme == "auto") THEMES[themeIdx.value] else THEMES.firstOrNull { it.id == settings.value.theme } ?: THEMES[0]
+
+    val skin = SKINS.firstOrNull { it.id == settings.value.skin } ?: SKINS[0]
+
+    val recordedFrames = remember { mutableListOf<Int>() }
+    val frameCount = remember { mutableStateOf(0) }
+
+    // Reaction tracking
+    val reactionWindowOpen = remember { mutableStateOf<Long?>(null) }
+    val firstObstacleSeen = remember { mutableStateOf<MutableSet<Int>>(mutableSetOf()) }
+
+    fun reset() {
+        carLane.value = laneCount / 2; targetLane.value = laneCount / 2; carLerp.value = (laneCount / 2).toFloat()
+        isJumping.value = false; jumpT.value = 0f; isSliding.value = false; slideT.value = 0f
+        distance.value = 0f; score.value = 0; coinsEarned.value = 0; combo.value = 1f
+        nearMissCount.value = 0; perfectStretch.value = 0f
+        speedBoost.value = 1f; slowMoT.value = 0f; shieldT.value = 0f; magnetT.value = 0f; doubleT.value = 0f
+        hearts.value = if (mode == "Stage" || mode == "Mission") 3 else 1
+        obstacles.value = emptyList(); pickups.value = emptyList()
+        crashes.value = emptyList(); reactions.value = emptyList()
+        laneTime.value = FloatArray(laneCount)
+        bossActive.value = false; nextBossDist.value = 2000f; stage.value = 1
+        timeLeftMs.value = 60_000f; recordedFrames.clear(); frameCount.value = 0
+        baseSpeed.value = when (difficulty.lowercase()) {
+            "easy" -> 16f; "hard" -> 24f; "expert", "insane" -> 28f
+            else -> 20f
+        }
+        gameOver.value = false
+        firstObstacleSeen.value = mutableSetOf()
+    }
+
+    fun endRun() {
+        if (gameOver.value) return
+        gameOver.value = true
+        val target = (1000f + distance.value * 0.4f).coerceAtMost(3500f)
+        settings.value.mmr += (target - settings.value.mmr) * 0.15f
+        settings.value.totalDistance += distance.value.toInt()
+        settings.value.totalCoins += coinsEarned.value
+        settings.value.runsCompleted += 1
+        if (crashes.value.isEmpty()) settings.value.perfectRuns += 1
+        if (settings.value.theme == "auto") themeIdx.value = (settings.value.runsCompleted / 5) % THEMES.size
+        val unlockOrder = listOf("rain", "night", "desert", "neon")
+        unlockOrder.forEachIndexed { i, id ->
+            val req = (i + 1) * 5
+            if (settings.value.runsCompleted >= req && id !in settings.value.ownedThemes) settings.value.ownedThemes.add(id)
+        }
+        save()
+        GamesStore.finishRun("runner", score.value)
+        beep("win")
+        scope.launch { delay(500); showAnalytics.value = true }
+    }
+
+    // Game loop
+    LaunchedEffect(started.value, paused, gameOver.value) {
+        if (!started.value || paused || gameOver.value) return@LaunchedEffect
+        var last = System.nanoTime()
+        while (started.value && !paused && !gameOver.value) {
+            val now = System.nanoTime()
+            var dt = ((now - last) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
+            last = now
+            if (settings.value.batterySaver) dt *= 0.9f
+            val timeScale = if (slowMoT.value > 0f) 0.5f else 1f
+            val effSpeed = baseSpeed.value * speedBoost.value * timeScale
+            distance.value += effSpeed * dt
+            frameCount.value++
+
+            // adaptive boost
+            speedBoost.value = (1f + distance.value / 4000f * (settings.value.mmr / 1000f)).coerceAtMost(2.4f)
+
+            // timers
+            if (slowMoT.value > 0f) slowMoT.value = (slowMoT.value - dt).coerceAtLeast(0f)
+            if (shieldT.value > 0f) shieldT.value = (shieldT.value - dt).coerceAtLeast(0f)
+            if (magnetT.value > 0f) magnetT.value = (magnetT.value - dt).coerceAtLeast(0f)
+            if (doubleT.value > 0f) doubleT.value = (doubleT.value - dt).coerceAtLeast(0f)
+
+            if (mode == "Time") {
+                timeLeftMs.value = (timeLeftMs.value - dt * 1000f).coerceAtLeast(0f)
+                if (timeLeftMs.value <= 0f) { endRun() }
             }
-            // move
-            for (o in obstacles) o.x -= spd * slow
-            for (c in coins) {
-                c.x -= spd * slow; c.phase += 0.15f
-                if (magnetT > 0) {
-                    val dx = (w / 4f) - c.x; val dy = (playerY - 16f) - c.y
-                    val d = hypot(dx, dy); val range = 60f + settings.value.upgradeMagnet * 25f
-                    if (d < range && d > 0.0001f) { c.x += (dx / d) * 3f; c.y += (dy / d) * 3f }
-                }
+
+            // tilt steering
+            if (settings.value.tilt && abs(tiltX.value) > 1.5f * (1.5f - settings.value.tiltSensitivity)) {
+                if (tiltX.value < 0f && targetLane.value < laneCount - 1) targetLane.value++
+                else if (tiltX.value > 0f && targetLane.value > 0) targetLane.value--
             }
-            run {
-                val it = particles.iterator()
-                while (it.hasNext()) { val p = it.next(); p.x += p.vx; p.y += p.vy; p.vy += 0.06f; p.life -= 1; if (p.life <= 0) it.remove() }
+
+            // smooth lane
+            val tgt = targetLane.value.toFloat()
+            val diff = tgt - carLerp.value
+            carLerp.value += diff * (10f * dt).coerceAtMost(1f)
+            if (abs(diff) < 0.02f) { carLerp.value = tgt; carLane.value = targetLane.value }
+
+            // jump / slide timers
+            if (isJumping.value) {
+                jumpT.value += dt
+                if (jumpT.value > 0.7f) { isJumping.value = false; jumpT.value = 0f }
             }
-            // collision
-            val px = w / 4f; val pwid = 26f
-            val forgive = if (settings.value.assistBigBox) -4f else 0f
-            var pTop = playerY - 30f - forgive; val pBot = playerY + forgive
-            if (sliding) pTop = playerY - 14f
-            val itO = obstacles.iterator()
-            var died = false
-            while (itO.hasNext()) {
-                val o = itO.next()
-                val oTop = o.y; val oBot = o.y + o.h
-                val inX = o.x < px + pwid + forgive && o.x + o.w > px - forgive
-                if (inX && oBot > pTop && oTop < pBot) {
-                    if (settings.value.assistInvincible) { o.x = -200f; continue }
-                    if (shieldCharges > 0) {
-                        shieldCharges -= 1; o.x = -200f
-                        if (settings.value.haptics) vibrate(ctx, 20L)
-                        if (shieldCharges <= 0 && powerName == "Shield") powerName = ""
-                        continue
-                    }
-                    deathKind = when (o.kind) { ObsKind.CACTUS -> "cactus"; ObsKind.PTERO -> "ptero"; ObsKind.ROCK -> "rock"; ObsKind.LOG -> "log" }
-                    died = true; break
+            if (isSliding.value) {
+                slideT.value += dt
+                if (slideT.value > 0.55f) { isSliding.value = false; slideT.value = 0f }
+            }
+
+            laneTime.value[carLane.value] = laneTime.value[carLane.value] + dt
+            recordedFrames += carLane.value
+
+            // spawn obstacles
+            spawn(rng, obstacles, pickups, distance.value, laneCount, settings.value, mode, bossActive, nextBossDist, dt, effSpeed)
+
+            // advance entities
+            val moveZ = effSpeed * dt
+            obstacles.value = obstacles.value.map { it.copy(z = it.z - moveZ) }.filter { it.z > -2f }
+            pickups.value = pickups.value.map {
+                if (magnetT.value > 0f) {
+                    val dx = (carLane.value - it.lane) * dt * 6f
+                    it.copy(lane = it.lane, z = it.z - moveZ).also { p -> p.lane = (p.lane + dx.roundToInt()).coerceIn(0, laneCount - 1) }
+                } else it.copy(z = it.z - moveZ)
+            }.filter { it.z > -2f }
+
+            // collisions
+            obstacles.value.forEach { o ->
+                if (o.z < 5f && !firstObstacleSeen.value.contains(System.identityHashCode(o))) {
+                    firstObstacleSeen.value.add(System.identityHashCode(o))
+                    reactionWindowOpen.value = System.currentTimeMillis()
                 }
-                if (!o.passed && o.x + o.w < px) {
-                    o.passed = true; combo += 1
-                    maxCombo = max(maxCombo, combo)
-                    onScore(distance.toInt() + runCoins * 5)
-                    val passClear = abs(playerY - o.y - o.h / 2f)
-                    if (passClear < 12f) say("Perfect")
-                    else if (passClear < 22f) flashGlow = 18
-                    if (calActive) {
-                        reactions.lastOrNull()?.let { calReact.add(it) }
-                        calCount += 1
-                        if (calCount >= 5) {
-                            if (calReact.isNotEmpty()) {
-                                val avg = calReact.average().toFloat()
-                                settings.value = settings.value.copy(jumpBuffer = max(40, min(180, (avg * 0.6f).toInt())))
-                                save()
+                if (o.z in 0f..0.6f) {
+                    val sameLane = o.lane == carLane.value || (o.width > 1 && carLane.value in o.lane until (o.lane + o.width))
+                    val passable = (o.kind == ObsKind.Beam && isSliding.value) || (o.kind == ObsKind.Wall && isJumping.value) || (o.kind == ObsKind.Boss && carLane.value == o.bossOpenLane)
+                    if (sameLane && !passable) {
+                        if (shieldT.value > 0f) {
+                            shieldT.value = 0f; haptic(50); beep("power")
+                            obstacles.value = obstacles.value.filter { it !== o }
+                        } else {
+                            crashes.value = crashes.value + Crash(carLane.value.toFloat(), distance.value, distance.value, o.kind.name)
+                            hearts.value -= 1
+                            haptic(120); beep("lose")
+                            if (hearts.value <= 0) endRun() else {
+                                obstacles.value = obstacles.value.filter { it !== o }
+                                shieldT.value = 1.2f
                             }
-                            calActive = false
+                        }
+                    } else if (sameLane && passable) {
+                        // beat boss / wall — bonus
+                        if (o.kind == ObsKind.Boss) {
+                            settings.value.bossesBeat++; speak("Boss down")
+                            score.value += 250; combo.value = (combo.value + 0.5f).coerceAtMost(5f)
+                            beep("win")
+                        }
+                    } else if (abs(o.lane - carLane.value) == 1 && o.z in 0.1f..0.4f) {
+                        // near miss
+                        nearMissCount.value++
+                        combo.value = (combo.value + 0.05f).coerceAtMost(5f)
+                        score.value += 5
+                        if (reactionWindowOpen.value != null) {
+                            val ms = (System.currentTimeMillis() - (reactionWindowOpen.value ?: 0L)).toFloat()
+                            reactions.value = reactions.value + Reaction(distance.value, ms)
+                            reactionWindowOpen.value = null
                         }
                     }
                 }
             }
-            if (died) { /* die */
-                alive = false
-                deathBuckets[deathKind] = (deathBuckets[deathKind] ?: 0) + 1
-                if (settings.value.haptics) vibrate(ctx, 80L)
-                if (!settings.value.reducedMotion) {
-                    for (i in 0 until 16) {
-                        val a = rand() * (PI * 2).toFloat(); val v = 1f + rand() * 3f
-                        particles.add(DPart(w / 4f, playerY - 14f, cos(a) * v, sin(a) * v - 1f, 30, 30, Color(0xFFEF4444), 2f))
+            pickups.value.forEach { p ->
+                val grab = magnetT.value > 0f && abs(p.lane - carLane.value) <= 1 && p.z in -0.2f..1.2f
+                if ((p.lane == carLane.value && p.z in -0.1f..0.5f) || grab) {
+                    when (p.kind) {
+                        PickupKind.Coin -> { val n = (10 * (if (doubleT.value > 0f) 2 else 1)).toInt(); coinsEarned.value += n; score.value += n; beep("tick") }
+                        PickupKind.Shield -> { shieldT.value = 6f; speak("Shield"); beep("power") }
+                        PickupKind.SlowMo -> { slowMoT.value = 4f; speak("Slow motion"); beep("power") }
+                        PickupKind.Magnet -> { magnetT.value = 6f; speak("Magnet"); beep("power") }
+                        PickupKind.Double -> { doubleT.value = 8f; speak("Double points"); beep("power") }
+                        PickupKind.Heart -> { hearts.value = min(hearts.value + 1, 5); speak("Health up"); beep("win") }
                     }
-                }
-                // adaptive
-                val newRecent = (settings.value.recentDeaths + distance.toInt()).takeLast(5)
-                val newLongest = max(settings.value.longestM, distance.toInt())
-                val newCoins = settings.value.coins + runCoins
-                val newJumps = settings.value.totalJumps + jumpCount
-                // unlocks
-                val s = settings.value
-                val nuCyber = !s.unlockedCyber && distance >= 500
-                val nuBone = !s.unlockedBone && distance >= 1000
-                val nuLava = !s.unlockedLava && distance >= 1500
-                val nuIce = !s.unlockedIce && maxCombo >= 25
-                val nuGold = !s.unlockedGold && newJumps >= 500
-                if (nuCyber) unlockedNow.add("Cyber skin")
-                if (nuBone) unlockedNow.add("Bone skin")
-                if (nuLava) unlockedNow.add("Lava skin")
-                if (nuIce) unlockedNow.add("Ice skin")
-                if (nuGold) unlockedNow.add("Gold skin")
-                if (distance.toInt() > s.longestM) say("New record")
-                runTip = when (deathKind) {
-                    "ptero" -> "You hit a high pterodactyl — try crouching instead of jumping over."
-                    "cactus" -> "You jumped too late — try jumping ~0.1s earlier."
-                    "log" -> "Logs need a tall jump — full press, not a tap."
-                    else -> "Slow down and look ahead — most deaths come from $deathKind."
-                }
-                settings.value = s.copy(
-                    coins = newCoins, longestM = newLongest, totalJumps = newJumps,
-                    recentDeaths = newRecent,
-                    unlockedCyber = s.unlockedCyber || nuCyber,
-                    unlockedBone = s.unlockedBone || nuBone,
-                    unlockedLava = s.unlockedLava || nuLava,
-                    unlockedIce = s.unlockedIce || nuIce,
-                    unlockedGold = s.unlockedGold || nuGold,
-                )
-                save()
-                scope.launch { delay(if (settings.value.reducedMotion) 200L else 600L); showAnalytics = true }
-                continue
-            }
-            // coin collect
-            for (c in coins) {
-                if (c.got) continue
-                if (abs(c.x - w / 4f) < 14f && abs(c.y - (playerY - 16f)) < 22f) {
-                    c.got = true
-                    val inc = 1 + (if (doubleCoinT > 0) 1 else 0)
-                    runCoins += inc
-                    if (settings.value.haptics) vibrate(ctx, 6L)
+                    pickups.value = pickups.value.filter { it !== p }
                 }
             }
-            // milestone
-            val km = (distance.toInt() / 1000)
-            if (distance.toInt() > 0 && distance.toInt() % 1000 == 0 && km != lastMileK) {
-                lastMileK = km
-                say("Good")
-                if (settings.value.haptics) vibrate(ctx, 12L)
+
+            // distance score
+            score.value = (distance.value.toInt() + nearMissCount.value * 8 + coinsEarned.value)
+            onScore(score.value)
+
+            // boss spawn
+            if (!bossActive.value && distance.value >= nextBossDist.value) {
+                val openLane = rng.nextInt(laneCount)
+                obstacles.value = obstacles.value + Obs(ObsKind.Boss, 0, 25f, width = laneCount, bossOpenLane = openLane)
+                bossActive.value = true
+                speak("Boss truck inbound. Lane ${openLane + 1}.")
+                haptic(80)
             }
-            // cleanup
-            obstacles.removeAll { it.x < -60f }
-            coins.removeAll { it.x < -60f || it.got }
-            // ground check (shouldn't happen for ground player but for safety)
-            if (playerY > groundY) playerY = groundY
-            if (flashGlow > 0) flashGlow -= 1
-            // time-trial end
-            if (mode == "TimeTrial" && ttEnd > 0 && System.currentTimeMillis() > ttEnd) {
-                deathKind = "rock"; alive = false
-                save()
-                scope.launch { delay(200L); showAnalytics = true }
+            if (bossActive.value && obstacles.value.none { it.kind == ObsKind.Boss }) {
+                bossActive.value = false
+                nextBossDist.value += 2000f
+                stage.value++
             }
+
+            // perfect streak
+            if (crashes.value.lastOrNull()?.let { distance.value - it.zoneY > 300f } != false) {
+                perfectStretch.value += effSpeed * dt
+            }
+
+            delay(16)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(settings.value.swipeMin, settings.value.upgradeDoubleJump, alive, paused, showAnalytics, settingsOpen, settings.value.oneHanded) {
-                if (!alive || paused || showAnalytics || settingsOpen) return@pointerInput
-                detectVerticalDragGestures(
-                    onDragStart = { },
-                    onDragEnd = { sliding = false },
-                    onDragCancel = { sliding = false },
-                ) { change, dy ->
-                    if (settings.value.oneHanded && change.position.y < size.height / 2) return@detectVerticalDragGestures
-                    if (dy < -settings.value.swipeMin) jump()
-                    if (dy > settings.value.swipeMin) crouch(true)
+    Surface(modifier = Modifier.fillMaxSize(), color = theme.sky.last()) {
+        Box(modifier = Modifier.fillMaxSize().background(brushFor(theme))) {
+            Canvas(modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(settings.value.tapZones, settings.value.leftyMirror, laneCount) {
+                    detectDragGestures(onDragEnd = {}) { _, drag ->
+                        val ax = drag.x; val ay = drag.y
+                        val s = 12f * (1.5f - settings.value.swipeStrength)
+                        if (abs(ax) > abs(ay)) {
+                            if (ax > s) targetLane.value = (targetLane.value + (if (settings.value.leftyMirror) -1 else 1)).coerceIn(0, laneCount - 1)
+                            else if (ax < -s) targetLane.value = (targetLane.value + (if (settings.value.leftyMirror) 1 else -1)).coerceIn(0, laneCount - 1)
+                            haptic(10)
+                        } else {
+                            if (ay < -s && !isJumping.value) { isJumping.value = true; jumpT.value = 0f; beep("tap"); haptic(15) }
+                            else if (ay > s && !isSliding.value) { isSliding.value = true; slideT.value = 0f; beep("tap"); haptic(15) }
+                        }
+                    }
+                }
+                .pointerInput(settings.value.tapZones, settings.value.leftyMirror, laneCount) {
+                    detectTapGestures(
+                        onTap = { offset ->
+                            if (!started.value) { started.value = true; reset(); started.value = true; return@detectTapGestures }
+                            if (settings.value.tapZones) {
+                                val w = size.width
+                                val mirror = if (settings.value.leftyMirror) -1 else 1
+                                if (offset.x < w * 0.33f) targetLane.value = (targetLane.value - 1 * mirror).coerceIn(0, laneCount - 1)
+                                else if (offset.x > w * 0.66f) targetLane.value = (targetLane.value + 1 * mirror).coerceIn(0, laneCount - 1)
+                                else if (!isJumping.value) { isJumping.value = true; jumpT.value = 0f }
+                                beep("tap"); haptic(8)
+                            }
+                        },
+                        onDoubleTap = { if (!isSliding.value) { isSliding.value = true; slideT.value = 0f; beep("tap") } },
+                    )
+                }
+            ) {
+                drawScene(this, theme, skin, laneCount, carLerp.value, isJumping.value, jumpT.value,
+                    isSliding.value, slideT.value, obstacles.value, pickups.value, settings.value,
+                    distance.value, shieldT.value, magnetT.value)
+            }
+
+            // HUD
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    HudPill("DIST", "${distance.value.toInt()}m", accent, settings.value.bigHud)
+                    Spacer(Modifier.width(8.dp))
+                    HudPill("SCORE", "${score.value}", Color.White, settings.value.bigHud)
+                    Spacer(Modifier.width(8.dp))
+                    HudPill("×", String.format("%.1f", combo.value), Color(0xFFFCD34D), settings.value.bigHud)
+                    Spacer(Modifier.weight(1f))
+                    HudPill("$", "${coinsEarned.value}", Color(0xFFFCD34D), settings.value.bigHud)
+                }
+                Spacer(Modifier.height(6.dp))
+                Row {
+                    if (shieldT.value > 0f) Pill("SHIELD ${shieldT.value.toInt()}s", Color(0xFF38BDF8))
+                    if (slowMoT.value > 0f) Pill("SLOW ${slowMoT.value.toInt()}s", Color(0xFF60A5FA))
+                    if (magnetT.value > 0f) Pill("MAGNET ${magnetT.value.toInt()}s", Color(0xFFEF4444))
+                    if (doubleT.value > 0f) Pill("×2 ${doubleT.value.toInt()}s", Color(0xFFFACC15))
+                    if (mode == "Time") Pill("TIME ${(timeLeftMs.value / 1000f).toInt()}s", Color.White)
+                    if (mode == "Stage") Pill("STAGE ${stage.value}", Color(0xFFA78BFA))
+                    Spacer(Modifier.weight(1f))
+                    Text("♥".repeat(hearts.value), color = Color(0xFFEF4444), fontSize = 18.sp)
                 }
             }
-            .pointerInput(alive, paused, showAnalytics, settingsOpen, settings.value.oneHanded, settings.value.upgradeDoubleJump) {
-                if (!alive || paused || showAnalytics || settingsOpen) return@pointerInput
-                var lastTap = 0L
-                detectTapGestures(
-                    onTap = {
-                        if (settings.value.oneHanded && it.y < size.height / 2) return@detectTapGestures
-                        val now = System.currentTimeMillis()
-                        if (now - lastTap < 220 && settings.value.upgradeDoubleJump) { jump(); jump(); lastTap = 0 }
-                        else { jump(); lastTap = now }
-                    },
-                )
-            }
-        ) {
-            w = size.width; h = size.height
-            if (groundY == 0f) groundY = h - groundOffset
-            drawBg(distance, dayTime, settings.value.theme, settings.value.highContrast, settings.value.colorblind, w, h, groundY)
-            // ground details handled inside drawBg
-            for (c in coins) {
-                if (c.got) continue
-                drawCircle(applyCb(Color(0xFFFBBF24), settings.value.colorblind), radius = 6f + sin(c.phase) * 1.2f, center = Offset(c.x, c.y))
-                drawCircle(Color.Black.copy(0.4f), radius = 6f + sin(c.phase) * 1.2f, center = Offset(c.x, c.y), style = Stroke(width = 1f))
-            }
-            for (o in obstacles) drawObstacle(o, settings.value.theme, settings.value.highContrast, settings.value.colorblind, distance, groundY)
-            for (p in particles) {
-                val a = max(0f, p.life.toFloat() / p.max)
-                drawRect(applyCb(p.col, settings.value.colorblind).copy(alpha = a), Offset(p.x, p.y), Size(p.size, p.size))
-            }
-            if (alive) {
-                drawDino(w / 4f, playerY, sliding, settings.value.skin, shieldCharges, settings.value.colorblind)
-            }
-            // speed lines
-            if (!settings.value.reducedMotion && spd / maxSpd > 0.8f) {
-                for (i in 0 until 6) {
-                    val ly = 60f + i * 30f
-                    val off = (distance * 6f + i * 17f) % 80f
-                    drawLine(Color.White.copy(0.3f), Offset(w - off, ly), Offset(w - off - 30f, ly), strokeWidth = 1f)
+
+            // Bottom controls
+            Row(modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(10.dp)) {
+                ChipBtn("⚙") { showSettings.value = true }
+                Spacer(Modifier.width(6.dp))
+                ChipBtn("Shop") { showShop.value = true }
+                Spacer(Modifier.width(6.dp))
+                ChipBtn("Calibrate") { showCalibration.value = true }
+                Spacer(Modifier.weight(1f))
+                ChipBtn(if (started.value) "Restart" else "Start") {
+                    started.value = false; reset(); started.value = true
                 }
             }
-            if (flashGlow > 0) {
-                drawRect(Color(0x6660A5FA).copy(alpha = flashGlow / 18f * 0.4f), Offset(0f, 0f), Size(w, h), style = Stroke(width = 6f))
+
+            if (!started.value && !showAnalytics.value) {
+                Box(Modifier.fillMaxSize().background(Color(0xCC000000)).clickable { started.value = true; reset(); started.value = true },
+                    contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("LANE RUSH", color = accent, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Text("Tap halves or swipe to switch lanes", color = Color.White, fontSize = 14.sp)
+                        Text("Swipe up to jump, down to slide", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text("Tap to start", color = Color(0xFFFCD34D), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            if (showSettings.value) SettingsSheet(settings, onClose = { showSettings.value = false }, onSave = ::save)
+            if (showShop.value) ShopSheet(settings, onClose = { showShop.value = false }, onSave = ::save)
+            if (showCalibration.value) CalibrationSheet(settings, onClose = { showCalibration.value = false }, onSave = ::save)
+            if (showAnalytics.value) AnalyticsSheet(
+                distance = distance.value.toInt(),
+                score = score.value,
+                coins = coinsEarned.value,
+                nearMisses = nearMissCount.value,
+                stage = stage.value,
+                bossesBeat = settings.value.bossesBeat,
+                crashes = crashes.value,
+                reactions = reactions.value,
+                laneTime = laneTime.value,
+                laneCount = laneCount,
+                onReplay = { showAnalytics.value = false; reset(); started.value = true },
+                onClose = { showAnalytics.value = false; onGameOver() },
+            )
+        }
+    }
+}
+
+// --------------------------- Spawning -----------------------------------
+
+private fun spawn(rng: Random, obs: MutableState<List<Obs>>, pks: MutableState<List<Pkp>>,
+                  dist: Float, lanes: Int, s: LaneRushSettings, mode: String,
+                  boss: MutableState<Boolean>, nextBoss: MutableState<Float>, dt: Float, effSpeed: Float) {
+    if (boss.value) return
+    val density = (0.5f + dist / 1500f).coerceAtMost(2.5f)
+    if (rng.nextFloat() < 0.06f * density) {
+        val kinds = listOf(ObsKind.Sedan, ObsKind.Truck, ObsKind.Bus, ObsKind.Police, ObsKind.Moto,
+            ObsKind.Block, ObsKind.Barrel, ObsKind.Cone, ObsKind.Drone, ObsKind.Beam, ObsKind.Wall,
+            ObsKind.Slick, ObsKind.Pothole, ObsKind.Spike)
+        val k = kinds[rng.nextInt(kinds.size)]
+        val width = if (k == ObsKind.Bus) 2 else 1
+        val lane = rng.nextInt(0, lanes - width + 1)
+        // ensure passable: never spawn a row that fills all lanes
+        val row = obs.value.filter { abs(it.z - 22f) < 2f }
+        val coveredLanes = row.flatMap { (it.lane until (it.lane + it.width)).toList() }.toSet()
+        if (coveredLanes.size + width >= lanes) return
+        obs.value = obs.value + Obs(k, lane, 22f, width = width, hp = if (k == ObsKind.Elite) 2 else 1)
+    }
+    // pickups
+    if (rng.nextFloat() < 0.04f) {
+        val k = when (rng.nextInt(100)) {
+            in 0..55 -> PickupKind.Coin
+            in 56..68 -> PickupKind.Shield
+            in 69..78 -> PickupKind.SlowMo
+            in 79..88 -> PickupKind.Magnet
+            in 89..96 -> PickupKind.Double
+            else -> PickupKind.Heart
+        }
+        pks.value = pks.value + Pkp(k, rng.nextInt(lanes), 22f)
+    }
+}
+
+// --------------------------- Drawing ------------------------------------
+
+private fun brushFor(t: ThemeDef) = androidx.compose.ui.graphics.SolidColor(t.sky[1])
+
+private fun drawScene(ds: DrawScope, theme: ThemeDef, skin: SkinDef, lanes: Int, carLerp: Float,
+                      jumping: Boolean, jumpT: Float, sliding: Boolean, slideT: Float,
+                      obs: List<Obs>, pks: List<Pkp>, s: LaneRushSettings,
+                      distance: Float, shieldT: Float, magnetT: Float) {
+    with(ds) {
+        val w = size.width; val h = size.height
+        // sky
+        drawRect(Brush.verticalGradient(theme.sky), size = Size(w, h * 0.6f))
+        // road trapezoid
+        val roadTopY = h * 0.35f
+        val roadTopHalf = w * 0.06f
+        val roadBotHalf = w * 0.48f
+        val cx = w / 2f
+        val road = Path().apply {
+            moveTo(cx - roadTopHalf, roadTopY); lineTo(cx + roadTopHalf, roadTopY)
+            lineTo(cx + roadBotHalf, h); lineTo(cx - roadBotHalf, h); close()
+        }
+        drawPath(road, theme.road)
+
+        // lane lines moving
+        val laneW = (1f / lanes)
+        for (i in 1 until lanes) {
+            val u = i * laneW
+            val x1 = cx - roadTopHalf + 2f * roadTopHalf * u
+            val x2 = cx - roadBotHalf + 2f * roadBotHalf * u
+            // dashed line via segments
+            val dashes = if (s.batterySaver) 6 else 12
+            for (d in 0 until dashes) {
+                val t0 = (d.toFloat() / dashes + (distance % 40f) / 40f) % 1f
+                val t1 = ((d + 0.45f) / dashes + (distance % 40f) / 40f) % 1f
+                val ax = x1 + (x2 - x1) * t0; val ay = roadTopY + (h - roadTopY) * t0
+                val bx = x1 + (x2 - x1) * t1; val by = roadTopY + (h - roadTopY) * t1
+                drawLine(theme.line, Offset(ax, ay), Offset(bx, by), strokeWidth = 4f + 12f * t0)
+            }
+        }
+        // edge guard rails
+        drawLine(theme.accent, Offset(cx - roadTopHalf, roadTopY), Offset(cx - roadBotHalf, h), strokeWidth = 4f)
+        drawLine(theme.accent, Offset(cx + roadTopHalf, roadTopY), Offset(cx + roadBotHalf, h), strokeWidth = 4f)
+
+        // helper to project lane index into x at depth t (0..1; 0=top,1=bottom)
+        fun project(lane: Int, lateral: Float = 0f, depth: Float): Pair<Float, Float> {
+            val u = (lane.toFloat() + 0.5f + lateral) / lanes
+            val x1 = cx - roadTopHalf + 2f * roadTopHalf * u
+            val x2 = cx - roadBotHalf + 2f * roadBotHalf * u
+            val t = depth.coerceIn(0f, 1f)
+            val xx = x1 + (x2 - x1) * t
+            val yy = roadTopY + (h - roadTopY) * t
+            return xx to yy
+        }
+
+        // obstacles
+        obs.sortedBy { it.z }.forEach { o ->
+            val depth = (1f - o.z / 22f).coerceIn(0f, 1f)
+            val (ox, oy) = project(o.lane + (o.width - 1) * 0.5f, 0f, depth)
+            val sz = 16f + 80f * depth
+            val color = when (o.kind) {
+                ObsKind.Sedan -> Color(0xFFEF4444); ObsKind.Truck -> Color(0xFF1E3A8A)
+                ObsKind.Bus -> Color(0xFFF59E0B); ObsKind.Police -> Color(0xFF1F2937)
+                ObsKind.Moto -> Color(0xFF22C55E); ObsKind.Block -> Color(0xFF6B7280)
+                ObsKind.Barrel -> Color(0xFFEAB308); ObsKind.Cone -> Color(0xFFFB923C)
+                ObsKind.Drone -> Color(0xFF8B5CF6); ObsKind.Beam -> Color(0xFFEC4899)
+                ObsKind.Wall -> Color(0xFFB91C1C); ObsKind.Boss -> Color(0xFF111827)
+                ObsKind.Elite -> Color(0xFFA855F7); ObsKind.Slick -> Color(0xFF1E293B)
+                ObsKind.Pothole -> Color(0xFF000000); ObsKind.Spike -> Color(0xFFFCA5A5)
+            }
+            when (o.kind) {
+                ObsKind.Beam -> drawRect(color, Offset(ox - sz, oy - sz * 0.25f), Size(sz * 2f, sz * 0.4f))
+                ObsKind.Wall -> drawRect(color, Offset(ox - sz, oy - sz * 1.5f), Size(sz * 2f, sz * 1.5f))
+                ObsKind.Boss -> {
+                    val widthPx = roadBotHalf * 1.7f * depth.coerceAtLeast(0.4f)
+                    drawRect(color, Offset(cx - widthPx, oy - sz * 1.6f), Size(widthPx * 2f, sz * 1.6f))
+                    // open lane indicator
+                    val (gx, _) = project(o.bossOpenLane.toFloat(), 0f, depth)
+                    drawRect(Color(0xFFFCD34D), Offset(gx - sz * 0.6f, oy - sz * 1.6f), Size(sz * 1.2f, sz * 1.6f))
+                }
+                ObsKind.Drone -> drawCircle(color, sz * 0.6f, Offset(ox, oy - sz * 1.2f))
+                ObsKind.Cone -> {
+                    val p = Path().apply {
+                        moveTo(ox, oy - sz); lineTo(ox - sz * 0.6f, oy); lineTo(ox + sz * 0.6f, oy); close()
+                    }
+                    drawPath(p, color)
+                }
+                ObsKind.Pothole -> drawCircle(color, sz * 0.7f, Offset(ox, oy + sz * 0.2f))
+                else -> drawRect(color, Offset(ox - sz * 0.7f, oy - sz * 1.1f), Size(sz * 1.4f, sz * 1.1f))
             }
         }
 
-        // top HUD
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Surface(color = Color(0x99000000), shape = RoundedCornerShape(50)) {
-                Text("${distance.toInt()}m · ${settings.value.theme}", color = Color.White, fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+        // pickups
+        pks.forEach { p ->
+            val depth = (1f - p.z / 22f).coerceIn(0f, 1f)
+            val (ox, oy) = project(p.lane.toFloat(), 0f, depth)
+            val sz = 8f + 22f * depth
+            val color = when (p.kind) {
+                PickupKind.Coin -> Color(0xFFFCD34D); PickupKind.Shield -> Color(0xFF38BDF8)
+                PickupKind.SlowMo -> Color(0xFF60A5FA); PickupKind.Magnet -> Color(0xFFEF4444)
+                PickupKind.Double -> Color(0xFFFACC15); PickupKind.Heart -> Color(0xFFEC4899)
             }
-            Spacer(modifier = Modifier.width(6.dp))
-            if (combo > 1) {
-                Surface(color = Color(0xCC22D3EE), shape = RoundedCornerShape(50)) {
-                    Text("x$combo", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+            drawCircle(color, sz, Offset(ox, oy - sz))
+            if (p.kind != PickupKind.Coin) drawCircle(Color.White.copy(alpha = 0.5f), sz * 0.4f, Offset(ox, oy - sz))
+        }
+
+        // car
+        val carDepth = 0.85f
+        val (carX, carYBase) = project(0, carLerp - (lanes / 2f) + 0.5f, carDepth)
+        val jumpY = if (jumping) -50f * sin(jumpT.toDouble() / 0.7 * PI).toFloat() else 0f
+        val carH = if (sliding) 36f else 56f
+        val carW = 60f
+        val carY = carYBase + jumpY
+        if (s.trail) {
+            for (i in 0 until 6) {
+                val a = (1f - i / 6f) * 0.25f
+                drawCircle(skin.accent.copy(alpha = a), carW * 0.5f - i * 4f, Offset(carX, carY + 8f + i * 6f))
+            }
+        }
+        drawRect(skin.accent, Offset(carX - carW * 0.5f, carY - carH * 0.5f - 4f), Size(carW, carH + 8f))
+        drawRect(skin.color, Offset(carX - carW * 0.4f, carY - carH * 0.5f), Size(carW * 0.8f, carH))
+        drawRect(Color.White.copy(alpha = 0.6f), Offset(carX - carW * 0.3f, carY - carH * 0.35f), Size(carW * 0.6f, carH * 0.25f))
+        if (shieldT > 0f) drawCircle(Color(0xFF38BDF8).copy(alpha = 0.6f), carW * 0.9f, Offset(carX, carY), style = Stroke(width = 4f))
+        if (magnetT > 0f) drawCircle(Color(0xFFEF4444).copy(alpha = 0.4f), carW * 1.4f, Offset(carX, carY), style = Stroke(width = 2f))
+
+        // top fade for theme particles
+        if (theme.particles == "rain" && !s.batterySaver) {
+            for (i in 0 until 40) {
+                val rx = (i * 173f) % w
+                val ry = ((i * 217f + (distance * 30f)) % h)
+                drawLine(Color.White.copy(alpha = 0.35f), Offset(rx, ry), Offset(rx - 6f, ry + 18f), strokeWidth = 1.5f)
+            }
+        } else if (theme.particles == "neon" && !s.batterySaver) {
+            for (i in 0 until 20) {
+                val nx = (i * 61f) % w
+                val ny = (i * 89f) % (h * 0.4f)
+                drawCircle(theme.accent.copy(alpha = 0.5f), 2f, Offset(nx, ny))
+            }
+        }
+    }
+}
+
+// --------------------------- HUD bits -----------------------------------
+
+@Composable
+private fun HudPill(label: String, value: String, color: Color, big: Boolean) {
+    Surface(color = Color.Black.copy(alpha = 0.55f), shape = RoundedCornerShape(10.dp)) {
+        Row(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = if (big) 12.sp else 10.sp)
+            Spacer(Modifier.width(4.dp))
+            Text(value, color = color, fontSize = if (big) 16.sp else 14.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun Pill(text: String, color: Color) {
+    Surface(color = color.copy(alpha = 0.85f), shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(end = 4.dp)) {
+        Text(text, color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+    }
+}
+
+@Composable
+private fun ChipBtn(text: String, onClick: () -> Unit) {
+    Surface(color = Color.Black.copy(alpha = 0.7f), shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.clickable { onClick() }) {
+        Text(text, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
+    }
+}
+
+// --------------------------- Sheets -------------------------------------
+
+@Composable
+private fun SettingsSheet(state: MutableState<LaneRushSettings>, onClose: () -> Unit, onSave: () -> Unit) {
+    val s = state.value
+    Box(Modifier.fillMaxSize().background(Color(0xCC000000)).clickable { onClose() }) {
+        Surface(color = Color(0xFF111827), shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.align(Alignment.Center).padding(20.dp).fillMaxWidth(0.92f)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp).heightIn(max = 560.dp)) {
+                Text("Settings", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                LaneRow("Lanes", s.laneCount, listOf(3, 4, 5)) { state.value = s.copy(laneCount = it); onSave() }
+                ToggleRow("Sound", s.sound) { state.value = s.copy(sound = it); onSave() }
+                ToggleRow("Music", s.music) { state.value = s.copy(music = it); onSave() }
+                ToggleRow("Voice cues", s.voiceCalls) { state.value = s.copy(voiceCalls = it); onSave() }
+                ToggleRow("Haptics", s.haptics) { state.value = s.copy(haptics = it); onSave() }
+                ToggleRow("Tilt steering", s.tilt) { state.value = s.copy(tilt = it); onSave() }
+                ToggleRow("Tap halves to steer", s.tapZones) { state.value = s.copy(tapZones = it); onSave() }
+                ToggleRow("One-handed mode", s.oneHanded) { state.value = s.copy(oneHanded = it); onSave() }
+                ToggleRow("Lefty mirror", s.leftyMirror) { state.value = s.copy(leftyMirror = it); onSave() }
+                ToggleRow("Reduced motion", s.reducedMotion) { state.value = s.copy(reducedMotion = it); onSave() }
+                ToggleRow("High contrast", s.highContrast) { state.value = s.copy(highContrast = it); onSave() }
+                ToggleRow("Battery saver", s.batterySaver) { state.value = s.copy(batterySaver = it); onSave() }
+                ToggleRow("Big HUD", s.bigHud) { state.value = s.copy(bigHud = it); onSave() }
+                ToggleRow("Trail", s.trail) { state.value = s.copy(trail = it); onSave() }
+                ToggleRow("Ghost replay", s.ghost) { state.value = s.copy(ghost = it); onSave() }
+                ToggleRow("Daily seed run", s.dailySeed) { state.value = s.copy(dailySeed = it); onSave() }
+                Spacer(Modifier.height(8.dp))
+                Text("Colorblind: ${s.colorblind}", color = Color.White, fontSize = 12.sp)
+                Row {
+                    listOf("none", "deutan", "protan", "tritan").forEach { mode ->
+                        ChipBtn(mode) { state.value = s.copy(colorblind = mode); onSave() }
+                        Spacer(Modifier.width(4.dp))
+                    }
                 }
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(Modifier.height(8.dp))
+                Text("Theme: ${s.theme}", color = Color.White, fontSize = 12.sp)
+                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    ChipBtn("auto") { state.value = s.copy(theme = "auto"); onSave() }
+                    Spacer(Modifier.width(4.dp))
+                    THEMES.forEach { t ->
+                        if (t.id in s.ownedThemes) {
+                            ChipBtn(t.label) { state.value = s.copy(theme = t.id); onSave() }
+                            Spacer(Modifier.width(4.dp))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Tilt sensitivity: ${(s.tiltSensitivity * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+                Slider(value = s.tiltSensitivity, onValueChange = { state.value = s.copy(tiltSensitivity = it); onSave() })
+                Text("Swipe strength: ${(s.swipeStrength * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+                Slider(value = s.swipeStrength, onValueChange = { state.value = s.copy(swipeStrength = it); onSave() })
+                Spacer(Modifier.height(8.dp))
+                Row { ChipBtn("Close") { onClose() } }
             }
-            Surface(color = Color(0x99000000), shape = RoundedCornerShape(50)) {
-                Text("◎ $runCoins", color = Color(0xFFFACC15), fontSize = 12.sp, fontWeight = FontWeight.Bold,
+        }
+    }
+}
+
+@Composable
+private fun LaneRow(label: String, current: Int, options: List<Int>, onPick: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(label, color = Color.White, fontSize = 13.sp)
+        Spacer(Modifier.weight(1f))
+        options.forEach { v ->
+            Surface(color = if (v == current) Color(0xFFFB923C) else Color.White.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(8.dp), modifier = Modifier.padding(horizontal = 2.dp).clickable { onPick(v) }) {
+                Text("$v", color = if (v == current) Color.Black else Color.White, fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
             }
-            Spacer(modifier = Modifier.width(6.dp))
-            if (powerName.isNotBlank()) {
-                Surface(color = Color(0xCC6366F1), shape = RoundedCornerShape(50)) {
-                    Text("$powerName ${powerLeft / 60}s", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Surface(color = Color(0x99000000), shape = RoundedCornerShape(50),
-                modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { settingsOpen = true }) {
-                Text("⚙", color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-            }
-        }
-        if (mode == "TimeTrial" && ttEnd > 0 && alive) {
-            val secs = max(0, ((ttEnd - System.currentTimeMillis()) / 1000).toInt())
-            Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 36.dp)) {
-                Surface(color = Color(0x99000000), shape = RoundedCornerShape(50)) {
-                    Text("$secs s", color = Color(0xFFFB7185), fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-                }
-            }
-        }
-        if (!started && alive && !showAnalytics && !settingsOpen) {
-            Box(modifier = Modifier.align(Alignment.Center)) {
-                Surface(color = Color(0x99000000), shape = RoundedCornerShape(12.dp)) {
-                    Column(modifier = Modifier.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Tap to start", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text("Swipe down = crouch · double-tap = double jump", color = Color.White.copy(0.7f), fontSize = 11.sp)
-                    }
-                }
-            }
-        }
-        AnimatedVisibility(visible = settingsOpen, enter = fadeIn(), exit = fadeOut()) {
-            DinoSettingsSheet(
-                settings = settings.value,
-                onChange = { settings.value = it; save() },
-                onCalibrate = { calActive = true; calCount = 0; calReact.clear(); settingsOpen = false; resetRun() },
-                onClose = { settingsOpen = false },
-            )
-        }
-        AnimatedVisibility(visible = showAnalytics, enter = fadeIn(), exit = fadeOut()) {
-            DinoAnalyticsSheet(
-                distance = distance.toInt(), runCoins = runCoins, jumps = jumpCount, maxCombo = maxCombo,
-                tip = runTip, deaths = deathBuckets.toMap(), reactions = reactions,
-                unlocks = unlockedNow.toList(),
-                onReplay = { showAnalytics = false; resetRun() },
-                onContinue = { showAnalytics = false; onGameOver() },
-            )
         }
     }
-}
-
-private data class ThemePalette(
-    val dayTop: Triple<Int, Int, Int>,
-    val dayBot: Triple<Int, Int, Int>,
-    val nightTop: Triple<Int, Int, Int>,
-    val nightBot: Triple<Int, Int, Int>,
-    val ground: Color,
-)
-
-private fun themePalette(theme: String): ThemePalette = when (theme) {
-    "jungle" -> ThemePalette(Triple(134, 239, 172), Triple(16, 94, 56), Triple(9, 30, 32), Triple(4, 18, 24), Color(0xFF14532D))
-    "volcano" -> ThemePalette(Triple(251, 146, 60), Triple(127, 29, 29), Triple(38, 5, 5), Triple(12, 0, 0), Color(0xFF7F1D1D))
-    "ice" -> ThemePalette(Triple(186, 230, 253), Triple(100, 116, 139), Triple(12, 35, 60), Triple(4, 12, 30), Color(0xFFCBD5E1))
-    "moon" -> ThemePalette(Triple(148, 163, 184), Triple(30, 41, 59), Triple(10, 12, 24), Triple(0, 0, 8), Color(0xFF475569))
-    else -> ThemePalette(Triple(253, 230, 138), Triple(251, 146, 60), Triple(12, 18, 50), Triple(3, 5, 18), Color(0xFF92400E))
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBg(
-    dist: Float, dayTime: Float, theme: String, hc: Boolean, cb: String, w: Float, h: Float, groundY: Float,
-) {
-    val t = (sin(dayTime / 500f) + 1f) / 2f
-    fun lerp(a: Triple<Int, Int, Int>, b: Triple<Int, Int, Int>): Color = Color(
-        ((a.first + (b.first - a.first) * t) / 255f).coerceIn(0f, 1f),
-        ((a.second + (b.second - a.second) * t) / 255f).coerceIn(0f, 1f),
-        ((a.third + (b.third - a.third) * t) / 255f).coerceIn(0f, 1f),
-    )
-    val pal = themePalette(theme)
-    val top = lerp(pal.dayTop, pal.nightTop)
-    val bot = lerp(pal.dayBot, pal.nightBot)
-    drawRect(Brush.verticalGradient(listOf(applyCb(top, cb), applyCb(bot, cb))), size = Size(w, h))
-    // far parallax clouds
-    val cloudCol = if (hc) Color.White else Color.White.copy(0.3f)
-    for (i in 0 until 5) {
-        var cx = ((i * 90f - dist * 0.4f) % (w + 60f) + w + 60f) % (w + 60f) - 30f
-        drawCircle(applyCb(cloudCol, cb), radius = 14f, center = Offset(cx, 50f + (i % 2) * 12f))
-    }
-    // ground
-    drawRect(applyCb(pal.ground, cb), Offset(0f, groundY), Size(w, h - groundY))
-    // ground details
-    val det = Color.Black.copy(0.18f)
-    var x = -((dist * 4f) % 22f)
-    while (x < w) { drawRect(det, Offset(x, groundY + 8f), Size(12f, 3f)); x += 22f }
-    if (t > 0.6f) {
-        val starCol = Color.White.copy(0.6f)
-        for (i in 0 until 22) {
-            val sx = ((i * 53f + dist * 0.2f) % w)
-            val sy = (i * 17f) % (groundY - 20f)
-            drawRect(starCol, Offset(sx, sy), Size(1.2f, 1.2f))
-        }
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawObstacle(
-    o: DObs, theme: String, hc: Boolean, cb: String, dist: Float, groundY: Float,
-) {
-    fun fill(def: Color) = if (hc) Color.White else applyCb(def, cb)
-    when (o.kind) {
-        ObsKind.CACTUS -> {
-            val col = fill(when (theme) { "volcano" -> Color(0xFFDC2626); "ice" -> Color(0xFF7DD3FC); else -> Color(0xFF16A34A) })
-            drawRect(col, Offset(o.x, o.y), Size(o.w, o.h))
-            drawRect(col, Offset(o.x - 4f, o.y + 4f), Size(4f, 10f))
-            drawRect(col, Offset(o.x + o.w, o.y + 8f), Size(4f, 10f))
-        }
-        ObsKind.ROCK -> drawCircle(fill(Color(0xFF9CA3AF)), radius = o.h / 2f, center = Offset(o.x + o.w / 2f, o.y + o.h / 2f))
-        ObsKind.PTERO -> {
-            val col = fill(Color(0xFFA855F7))
-            val wing = (sin(dist / 5f + o.x) + 1f) * 6f
-            drawRect(col, Offset(o.x, o.y), Size(o.w, o.h))
-            drawRect(col, Offset(o.x - 10f, o.y + o.h / 2f - wing), Size(10f, 2f))
-            drawRect(col, Offset(o.x + o.w, o.y + o.h / 2f - wing), Size(10f, 2f))
-            drawRect(Color.Black.copy(0.25f), Offset(o.x - 2f, groundY - 2f), Size(o.w + 4f, 2f))
-        }
-        ObsKind.LOG -> {
-            drawRect(fill(Color(0xFF92400E)), Offset(o.x, o.y), Size(o.w, o.h))
-            drawRect(Color.Black.copy(0.3f), Offset(o.x + 4f, o.y + 4f), Size(4f, o.h - 8f))
-        }
-    }
-}
-
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDino(x: Float, y: Float, sliding: Boolean, skin: String, shield: Int, cb: String) {
-    val (body, accent, eye) = when (skin) {
-        "cyber" -> Triple(Color(0xFF22D3EE), Color(0xFFA78BFA), Color.White)
-        "bone" -> Triple(Color(0xFFE5E7EB), Color(0xFFF3F4F6), Color.Black)
-        "lava" -> Triple(Color(0xFFF97316), Color(0xFFFACC15), Color.White)
-        "ice" -> Triple(Color(0xFFBAE6FD), Color(0xFF7DD3FC), Color.Black)
-        "gold" -> Triple(Color(0xFFFACC15), Color(0xFFFDE68A), Color.Black)
-        else -> Triple(Color(0xFFFACC15), Color(0xFFF59E0B), Color.Black)
-    }
-    val b = applyCb(body, cb); val a = applyCb(accent, cb)
-    if (sliding) {
-        drawRect(b, Offset(x - 14f, y - 14f), Size(28f, 14f))
-        drawRect(a, Offset(x + 4f, y - 14f), Size(10f, 4f))
-        drawRect(eye, Offset(x + 8f, y - 11f), Size(3f, 3f))
-    } else {
-        drawRect(b, Offset(x - 12f, y - 30f), Size(24f, 30f)) // body
-        drawRect(b, Offset(x - 18f, y - 24f), Size(6f, 8f))   // tail
-        drawRect(a, Offset(x + 6f, y - 36f), Size(12f, 12f))  // head
-        drawRect(eye, Offset(x + 13f, y - 33f), Size(3f, 3f))
-        val leg = (System.currentTimeMillis() / 90L) % 2L == 0L
-        drawRect(b, Offset(x - 8f, y - 6f), Size(5f, 6f + (if (leg) 0f else 2f)))
-        drawRect(b, Offset(x + 3f, y - 6f), Size(5f, 6f + (if (leg) 2f else 0f)))
-    }
-    if (shield > 0) {
-        drawCircle(Color(0xB360A5FA), radius = 22f, center = Offset(x, y - 16f), style = Stroke(width = 2f))
-    }
-}
-
-@Composable
-private fun DinoSettingsSheet(
-    settings: DinoSettings, onChange: (DinoSettings) -> Unit,
-    onCalibrate: () -> Unit, onClose: () -> Unit,
-) {
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xCC000000)).clickable(
-        interactionSource = remember { MutableInteractionSource() }, indication = null
-    ) { onClose() }) {
-        Surface(
-            color = Color(0xFF0F172A), shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.align(Alignment.Center).padding(20.dp).fillMaxWidth(0.94f)
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { },
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Dino Dash · Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp,
-                        modifier = Modifier.weight(1f))
-                    Text("✕", color = Color.White, fontSize = 18.sp,
-                        modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onClose() })
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Theme", color = Color.White.copy(0.85f), fontSize = 12.sp)
-                ChipsRow(listOf("desert", "jungle", "volcano", "ice", "moon"), settings.theme) {
-                    onChange(settings.copy(theme = it))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Skin", color = Color.White.copy(0.85f), fontSize = 12.sp)
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    val skins = listOf(
-                        Triple("classic", "Classic", true),
-                        Triple("cyber", "Cyber", settings.unlockedCyber),
-                        Triple("bone", "Bone", settings.unlockedBone),
-                        Triple("lava", "Lava", settings.unlockedLava),
-                        Triple("ice", "Ice", settings.unlockedIce),
-                        Triple("gold", "Gold", settings.unlockedGold),
-                    )
-                    Column {
-                        Row {
-                            skins.take(3).forEach { (id, label, ok) -> SkinChip(id, label, ok, settings.skin) { if (ok) onChange(settings.copy(skin = id)) } }
-                        }
-                        Row {
-                            skins.drop(3).forEach { (id, label, ok) -> SkinChip(id, label, ok, settings.skin) { if (ok) onChange(settings.copy(skin = id)) } }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Jump-buffer (ms): ${settings.jumpBuffer}", color = Color.White, fontSize = 12.sp)
-                Slider(value = settings.jumpBuffer.toFloat(), onValueChange = { onChange(settings.copy(jumpBuffer = it.toInt())) },
-                    valueRange = 0f..200f, steps = 19)
-                Text("Crouch swipe length (px): ${settings.swipeMin}", color = Color.White, fontSize = 12.sp)
-                Slider(value = settings.swipeMin.toFloat(), onValueChange = { onChange(settings.copy(swipeMin = it.toInt())) },
-                    valueRange = 10f..80f, steps = 13)
-                Spacer(modifier = Modifier.height(4.dp))
-                ToggleRow("Haptics", settings.haptics) { onChange(settings.copy(haptics = it)) }
-                ToggleRow("Reduced motion", settings.reducedMotion) { onChange(settings.copy(reducedMotion = it)) }
-                ToggleRow("High contrast", settings.highContrast) { onChange(settings.copy(highContrast = it)) }
-                ToggleRow("One-handed (tap zone bottom half)", settings.oneHanded) { onChange(settings.copy(oneHanded = it)) }
-                ToggleRow("Battery saver (~30 fps)", settings.batterySaver) { onChange(settings.copy(batterySaver = it)) }
-                ToggleRow("Voice announcer", settings.announcer) { onChange(settings.copy(announcer = it)) }
-                ToggleRow("Assist · auto-jump", settings.assistAutoJump) { onChange(settings.copy(assistAutoJump = it)) }
-                ToggleRow("Assist · forgiveness hitbox", settings.assistBigBox) { onChange(settings.copy(assistBigBox = it)) }
-                ToggleRow("Practice (invincible)", settings.assistInvincible) { onChange(settings.copy(assistInvincible = it)) }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Colourblind mode", color = Color.White.copy(0.85f), fontSize = 12.sp)
-                ChipsRow(listOf("off", "protanopia", "deuteranopia", "tritanopia"), settings.colorblind) { onChange(settings.copy(colorblind = it)) }
-                Spacer(modifier = Modifier.height(10.dp))
-                Text("Coins: ${settings.coins} · Longest: ${settings.longestM}m · Total jumps: ${settings.totalJumps}",
-                    color = Color.White.copy(0.65f), fontSize = 11.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Permanent upgrades", color = Color.White.copy(0.85f), fontSize = 12.sp)
-                Row {
-                    UpgradeChip("Double jump · 50", settings.upgradeDoubleJump, settings.upgradeDoubleJump || settings.coins < 50) {
-                        if (!settings.upgradeDoubleJump && settings.coins >= 50) onChange(settings.copy(upgradeDoubleJump = true, coins = settings.coins - 50))
-                    }
-                    UpgradeChip("Shield Lv ${settings.upgradeShield}/3 · 30", settings.upgradeShield > 0, settings.upgradeShield >= 3 || settings.coins < 30) {
-                        if (settings.upgradeShield < 3 && settings.coins >= 30) onChange(settings.copy(upgradeShield = settings.upgradeShield + 1, coins = settings.coins - 30))
-                    }
-                    UpgradeChip("Magnet Lv ${settings.upgradeMagnet}/3 · 30", settings.upgradeMagnet > 0, settings.upgradeMagnet >= 3 || settings.coins < 30) {
-                        if (settings.upgradeMagnet < 3 && settings.coins >= 30) onChange(settings.copy(upgradeMagnet = settings.upgradeMagnet + 1, coins = settings.coins - 30))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                Surface(color = Color(0xFF6366F1), shape = RoundedCornerShape(50),
-                    modifier = Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onCalibrate() }) {
-                    Text("Calibration · jump test (5 obstacles)", color = Color.White, fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ChipsRow(items: List<String>, selected: String, onPick: (String) -> Unit) {
-    Row {
-        items.forEach { id ->
-            Surface(
-                color = if (selected == id) Color(0xFF6366F1) else Color(0x33FFFFFF),
-                shape = RoundedCornerShape(50),
-                modifier = Modifier.padding(end = 6.dp, top = 6.dp).clickable(
-                    interactionSource = remember { MutableInteractionSource() }, indication = null
-                ) { onPick(id) },
-            ) { Text(id, color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun SkinChip(id: String, label: String, unlocked: Boolean, selected: String, onClick: () -> Unit) {
-    Surface(
-        color = if (selected == id) Color(0xFF6366F1) else Color(0x33FFFFFF),
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.padding(end = 6.dp, top = 6.dp).clickable(
-            interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = unlocked,
-        ) { onClick() },
-    ) {
-        Text(if (unlocked) label else "🔒 $label",
-            color = if (unlocked) Color.White else Color.White.copy(0.55f),
-            fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
-    }
-}
-
-@Composable
-private fun UpgradeChip(label: String, on: Boolean, disabled: Boolean, onClick: () -> Unit) {
-    Surface(
-        color = if (on) Color(0xFF22C55E) else if (disabled) Color(0x22FFFFFF) else Color(0x55FFFFFF),
-        shape = RoundedCornerShape(50),
-        modifier = Modifier.padding(end = 6.dp, top = 6.dp).clickable(
-            interactionSource = remember { MutableInteractionSource() }, indication = null, enabled = !disabled,
-        ) { onClick() },
-    ) { Text(label, color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) }
 }
 
 @Composable
 private fun ToggleRow(label: String, value: Boolean, onChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 2.dp)) {
+        Text(label, color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
         Checkbox(checked = value, onCheckedChange = onChange)
-        Text(label, color = Color.White, fontSize = 12.sp)
     }
 }
 
 @Composable
-private fun DinoAnalyticsSheet(
-    distance: Int, runCoins: Int, jumps: Int, maxCombo: Int,
-    tip: String, deaths: Map<String, Int>, reactions: List<Float>,
-    unlocks: List<String>,
-    onReplay: () -> Unit, onContinue: () -> Unit,
-) {
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xCC000000))) {
-        Surface(color = Color(0xFF0F172A), shape = RoundedCornerShape(18.dp),
-            modifier = Modifier.align(Alignment.Center).padding(20.dp).fillMaxWidth(0.94f)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Run analysis · ${distance}m", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(6.dp))
-                Surface(color = Color(0x3360A5FA), shape = RoundedCornerShape(10.dp)) {
-                    Text(tip, color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(8.dp))
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    StatTile("Distance", "${distance}m", Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    StatTile("Coins", "+$runCoins", Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    StatTile("Jumps", "$jumps", Modifier.weight(1f))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    StatTile("Combo", "$maxCombo", Modifier.weight(1f))
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-                Text("Death heatmap", color = Color.White.copy(0.7f), fontSize = 11.sp)
-                val total = max(1, deaths.values.sum())
-                deaths.forEach { (k, v) ->
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Text(k, color = Color.White, fontSize = 11.sp, modifier = Modifier.width(60.dp))
-                        Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(4.dp)).background(Color(0x22FFFFFF))) {
-                            Box(modifier = Modifier.fillMaxHeight().fillMaxWidth(v.toFloat() / total)
-                                .background(Brush.horizontalGradient(listOf(Color(0xFFFB7185), Color(0xFFF59E0B)))))
+private fun ShopSheet(state: MutableState<LaneRushSettings>, onClose: () -> Unit, onSave: () -> Unit) {
+    val s = state.value
+    Box(Modifier.fillMaxSize().background(Color(0xCC000000)).clickable { onClose() }) {
+        Surface(color = Color(0xFF0F172A), shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.align(Alignment.Center).padding(20.dp).fillMaxWidth(0.92f)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp).heightIn(max = 560.dp)) {
+                Text("Garage", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Coins: ${GamesStore.getCoins() + s.totalCoins}", color = Color(0xFFFCD34D), fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("Vehicles", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                SKINS.forEach { sk ->
+                    val owned = sk.id in s.unlockedSkins
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Box(Modifier.size(28.dp).clip(CircleShape).background(sk.color))
+                        Spacer(Modifier.width(8.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(sk.label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(if (owned) (if (s.skin == sk.id) "Equipped" else "Owned") else "${sk.price} coins",
+                                color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                         }
-                        Text("  $v", color = Color.White, fontSize = 11.sp)
+                        if (!owned) {
+                            ChipBtn("Buy") {
+                                val total = GamesStore.getCoins() + s.totalCoins
+                                if (total >= sk.price) {
+                                    s.unlockedSkins.add(sk.id)
+                                    s.totalCoins = max(0, s.totalCoins - sk.price)
+                                    state.value = s.copy(skin = sk.id, totalCoins = s.totalCoins); onSave()
+                                }
+                            }
+                        } else if (s.skin != sk.id) {
+                            ChipBtn("Use") { state.value = s.copy(skin = sk.id); onSave() }
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                Text("Reaction time (obstacle spawn → jump)", color = Color.White.copy(0.7f), fontSize = 11.sp)
-                Canvas(modifier = Modifier.fillMaxWidth().height(60.dp).background(Color(0x14FFFFFF))) {
-                    val arr = reactions.takeLast(32)
-                    if (arr.size < 2) return@Canvas
-                    val mx = max(1f, arr.max())
-                    var prevX = 0f; var prevY = size.height - (arr[0] / mx) * size.height
-                    for (i in 1 until arr.size) {
-                        val x = (i.toFloat() / (arr.size - 1)) * size.width
-                        val y = size.height - (arr[i] / mx) * size.height
-                        drawLine(Color(0xFF60A5FA), Offset(prevX, prevY), Offset(x, y), strokeWidth = 1.6f)
-                        prevX = x; prevY = y
+                Spacer(Modifier.height(8.dp))
+                Text("Themes", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                THEMES.forEach { t ->
+                    val owned = t.id in s.ownedThemes
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                        Box(Modifier.size(20.dp).clip(CircleShape).background(t.accent))
+                        Spacer(Modifier.width(8.dp))
+                        Text(t.label, color = Color.White, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        if (!owned) ChipBtn("${t.price}c") {
+                            val total = GamesStore.getCoins() + s.totalCoins
+                            if (total >= t.price) { s.ownedThemes.add(t.id); s.totalCoins = max(0, s.totalCoins - t.price); state.value = s.copy(); onSave() }
+                        } else Text("Owned", color = Color(0xFF34D399), fontSize = 11.sp)
                     }
                 }
-                if (unlocks.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Surface(color = Color(0x55FACC15), shape = RoundedCornerShape(10.dp)) {
-                        Text("🎉 Unlocked: ${unlocks.joinToString()}", color = Color(0xFFFDE68A),
-                            fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(8.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(Modifier.height(8.dp))
+                Row { ChipBtn("Close") { onClose() } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalibrationSheet(state: MutableState<LaneRushSettings>, onClose: () -> Unit, onSave: () -> Unit) {
+    val s = state.value
+    Box(Modifier.fillMaxSize().background(Color(0xCC000000)).clickable { onClose() }) {
+        Surface(color = Color(0xFF1F2937), shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.align(Alignment.Center).padding(20.dp).fillMaxWidth(0.9f)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Calibration", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Text("Adjust controls so steering feels natural. Try a quick test below.",
+                    color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("Tilt sensitivity: ${(s.tiltSensitivity * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+                Slider(value = s.tiltSensitivity, onValueChange = { state.value = s.copy(tiltSensitivity = it); onSave() })
+                Text("Swipe strength: ${(s.swipeStrength * 100).toInt()}%", color = Color.White, fontSize = 12.sp)
+                Slider(value = s.swipeStrength, onValueChange = { state.value = s.copy(swipeStrength = it); onSave() })
+                Spacer(Modifier.height(8.dp))
+                Text("Tip: lower swipe strength means a small swipe already changes lanes.",
+                    color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                Spacer(Modifier.height(10.dp))
+                Row { ChipBtn("Done") { onClose() } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnalyticsSheet(distance: Int, score: Int, coins: Int, nearMisses: Int, stage: Int, bossesBeat: Int,
+                           crashes: List<Crash>, reactions: List<Reaction>, laneTime: FloatArray, laneCount: Int,
+                           onReplay: () -> Unit, onClose: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Color(0xCC000000))) {
+        Surface(color = Color(0xFF111827), shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.align(Alignment.Center).padding(16.dp).fillMaxWidth(0.95f)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp).heightIn(max = 600.dp)) {
+                Text("Run Report", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
                 Row {
-                    Surface(color = Color(0xFFF59E0B), shape = RoundedCornerShape(50),
-                        modifier = Modifier.weight(1f).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onReplay() }) {
-                        Text("↺ Instant replay", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(vertical = 10.dp), textAlign = TextAlign.Center)
+                    StatBlock("Distance", "${distance}m")
+                    StatBlock("Score", "$score")
+                    StatBlock("Coins", "$coins")
+                }
+                Row {
+                    StatBlock("Near misses", "$nearMisses")
+                    StatBlock("Stage", "$stage")
+                    StatBlock("Bosses", "$bossesBeat")
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Lane heatmap", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Canvas(modifier = Modifier.fillMaxWidth().height(60.dp)) {
+                    val maxT = (laneTime.maxOrNull() ?: 1f).coerceAtLeast(0.1f)
+                    val w = size.width; val h = size.height
+                    val cellW = w / laneCount.toFloat()
+                    laneTime.forEachIndexed { i, t ->
+                        val u = (t / maxT).coerceIn(0f, 1f)
+                        val color = Color(0xFFFB923C).copy(alpha = 0.2f + 0.8f * u)
+                        drawRect(color, Offset(i * cellW + 4f, h * (1f - u)), Size(cellW - 8f, h * u))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(color = Color(0x33FFFFFF), shape = RoundedCornerShape(50),
-                        modifier = Modifier.weight(1f).clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onContinue() }) {
-                        Text("Continue", color = Color.White, fontSize = 13.sp,
-                            modifier = Modifier.padding(vertical = 10.dp), textAlign = TextAlign.Center)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Reaction times (ms)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Canvas(modifier = Modifier.fillMaxWidth().height(80.dp)) {
+                    val w = size.width; val h = size.height
+                    if (reactions.isNotEmpty()) {
+                        val maxMs = reactions.maxOf { it.ms }.coerceAtLeast(50f)
+                        reactions.forEachIndexed { i, r ->
+                            val x = i * (w / reactions.size.coerceAtLeast(1))
+                            val y = h - (r.ms / maxMs) * h
+                            drawCircle(Color(0xFF60A5FA), 4f, Offset(x + 4f, y))
+                            if (i > 0) {
+                                val px = (i - 1) * (w / reactions.size.coerceAtLeast(1))
+                                val py = h - (reactions[i - 1].ms / maxMs) * h
+                                drawLine(Color(0xFF60A5FA).copy(alpha = 0.6f), Offset(px + 4f, py), Offset(x + 4f, y), strokeWidth = 2f)
+                            }
+                        }
                     }
+                    drawLine(Color.White.copy(alpha = 0.2f), Offset(0f, h - 1f), Offset(w, h - 1f), strokeWidth = 1f)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Crashes (${crashes.size})", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                crashes.takeLast(8).forEach { c ->
+                    Text("${c.zoneY.toInt()}m · lane ${(c.zoneX.toInt() + 1)} · ${c.obstacle.lowercase()}",
+                        color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
+                }
+                Spacer(Modifier.height(10.dp))
+                Row {
+                    ChipBtn("Replay") { onReplay() }
+                    Spacer(Modifier.width(8.dp))
+                    ChipBtn("Close") { onClose() }
                 }
             }
         }
@@ -984,13 +1086,13 @@ private fun DinoAnalyticsSheet(
 }
 
 @Composable
-private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(color = Color(0x14FFFFFF), shape = RoundedCornerShape(8.dp), modifier = modifier) {
-        Column(modifier = Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, color = Color.White.copy(0.6f), fontSize = 10.sp)
-            Text(value, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+private fun RowScope.StatBlock(label: String, value: String) {
+    Surface(color = Color.White.copy(alpha = 0.06f), shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.weight(1f).padding(2.dp)) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(label, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp)
+            Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
         }
     }
 }
 
-private fun List<Float>.max(): Float = if (isEmpty()) 0f else reduce { a, b -> if (a > b) a else b }

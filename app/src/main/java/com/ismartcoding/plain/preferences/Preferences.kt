@@ -960,6 +960,11 @@ object DinoSettingsJsonPreference : BasePreference<String>() {
     override val key = stringPreferencesKey("dino_settings_json_v1")
 }
 
+object LaneRushSettingsJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("lane_rush_settings_json_v1")
+}
+
 object BrickSettingsJsonPreference : BasePreference<String>() {
     override val default = "{}"
     override val key = stringPreferencesKey("brick_settings_json_v1")
