@@ -244,6 +244,7 @@ dependencies {
     implementation(libs.media3.hls)
 
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.biometric)
 

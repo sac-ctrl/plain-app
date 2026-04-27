@@ -5,6 +5,12 @@
     <color name="launcher_background">#FFFFFF</color>
     <color name="app_icon">#1A73E8</color>
 
+    <color name="launcher_bg_calc">#1F2933</color>
+    <color name="launcher_bg_notes">#FFB300</color>
+    <color name="launcher_bg_calendar">#E53935</color>
+    <color name="launcher_bg_music">#7B1FA2</color>
+    <color name="launcher_bg_vault">#263238</color>
+
     <color name="scrollbar_primary">#007AFF</color>
 
     <color name="syntax_number">#ffff6600</color>

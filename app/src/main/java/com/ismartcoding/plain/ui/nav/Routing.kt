@@ -55,6 +55,9 @@ class Routing {
     object AppLock
 
     @Serializable
+    object LauncherIcon
+
+    @Serializable
     data class Chat(val id: String = "")
 
     @Serializable

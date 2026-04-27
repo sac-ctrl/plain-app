@@ -68,6 +68,18 @@ internal fun SettingsCardItems(navController: NavHostController) {
     PCard {
         PListItem(
             modifier = Modifier.clickable {
+                navController.navigate(Routing.LauncherIcon)
+            },
+            title = stringResource(R.string.launcher_icon),
+            subtitle = stringResource(R.string.launcher_icon_subtitle),
+            icon = R.drawable.image,
+            showMore = true,
+        )
+    }
+    VerticalSpace(16.dp)
+    PCard {
+        PListItem(
+            modifier = Modifier.clickable {
                 navController.navigate(Routing.BackupRestore)
             },
             title = stringResource(R.string.backup_restore),

@@ -77,4 +77,31 @@
     <string name="downloading_update">डाउनलोड हो रहा है… %1$s%%</string>
     <string name="download_update_failed">डाउनलोड विफल हुआ</string>
     <string name="download_on_github">GitHub पर डाउनलोड करें</string>
+
+    <string name="launcher_label_calc">कैलकुलेटर</string>
+    <string name="launcher_label_notes">मेरे नोट्स</string>
+    <string name="launcher_label_calendar">कैलेंडर</string>
+    <string name="launcher_label_music">संगीत</string>
+    <string name="launcher_label_vault">वॉल्ट</string>
+
+    <string name="launcher_icon">लॉन्चर आइकन और नाम</string>
+    <string name="launcher_icon_subtitle">होम-स्क्रीन आइकन को छिपाएँ या अपनी छवि अपलोड करें।</string>
+    <string name="launcher_icon_built_in">पहले से तैयार थीम</string>
+    <string name="launcher_icon_built_in_desc">किसी थीम पर टैप करें और होम-स्क्रीन आइकन बदल जाएगा। बदलाव दिखने में कुछ सेकंड लग सकते हैं।</string>
+    <string name="launcher_icon_custom">अपनी छवि का उपयोग करें</string>
+    <string name="launcher_icon_custom_desc">कोई भी छवि चुनें, शॉर्टकट को नाम दें और इसे होम स्क्रीन पर पिन करें।</string>
+    <string name="launcher_icon_pick_image">छवि चुनें</string>
+    <string name="launcher_icon_pin_shortcut">होम स्क्रीन पर पिन करें</string>
+    <string name="launcher_icon_custom_name_hint">शॉर्टकट का नाम (जैसे कैलकुलेटर)</string>
+    <string name="launcher_icon_specs_title">छवि स्पेक्स</string>
+    <string name="launcher_icon_specs_body">• वर्गाकार (1:1) छवियाँ सबसे अच्छी रहती हैं।\n• सुझाव: 1024 × 1024 पिक्सेल या उससे बड़ी।\n• PNG, JPG या WebP।\n• मुख्य सामग्री बीच के 66 प्रतिशत में रखें।\n• ठोस या सरल पृष्ठभूमि बेहतर दिखती है।</string>
+    <string name="launcher_icon_code_title">कोड से करना चाहते हैं?</string>
+    <string name="launcher_icon_code_body">पूरी मार्गदर्शिका प्रोजेक्ट के मूल फ़ोल्डर में LAUNCHER_ICON_SETUP.md में मौजूद है।</string>
+    <string name="launcher_icon_applied">लागू किया गया। आइकन जल्द ही ताज़ा होगा।</string>
+    <string name="launcher_icon_pinned">शॉर्टकट होम स्क्रीन पर पिन किया गया।</string>
+    <string name="launcher_icon_pin_unsupported">आपका लॉन्चर शॉर्टकट पिन करने का समर्थन नहीं करता।</string>
+    <string name="launcher_icon_pick_first">पहले एक छवि चुनें।</string>
+    <string name="launcher_icon_active">सक्रिय</string>
+    <string name="launcher_icon_apply">लागू करें</string>
+    <string name="launcher_theme_default">डिफ़ॉल्ट</string>
 </resources>

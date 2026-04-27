@@ -130,4 +130,31 @@
     <string name="app_lock_unlock_biometric_subtitle">Use biometrics to unlock PlainApp.</string>
     <string name="app_lock_use_pin">Use PIN</string>
     <string name="app_lock_use_biometric">Use biometric</string>
+
+    <string name="launcher_label_calc">Calculator</string>
+    <string name="launcher_label_notes">My Notes</string>
+    <string name="launcher_label_calendar">Calendar</string>
+    <string name="launcher_label_music">Music</string>
+    <string name="launcher_label_vault">Vault</string>
+
+    <string name="launcher_icon">Launcher icon and name</string>
+    <string name="launcher_icon_subtitle">Disguise the home-screen icon, or upload your own.</string>
+    <string name="launcher_icon_built_in">Built-in themes</string>
+    <string name="launcher_icon_built_in_desc">Tap a theme to switch the home-screen icon and label. The launcher may take a few seconds to refresh; if you do not see the change, swipe to another home page and back.</string>
+    <string name="launcher_icon_custom">Use your own image</string>
+    <string name="launcher_icon_custom_desc">Pick any image, give the shortcut a name, and pin it to your home screen. Android will use your image as the icon and your text as the label.</string>
+    <string name="launcher_icon_pick_image">Pick image</string>
+    <string name="launcher_icon_pin_shortcut">Pin to home screen</string>
+    <string name="launcher_icon_custom_name_hint">Shortcut name (e.g. Calculator)</string>
+    <string name="launcher_icon_specs_title">Image specs</string>
+    <string name="launcher_icon_specs_body">• Square images work best (1:1).\n• Recommended size: 1024 × 1024 px or larger.\n• PNG, JPG, or WebP.\n• Keep the important content inside the centre 66 percent — the launcher may crop the outer edges into a circle, squircle, or rounded square.\n• Solid or simple backgrounds look cleanest.\n• The image is auto-cropped to a square, scaled to 432 × 432, and placed on a coloured background to make a perfect adaptive icon.</string>
+    <string name="launcher_icon_code_title">Prefer to do it from code?</string>
+    <string name="launcher_icon_code_body">A full guide is included in the project root: LAUNCHER_ICON_SETUP.md. It explains exactly which folder to drop your icon into, which line to edit for the app name, and how to add a brand-new icon theme.</string>
+    <string name="launcher_icon_applied">Applied. The home-screen icon will refresh shortly.</string>
+    <string name="launcher_icon_pinned">Shortcut pinned to your home screen.</string>
+    <string name="launcher_icon_pin_unsupported">Your launcher does not support pinning shortcuts. Try a different launcher or use one of the built-in themes.</string>
+    <string name="launcher_icon_pick_first">Please pick an image first.</string>
+    <string name="launcher_icon_active">Active</string>
+    <string name="launcher_icon_apply">Apply</string>
+    <string name="launcher_theme_default">Default</string>
 </resources>

@@ -204,6 +204,78 @@
             </intent-filter>
         </activity-alias>
 
+        <!--
+            Disguise launcher themes. Only one activity-alias is enabled at a time
+            (managed by LauncherIconHelper.setActiveTheme). Each one gives the app
+            a different launcher icon AND a different launcher label, so the entry
+            on the home screen can look like a calculator, notes app, calendar, etc.
+            To add a new theme: copy a block, change the alias name, icon, and label.
+        -->
+        <activity-alias
+            android:name=".LauncherAliasCalc"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_calc"
+            android:label="@string/launcher_label_calc"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherAliasNotes"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_notes"
+            android:label="@string/launcher_label_notes"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherAliasCalendar"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_calendar"
+            android:label="@string/launcher_label_calendar"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherAliasMusic"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_music"
+            android:label="@string/launcher_label_music"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".LauncherAliasVault"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_vault"
+            android:label="@string/launcher_label_vault"
+            android:targetActivity=".ui.MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <service
             android:name=".services.HttpServerService"
             android:exported="false"
