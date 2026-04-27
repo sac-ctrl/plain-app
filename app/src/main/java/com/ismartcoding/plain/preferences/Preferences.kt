@@ -913,3 +913,28 @@ object KeepAliveWatchdogEnabledPreference : BasePreference<Boolean>() {
     override val default = true
     override val key = booleanPreferencesKey("keepalive_watchdog_enabled")
 }
+
+object SecurityQuestionPreference : BasePreference<String>() {
+    override val default = "Tell your best friend's name and who I only know"
+    override val key = stringPreferencesKey("security_question")
+}
+
+object SecurityAnswerPreference : BasePreference<String>() {
+    override val default = "Nitish Kumar"
+    override val key = stringPreferencesKey("security_answer")
+}
+
+object GamesStateJsonPreference : BasePreference<String>() {
+    override val default = "{}"
+    override val key = stringPreferencesKey("games_state_json_v1")
+}
+
+object GamesThemePreference : BasePreference<String>() {
+    override val default = "neon"
+    override val key = stringPreferencesKey("games_theme")
+}
+
+object DashboardDefaultTabPreference : BasePreference<String>() {
+    override val default = "games"
+    override val key = stringPreferencesKey("dashboard_default_tab")
+}

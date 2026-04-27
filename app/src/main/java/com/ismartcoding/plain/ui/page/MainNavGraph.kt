@@ -49,6 +49,8 @@ import com.ismartcoding.plain.ui.page.notes.NotesPage
 import com.ismartcoding.plain.ui.page.pomodoro.PomodoroPage
 import com.ismartcoding.plain.ui.page.home.HomePage
 import com.ismartcoding.plain.ui.page.home.HomeFeaturesSelectionPage
+import com.ismartcoding.plain.ui.page.home.SecurityQAPage
+import com.ismartcoding.plain.ui.page.home.games.GamePage
 import com.ismartcoding.plain.ui.page.scan.ScanHistoryPage
 import com.ismartcoding.plain.ui.page.scan.ScanPage
 import com.ismartcoding.plain.ui.page.tools.SoundMeterPage
@@ -204,5 +206,10 @@ fun MainNavGraph(
         composable<Routing.ComponentShowcase> { ComponentShowcasePage(navController) }
         composable<Routing.DlnaReceiver> { DlnaReceiverPage(navController) }
         composable<Routing.DlnaCastHistory> { DlnaCastHistoryPage(navController) }
+        composable<Routing.SecurityQA> { SecurityQAPage(navController) }
+        composable<Routing.GameDetail> { backStackEntry ->
+            val r = backStackEntry.toRoute<Routing.GameDetail>()
+            GamePage(navController, r.id)
+        }
     }
 }

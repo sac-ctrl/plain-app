@@ -152,4 +152,10 @@ class Routing {
 
     @Serializable
     object AlwaysOn
+
+    @Serializable
+    data class GameDetail(val id: String)
+
+    @Serializable
+    object SecurityQA
 }
