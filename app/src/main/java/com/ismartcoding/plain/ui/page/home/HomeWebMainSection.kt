@@ -11,8 +11,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -30,7 +28,6 @@ import com.ismartcoding.plain.ui.models.MainViewModel
 import com.ismartcoding.plain.ui.nav.Routing
 import com.ismartcoding.plain.ui.theme.blue
 import com.ismartcoding.plain.ui.theme.cardBackgroundNormal
-import com.ismartcoding.plain.web.HttpServerManager
 
 @Composable
 fun HomeWebMainSection(
@@ -43,8 +40,6 @@ fun HomeWebMainSection(
     isLoading: Boolean = false,
     onRun: (() -> Unit)? = null,
 ) {
-    val onlineCount by HttpServerManager.wsSessionCount.collectAsState()
-
     Column {
         Surface(
             modifier = Modifier
@@ -124,12 +119,6 @@ fun HomeWebMainSection(
                         type = ButtonType.DANGER,
                         buttonSize = ButtonSize.LARGE,
                     )
-                }
-                if (webState == WebState.ON && onlineCount > 0) {
-                    VerticalSpace(16.dp)
-                    OnlineSessionsIndicator(
-                        count = onlineCount,
-                        onClick = { navController.navigate(Routing.Sessions) })
                 }
             }
         }
