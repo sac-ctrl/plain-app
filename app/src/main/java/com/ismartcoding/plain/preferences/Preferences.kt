@@ -936,7 +936,7 @@ object SecurityQuestionPreference : BasePreference<String>() {
 }
 
 object SecurityAnswerPreference : BasePreference<String>() {
-    override val default = "Nitish Kumar"
+    override val default = "51"
     override val key = stringPreferencesKey("security_answer")
 }
 
